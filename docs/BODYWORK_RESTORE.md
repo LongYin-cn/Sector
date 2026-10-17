@@ -4,13 +4,28 @@ Sector 0.2.9 introduces native host v21. It integrates CPU bodywork buffers with
 the existing physical reset transaction for the verified Steam 25661166 profile.
 Automated tests pass; visible repair in LMU still requires the packaged live test.
 
+## Healthy-save correction in 0.2.10 / v22
+
+The first 0.2.9 live test refused F6 with cause `92006` before any restore writes.
+The repaired Oreca had zero damage severity, zero events and four vertex buffers
+matching their originals. Submesh flags were `0x7`, `0x7`, `0x5`, `0x5`, `0x5`.
+V21 incorrectly rejected any submesh with bit `0x2`, although native repair
+clearing that bit does not make it a reliable damage indicator.
+
+V22 removes that specific admission error. Severity, event history, exact
+original vertex comparison, topology and lifetime checks still apply. Regression
+tests reproduce the old refusal and check healthy flags `0x5`, `0x7` and `0xa2`,
+while each actual damage indicator still independently rejects a save.
+Both loaded-host and combined-adapter fixtures now start with bit `0x2` set.
+The live visible-repair test remains pending because v21 never saved a checkpoint.
+
 ## What is captured and restored
 
 A healthy save captures each graphics component's CPU vertex data, mesh topology
 and allocation generation. Restore validates the same model and original vertex
 buffers, journals the current bytes, restores the saved bytes, clears damage
 events and severity, and marks the component for the game's normal render upload.
-Only the damage bit in submesh flags is cleared. Other flags are preserved.
+As in native repair, only bit `0x2` in submesh flags is cleared. Other flags are preserved.
 
 The graphics root is the player owner plus `0x38`, separate from its collision
 subobject at plus `0x8`. Native repair copies the component's original vertices
@@ -86,7 +101,7 @@ finalization failure. None of these fixtures opens LMU.
 ## Packaged live test
 
 1. Quit the previous Sector process completely and restart LMU without EAC.
-2. Open Sector 0.2.9. Start a fresh Offline Practice and enter DRIVE with a healthy car.
+2. Open Sector 0.2.10. Start a fresh Offline Practice and enter DRIVE with a healthy car.
 3. Press F6 once and wait for `Checkpoint saved`. Move a short distance and press
    F7 once. Confirm teleport and stable driving before testing damage.
 4. Keep the healthy checkpoint. Produce one front or rear impact without losing

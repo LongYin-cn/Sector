@@ -204,8 +204,9 @@ struct Transaction::Work {
                 for (size_t k = 0; k < mesh.flags.size(); ++k) {
                     if (!read(mesh.submeshes + k * submesh_stride + 0xc8, mesh.flags[k]))
                         return Result::read_failed;
-                    if (healthy && (mesh.flags[k] & 2))
-                        return Result::damaged_checkpoint;
+                    // Native repair clears bit 0x2, but LMU also sets it on
+                    // intact meshes. Health comes from severity, event history
+                    // and comparison with original vertices, not this flag.
                 }
                 report.vertex_bytes += bytes;
                 ++report.meshes;

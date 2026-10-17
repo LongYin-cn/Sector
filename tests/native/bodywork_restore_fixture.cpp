@@ -240,6 +240,40 @@ void recovery_and_guards() {
     CHECK(t.finish(false) == Result::ok);
 }
 
+void healthy_render_flags() {
+    // The repaired Oreca reports 0x7/0x5 with clean events and exact original
+    // vertices. Bit 0x2 alone does not establish bodywork damage.
+    for (uint32_t flags : {0x5u, 0x7u, 0xa2u}) {
+        Memory memory;
+        for (size_t i = 0; i < 2; ++i)
+            memory.set<uint32_t>(submeshes + i * 0xe0 + 0xc8, flags);
+        const auto before = memory.bytes;
+        Transaction transaction(memory.backend());
+        Checkpoint checkpoint;
+        CHECK(transaction.capture(root, checkpoint) == Result::ok);
+        CHECK(memory.bytes == before && !memory.writes && memory.locks.empty());
+        memory.damage();
+        CHECK(transaction.begin(root, checkpoint) == Result::ok);
+        CHECK(transaction.apply() == Result::ok);
+        memory.assert_repaired();
+        CHECK(transaction.finish(true) == Result::ok);
+    }
+    for (unsigned indicator = 0; indicator < 3; ++indicator) {
+        Memory memory;
+        memory.set<uint32_t>(submeshes + 0xc8, 7);
+        if (indicator == 0)
+            memory.set<uint32_t>(root + 0x1a88, 1);
+        else if (indicator == 1)
+            memory.set<uint32_t>(components + 0x40, 1);
+        else
+            memory.bytes[vertices - root + 27] ^= 1;
+        Transaction transaction(memory.backend());
+        Checkpoint checkpoint;
+        CHECK(transaction.capture(root, checkpoint) == Result::damaged_checkpoint);
+        CHECK(!memory.writes && memory.locks.empty());
+    }
+}
+
 void failed_recovery(bool lose_pin) {
     Memory memory;
     Transaction t(memory.backend());
@@ -329,6 +363,7 @@ int main(int argc, char **argv) {
     faults(count, false);
     faults(count, true);
     recovery_and_guards();
+    healthy_render_flags();
     failed_recovery(false);
     failed_recovery(true);
     if (argc == 2)

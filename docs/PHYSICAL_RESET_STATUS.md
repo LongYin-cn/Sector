@@ -1,6 +1,6 @@
 # Physical reset: current status
 
-**Development desktop: 0.2.9. Native host: v21 for the verified Steam 25661166 /
+**Development desktop: 0.2.10. Native host: v22 for the verified Steam 25661166 /
 app build 14200 compatibility profile.** Matching the display version alone is
 insufficient: runtime admission also checks the pinned identities and hashes.
 The 0.2.5 impact trial crashed LMU. V19 passed the subsequent ordinary and
@@ -8,7 +8,9 @@ settled-impact trial on the Oreca 07. The 0.2.8 capture confirms restoration of 
 tested impacts, but the user still observed damaged front and rear bodywork.
 V21 integrates graphics-buffer restoration with the physical transaction and
 adds synchronization with native model updates. Local tests pass; visible repair
-with the packaged 0.2.9 build is not yet verified in LMU. See the
+is not yet verified in LMU. The 0.2.9 test exposed a false damaged-car refusal
+at F6; 0.2.10 fixes the render-flag classification without removing the actual
+damage checks. See the
 [bodywork implementation and test procedure](BODYWORK_RESTORE.md).
 
 ## Implemented behavior

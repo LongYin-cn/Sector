@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.2.10",
+    "changes": [
+      "Fixes a false damaged-car warning when saving a healthy car or a car repaired in the pits.",
+      "Keeps the bodywork checks for damage events, severity and original vertex data. A render flag alone no longer rejects the checkpoint.",
+      "Visible bodywork restoration still requires a successful live save and impact test."
+    ]
+  },
+  {
     "version": "0.2.9",
     "changes": [
       "Adds experimental bodywork restoration to Active Reset for supported CPU graphics buffers. Live validation is still pending.",

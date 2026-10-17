@@ -3,6 +3,19 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Healthy-save regression: 0.2.10 / v22
+
+The 0.2.9 live capture recorded cause `92006` for healthy-save attempts without
+any restore writes. Damage severity and events were zero, all four CPU vertex
+buffers matched their originals, but the first two submeshes had flags `0x7`.
+The old admission treated bit `0x2` as proof of damage. The new regression fails
+against v21 at healthy capture, and v22 removes that incorrect classification.
+Healthy flags are tested independently of severity, events and vertex changes.
+The corrected graphics fixture, combined adapter, loaded host and 113 Python
+tests pass. The packaged 0.2.10 EXE passes isolated startup and embedded-runtime
+checks. The read-only incident capture recorded 5,748 samples and no game writes.
+Visible bodywork repair remains unverified until the packaged retest succeeds.
+
 ## Bodywork integration: 0.2.9 / v21
 
 - Graphics fixture: 35 journal spans and 70 partial/corrupt write fault cases,

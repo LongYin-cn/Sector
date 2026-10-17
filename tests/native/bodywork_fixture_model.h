@@ -31,7 +31,8 @@ struct BodyworkFixtureModel {
         write(mesh + 0x150, reinterpret_cast<uintptr_t>(vertices));
         write(mesh + 0x168, int32_t{1});
         write(mesh + 0x170, reinterpret_cast<uintptr_t>(submesh));
-        write(submesh + 0xc8, uint32_t{0xa0});
+        // Bit 0x2 is also present on the healthy live Oreca model.
+        write(submesh + 0xc8, uint32_t{0xa2});
         for (size_t i = 0; i < sizeof(vertices); ++i)
             vertices[i] = original[i] = static_cast<unsigned char>(i);
     }
