@@ -68,6 +68,13 @@ try {
   );
   await page.keyboard.press("Escape");
   assert.equal(
+    await page.getByRole("button", { name: "Quit setup" }).count(),
+    0,
+  );
+  await page
+    .locator(".modal-backdrop")
+    .click({ position: { x: 2, y: 2 }, force: true });
+  assert.equal(
     await page
       .getByRole("dialog", { name: "Connect Le Mans Ultimate" })
       .isVisible(),
@@ -147,17 +154,27 @@ try {
     true,
   );
   await app.evaluate(({ dialog }) => {
-    dialog.showOpenDialog = async () => ({ canceled: true, filePaths: [] });
+    dialog.showOpenDialog = async (parent, options) => {
+      global.sectorPickerCall = { parent: !!parent, options };
+      return { canceled: true, filePaths: [] };
+    };
   });
-  await page.getByRole("button", { name: "Browse…" }).click();
-  await page.getByRole("button", { name: "Browse…" }).waitFor();
+  await page.getByRole("button", { name: "Choose folder" }).click();
+  await page.getByRole("button", { name: "Choose folder" }).waitFor();
+  const picker = await app.evaluate(() => global.sectorPickerCall);
+  assert.equal(picker.parent, true);
+  assert.deepEqual(picker.options.properties, ["openDirectory"]);
+  assert.equal(
+    (await page.evaluate(() => window.sector.initialize())).onboarding.required,
+    true,
+  );
   await app.evaluate(({ dialog }, folder) => {
     dialog.showOpenDialog = async () => ({
       canceled: false,
       filePaths: [folder],
     });
   }, fixture);
-  await page.getByRole("button", { name: "Browse…" }).click();
+  await page.getByRole("button", { name: "Choose folder" }).click();
   await page.getByRole("alert").waitFor();
   assert.match(await page.getByRole("alert").innerText(), /not found/);
   await app.evaluate(({ dialog }, folder) => {
@@ -166,7 +183,7 @@ try {
       filePaths: [folder],
     });
   }, game);
-  await page.getByRole("button", { name: "Browse…" }).click();
+  await page.getByRole("button", { name: "Choose folder" }).click();
   await page.getByText(game, { exact: true }).waitFor();
   await page.getByRole("button", { name: "Confirm folder" }).click();
   await page.getByRole("button", { name: "Not now", exact: true }).click();

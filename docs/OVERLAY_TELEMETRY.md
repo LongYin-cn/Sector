@@ -1,5 +1,24 @@
 # Overlay telemetry
 
+## Online sessions and EAC
+
+From 0.2.13, public telemetry discovery is independent of Active Reset admission.
+The overlay reader enumerates process names to track the selected PID and opens
+only the SDK's `LMU_Data` mapping for reading. It does not open a handle to LMU,
+read process memory or load a module into the game. SDK synchronization uses the
+SDK's lock protocol. The Sector parent handle only controls reader lifetime.
+
+Protected process paths and start times are optional for overlays; multiple
+running LMU instances remain ambiguous and are rejected. Active Reset still
+requires the selected installation, a stable process identity, no EAC and
+positive offline Practice context before starting its listener. The native
+runner retains its own checks. Missing or unknown context never admits reset.
+
+Online opponent data may contain scoring without individual physics or resource
+readings. Standings and scored gaps remain available; missing readings are not
+invented. Automated discovery, admission and scoring-only fixtures pass. Live
+validation in an EAC-enabled online session is pending.
+
 The SDK reader follows the refresh rate of the display selected for overlays,
 including fractional rates such as 59.94 Hz. If that display disappears, it uses
 the primary display. If Windows does not report a usable rate, it uses 60 Hz.

@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.2.13",
+    "changes": [
+      "Keeps first-launch setup open until a valid LMU folder is confirmed, with a native Windows folder picker.",
+      "Separates public SDK overlays from Active Reset so protected game discovery and online sessions do not require the reset listener.",
+      "Prevents the reset listener from starting with EAC or without confirmed offline Practice context. Live online overlay verification is pending."
+    ]
+  },
+  {
     "version": "0.2.12",
     "changes": [
       "Matches overlay updates to the selected display refresh rate, including fractional rates and monitor changes.",

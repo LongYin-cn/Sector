@@ -81,7 +81,11 @@ const gameLauncher = new GameLauncher({
 });
 const discoverInstallation = async () => {
   if (!setupReady()) return [];
-  const games = await discoverGame(setup.lmuPath);
+  return discoverGame(setup.lmuPath);
+};
+const discoverOverlayGame = async () => {
+  if (!setupReady()) return [];
+  const games = await discoverGame(undefined, { telemetryOnly: true });
   gameLauncher.observe(games);
   return games;
 };
@@ -364,7 +368,7 @@ if (!app.requestSingleInstanceLock()) {
         file: path.join(path.dirname(settingsFile), "overlays.json"),
         preview,
         desktop: () => window,
-        discover: discoverInstallation,
+        discover: discoverOverlayGame,
         ready: setupReady,
       });
       installBridge();

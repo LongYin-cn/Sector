@@ -508,7 +508,6 @@ function App() {
         <Onboarding
           open={!modal && !quitting}
           initialFolder={onboarding.folder}
-          onQuit={exit}
           onFinish={(tutorial) => {
             setOnboarding({ required: false });
             if (tutorial) startGuide();

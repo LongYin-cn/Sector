@@ -2,6 +2,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
+#include <tlhelp32.h>
 #include <cstdint>
 #include <cstdio>
 #include <cmath>
@@ -31,6 +32,22 @@ struct View {
             UnmapViewOfFile(p);
     }
 };
+
+static bool lmuRunning(DWORD pid) {
+    // Enumerate process names without opening the protected game. Telemetry comes
+    // exclusively from LMU's public SDK mapping, including in online sessions.
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE)
+        return false;
+    Handle processes{snapshot};
+    PROCESSENTRY32W entry{};
+    entry.dwSize = sizeof entry;
+    for (BOOL found = Process32FirstW(snapshot, &entry); found;
+         found = Process32NextW(snapshot, &entry))
+        if (entry.th32ProcessID == pid)
+            return _wcsicmp(entry.szExeFile, L"Le Mans Ultimate.exe") == 0;
+    return false;
+}
 
 struct RefreshClock {
     Handle timer{CreateWaitableTimerExW(nullptr, nullptr, 0x2, TIMER_ALL_ACCESS)};
@@ -571,16 +588,8 @@ int main(int argc, char **argv) {
     DWORD pid = strtoul(argv[1], nullptr, 10), owner = strtoul(argv[2], nullptr, 10);
     if (!pid || !owner)
         return 2;
-    Handle game{OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid)},
-        parent{OpenProcess(SYNCHRONIZE, FALSE, owner)};
-    if (!game.h || !parent.h)
-        return 3;
-    char executable[32768];
-    DWORD size = sizeof executable;
-    if (!QueryFullProcessImageNameA(game.h, 0, executable, &size))
-        return 3;
-    auto name = strrchr(executable, '\\');
-    if (!name || _stricmp(name + 1, "Le Mans Ultimate.exe"))
+    Handle parent{OpenProcess(SYNCHRONIZE, FALSE, owner)};
+    if (!parent.h || !lmuRunning(pid))
         return 3;
     Handle mapping{OpenFileMappingA(FILE_MAP_READ, FALSE, "LMU_Data")};
     View data{mapping.h ? MapViewOfFile(mapping.h, FILE_MAP_READ, 0, 0, sizeof(SharedMemoryLayout))
@@ -596,8 +605,13 @@ int main(int argc, char **argv) {
     RefreshClock refresh;
     refresh.setRate(rate);
     ReaderControl control;
-    while (WaitForSingleObject(game.h, 0) == WAIT_TIMEOUT &&
-           WaitForSingleObject(parent.h, 0) == WAIT_TIMEOUT) {
+    ULONGLONG nextProcessCheck = GetTickCount64() + 1000;
+    while (WaitForSingleObject(parent.h, 0) == WAIT_TIMEOUT) {
+        if (GetTickCount64() >= nextProcessCheck) {
+            if (!lmuRunning(pid))
+                break;
+            nextProcessCheck = GetTickCount64() + 1000;
+        }
         if (!control.poll(refresh))
             break;
         Frame f{};

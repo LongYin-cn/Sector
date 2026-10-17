@@ -9,6 +9,8 @@ For the download and first launch, start with [Install Sector](../README.md#-ins
 On first launch, confirm the LMU folder Sector finds. If no folder is found,
 select the folder containing `Le Mans Ultimate.exe` yourself. You can find it
 through Steam: open LMU's **Manage → Browse local files** option in your Library.
+Use **Choose folder** to open the Windows folder picker. A valid installation
+must be confirmed before continuing; the setup popup cannot be dismissed.
 
 **Active Reset requires LMU's Offline mode.** To prepare the game:
 
@@ -20,6 +22,10 @@ Sector can remain open while you load the session; it connects automatically
 when the game is ready.
 
 For overlays, use **windowed or borderless mode** in LMU's display settings.
+From 0.2.13, the overlay reader connects to the public SDK independently of
+Active Reset. You can launch LMU normally with EAC for online overlays; you do
+not need to start an offline Practice. Live online verification of this change
+is pending. Active Reset is available only in the offline setup described above.
 
 ## Practice a corner or section
 
@@ -156,6 +162,9 @@ selected display in Settings. Load a session, bring LMU to the foreground and
 use windowed or borderless mode. Live widgets hide when game information is
 unavailable or when another app is in the foreground.
 They also hide while the game is paused. Resume the game before checking the layout.
+For online sessions, keep EAC enabled and check the Overlay page separately from
+Active Reset, which remains disabled. Some opponent readings may not be supplied
+by LMU online; unavailable values appear as `-`.
 
 ### Active Reset says the car or game version is unsupported
 

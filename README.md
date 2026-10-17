@@ -52,6 +52,9 @@ Sector looks for your LMU installation automatically. Confirm the folder it find
 or use the folder picker to select it yourself. The correct folder contains
 `Le Mans Ultimate.exe`.
 
+Choose **Choose folder** to open the Windows folder picker. Setup stays open
+until you confirm a valid installation; Escape and clicks outside cannot skip it.
+
 If you do not know where LMU is installed, find it in your Steam Library, open
 its **Manage → Browse local files** option and use that folder in Sector.
 
@@ -126,6 +129,11 @@ is rejected. You can preview or mute them on the same page.
 Overlays are small widgets displayed over the game. Choose the information you
 want to keep in view:
 
+In 0.2.13, overlays use LMU's public telemetry interface independently of Active
+Reset, including online sessions with EAC enabled. Launch LMU normally through
+Steam and enable your widgets. Active Reset remains unavailable online. This
+new connection path has passed local tests; live online verification is pending.
+
 ![The ten Sector widgets, including Tyres, Stint planner and Hybrid](docs/media/widgets.png)
 
 *Widget previews use demo data.*
@@ -186,6 +194,8 @@ they become available; they do not change the car's settings for you.
 
 The editor can show sample data while you arrange your layout. Live values that
 the game does not provide appear as `-`.
+Online sessions may provide less information about opponents; missing readings
+stay unavailable while standings and scored gaps use the data LMU supplies.
 
 ## Keep Sector running in the background
 

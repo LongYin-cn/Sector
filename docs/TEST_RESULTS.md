@@ -3,6 +3,39 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## First-run setup and online overlay discovery: 0.2.13
+
+All 61 desktop model tests pass. New cases cover protected-process discovery,
+EAC and online reset rejection, a later switch to offline Practice, shutdown
+during admission, and standings with scoring-only opponent data. Native reader
+self-tests pass after removing the game process handle.
+
+Source and packaged onboarding tests verify Escape and outside-click dismissal
+are blocked, a native directory picker is requested with the owning window,
+cancel and invalid folders leave setup incomplete, and a valid folder enables
+the optional tour. The packaged EXE passes isolated startup, bundled Python
+imports and widget checks. These checks never attach a reset module to LMU.
+The full Electron UI suite passes, including tray reopening, all ten widgets,
+layout persistence and Home actions. Native SDK serialization into the wheel,
+stint, hybrid and leaderboard models also passes. The first UI run timed out
+because the source launcher tried to reinstall dependencies while Electron was
+open after the version change; installing the lockfile before launching tests
+resolved the development-environment failure.
+
+### Remaining live check
+
+1. Quit the previous Sector instance completely and open 0.2.13.
+2. Launch LMU normally through Steam with EAC and join an online session.
+3. Use windowed or borderless mode, enable overlays and enter DRIVE.
+4. Check changing Inputs and lap values, standings and Relative gaps. Some
+   opponent resource readings can remain unavailable in the public SDK.
+5. Confirm Active Reset stays unavailable; do not use F6/F7 for this check.
+6. Switch away from LMU and return, then leave the session and rejoin. Check
+   widget visibility and reconnection.
+
+The user deferred this live check. EAC-enabled online operation is not yet
+verified on the running game.
+
 ## Display synchronization and visibility: 0.2.12
 
 The reader timer measured 143.99 Hz at a 144 Hz target and 59.93 Hz at a 59.94 Hz

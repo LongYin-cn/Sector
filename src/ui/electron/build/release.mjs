@@ -182,6 +182,7 @@ fs.writeFileSync(
     "5. Enable widgets in Overlay. Use Edit layout to arrange them, then Lock layout.",
     "",
     "Overlays require windowed or borderless mode and follow the selected display refresh rate.",
+    "For online overlays, launch LMU normally with EAC. Active Reset stays offline-only.",
     "Change keys and sounds in Active Reset. Open settings through Edit > Settings.",
     "Help > Guide reopens the tutorial. Help > Changelog lists version changes.",
     "Closing the window offers background mode or Quit Sector. Quit fully before updating.",

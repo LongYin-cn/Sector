@@ -1117,6 +1117,19 @@ textarea {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+
+.onboarding-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.onboarding-actions button svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
 .preference-category {
   margin: 22px 0 12px;
   color: #8fa1ba;

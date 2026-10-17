@@ -1,7 +1,7 @@
 # Sector desktop
 
-Sector 0.2.8 uses Electron, React and a locally built Vite renderer. The Python
-supervisor and v20 native host own reset commands; the desktop displays their
+Sector uses Electron, React and a locally built Vite renderer. The Python
+supervisor and v22 native host own reset commands; the desktop displays their
 acknowledged state. See [overlays](OVERLAYS.md) for the separate telemetry path.
 
 ## Launch and first-run setup
@@ -25,8 +25,12 @@ locally generated native binaries with matching compatibility profiles. See
 `logs/desktop-startup.log` in the source workspace.
 
 First launch searches Steam libraries for LMU. Confirm the proposed installation
-or browse to a folder containing `Le Mans Ultimate.exe`. Both reset and telemetry
-discovery use that choice. Setup offers a short tutorial and saves completion
+or use **Choose folder** to open a native Windows picker for the folder containing
+`Le Mans Ultimate.exe`. The modal has no dismiss button and ignores Escape and
+outside clicks. Automatic discovery cannot overwrite a manually selected folder.
+Reset discovery validates the selected installation and process identity. Public
+SDK discovery needs only a single running LMU process, including when EAC prevents
+access to its executable path or start time. Setup offers a short tutorial and saves completion
 independently of runtime versions. If the saved installation disappears, setup
 is shown again.
 

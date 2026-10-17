@@ -3,15 +3,15 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Icon } from "@iconify/react";
 import folderIcon from "@iconify-icons/solar/folder-open-linear";
 import helpIcon from "@iconify-icons/solar/question-circle-linear";
-import closeIcon from "@iconify-icons/solar/close-circle-linear";
 
-export function Onboarding({ open, initialFolder, onFinish, onQuit }) {
+export function Onboarding({ open, initialFolder, onFinish }) {
   const [step, setStep] = useState("folder");
   const [folder, setFolder] = useState(initialFolder || "");
   const [searching, setSearching] = useState(!initialFolder);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const popup = useRef(null);
+  const manuallySelected = useRef(false);
   const api = window.sector;
 
   useEffect(() => {
@@ -20,10 +20,11 @@ export function Onboarding({ open, initialFolder, onFinish, onQuit }) {
     api
       .detectInstallations()
       .then((folders) => {
-        if (live) setFolder(folders[0] || "");
+        if (live && !manuallySelected.current) setFolder(folders[0] || "");
       })
       .catch(() => {
-        if (live) setError("Select the LMU folder to continue.");
+        if (live && !manuallySelected.current)
+          setError("Select the LMU folder to continue.");
       })
       .finally(() => {
         if (live) setSearching(false);
@@ -50,6 +51,8 @@ export function Onboarding({ open, initialFolder, onFinish, onQuit }) {
       const result = await api.browseInstallation();
       if (result.canceled) return;
       if (!result.ok) throw new Error(result.error);
+      manuallySelected.current = true;
+      setSearching(false);
       setFolder(result.folder);
     });
   }
@@ -81,14 +84,6 @@ export function Onboarding({ open, initialFolder, onFinish, onQuit }) {
             ref={popup}
             initialFocus={popup}
           >
-            <button
-              className="modal-dismiss"
-              aria-label="Quit setup"
-              onClick={onQuit}
-              disabled={busy}
-            >
-              <Icon icon={closeIcon} aria-hidden="true" />
-            </button>
             <div className="onboarding-step" key={step} data-step={step}>
               <div className="modal-icon">
                 <Icon
@@ -120,9 +115,10 @@ export function Onboarding({ open, initialFolder, onFinish, onQuit }) {
                     <button
                       className="secondary"
                       onClick={browse}
-                      disabled={busy || searching}
+                      disabled={busy}
                     >
-                      Browse…
+                      <Icon icon={folderIcon} aria-hidden="true" />
+                      Choose folder
                     </button>
                     <button
                       className="primary"

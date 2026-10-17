@@ -5,6 +5,7 @@ const { randomUUID } = require("node:crypto");
 const { spawn, execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const execute = promisify(execFile);
+const { resetAccess } = require("./reset-access.cjs");
 
 const emptyCheckpoint = {
   checkpoint: false,
@@ -13,10 +14,10 @@ const emptyCheckpoint = {
   restore_count: 0,
 };
 
-async function discoverGame(installation) {
+async function discoverGame(installation, { telemetryOnly = false } = {}) {
   // This fixed command never includes data from the renderer or settings.
   const command =
-    "$env:PSModulePath = (Join-Path $PSHOME 'Modules') + [IO.Path]::PathSeparator + $env:PSModulePath; @(Get-Process -Name 'Le Mans Ultimate' -ErrorAction SilentlyContinue | ForEach-Object { @{pid=$_.Id; executable=$_.Path; identity=([string]$_.Id + ':' + $_.StartTime.ToUniversalTime().Ticks)} }) | ConvertTo-Json -Compress";
+    "$env:PSModulePath = (Join-Path $PSHOME 'Modules') + [IO.Path]::PathSeparator + $env:PSModulePath; $eacActive = @(Get-Process -Name 'EasyAntiCheat*' -ErrorAction SilentlyContinue).Count -gt 0; @(Get-Process -Name 'Le Mans Ultimate' -ErrorAction SilentlyContinue | ForEach-Object { $gamePath = $null; $gameIdentity = $null; try { $gamePath = $_.Path; $gameIdentity = ([string]$_.Id + ':' + $_.StartTime.ToUniversalTime().Ticks) } catch {}; @{pid=$_.Id; executable=$gamePath; identity=$gameIdentity; eac=$eacActive} }) | ConvertTo-Json -Compress";
   const { stdout } = await execute(
     "powershell.exe",
     ["-NoProfile", "-NonInteractive", "-Command", command],
@@ -24,10 +25,18 @@ async function discoverGame(installation) {
   );
   const parsed = stdout.trim() ? JSON.parse(stdout) : [];
   const games = Array.isArray(parsed) ? parsed : [parsed];
+  return selectGames(games, installation, telemetryOnly);
+}
+
+function selectGames(games, installation, telemetryOnly = false) {
+  // The public SDK does not require the protected game's executable path or start time.
+  // Reset admission still requires the selected installation and a process identity.
+  if (telemetryOnly) return games;
   return installation
     ? games.filter(
         (game) =>
           typeof game.executable === "string" &&
+          typeof game.identity === "string" &&
           path.resolve(game.executable).toLowerCase() ===
             path.join(installation, "Le Mans Ultimate.exe").toLowerCase(),
       )
@@ -52,6 +61,7 @@ class Runtime extends EventEmitter {
     discover = discoverGame,
     spawnChild = spawn,
     now = Date.now,
+    admission = resetAccess,
   }) {
     super();
     Object.assign(this, {
@@ -62,6 +72,7 @@ class Runtime extends EventEmitter {
       discover,
       spawnChild,
       now,
+      admission,
     });
     this.state = {
       ...emptyCheckpoint,
@@ -180,6 +191,16 @@ class Runtime extends EventEmitter {
         return;
       }
       const game = games[0];
+      const access = await this.admission(game);
+      if (this.stopping) return;
+      if (!access.allowed) {
+        this.publish({
+          phase: "waiting",
+          ...emptyCheckpoint,
+          message: access.reason,
+        });
+        return;
+      }
       if (
         !Number.isSafeInteger(game.pid) ||
         game.pid <= 0 ||
@@ -317,4 +338,10 @@ class Runtime extends EventEmitter {
   }
 }
 
-module.exports = { Runtime, resolvePython, emptyCheckpoint, discoverGame };
+module.exports = {
+  Runtime,
+  resolvePython,
+  emptyCheckpoint,
+  discoverGame,
+  selectGames,
+};

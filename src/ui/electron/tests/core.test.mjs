@@ -21,6 +21,7 @@ function fixture(t, options = {}) {
     settingsFile: path.join(root, "settings.json"),
     getSettings: () => defaults,
     discover: async () => [{ pid: 42, identity: "42:1" }],
+    admission: async () => ({ allowed: true }),
     now: () => clock,
     spawnChild: (...args) => {
       const child = new EventEmitter();
@@ -157,6 +158,37 @@ test("waits for LMU, launches exactly once per process identity and passes safe 
   advance();
   await runtime.tick();
   assert.equal(spawned.length, 2);
+});
+
+test("online admission keeps reset idle and allows a later offline session", async (t) => {
+  let allowed = false;
+  const { runtime, spawned, advance } = fixture(t, {
+    admission: async () => ({ allowed, reason: "Offline Practice required" }),
+  });
+  await runtime.tick();
+  assert.equal(spawned.length, 0);
+  assert.equal(runtime.state.phase, "waiting");
+  assert.equal((await runtime.requestReset("restore")).ok, false);
+  allowed = true;
+  advance();
+  await runtime.tick();
+  assert.equal(spawned.length, 1);
+});
+
+test("quit during session admission cannot launch a reset listener", async (t) => {
+  let release;
+  const { runtime, spawned } = fixture(t, {
+    admission: () =>
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+  });
+  const pending = runtime.tick();
+  await new Promise((resolve) => setImmediate(resolve));
+  await runtime.stop();
+  release({ allowed: true });
+  await pending;
+  assert.equal(spawned.length, 0);
 });
 
 test("reports native acknowledgement, retains failed-save checkpoint and invalidates on detach", async (t) => {
