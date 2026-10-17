@@ -11,6 +11,7 @@
 #include <utility>
 #include <sstream>
 #include <string>
+#include <algorithm>
 #include "SharedMemoryInterface.hpp"
 
 static_assert(sizeof(SharedMemoryLayout) == 324824 && sizeof(TelemInfoV01) == 1888 &&
@@ -28,6 +29,35 @@ struct View {
     ~View() {
         if (p)
             UnmapViewOfFile(p);
+    }
+};
+
+struct RefreshClock {
+    Handle timer{CreateWaitableTimerExW(nullptr, nullptr, 0x2, TIMER_ALL_ACCESS)};
+    LONGLONG frequency = 0, start = 0, frame = 0;
+    RefreshClock() {
+        // Older Windows versions may not support a high-resolution waitable timer.
+        if (!timer.h)
+            timer.h = CreateWaitableTimerW(nullptr, FALSE, nullptr);
+        LARGE_INTEGER value;
+        QueryPerformanceFrequency(&value);
+        frequency = value.QuadPart;
+        QueryPerformanceCounter(&value);
+        start = value.QuadPart;
+    }
+    bool wait() {
+        if (!timer.h || frequency <= 0)
+            return false;
+        LARGE_INTEGER now;
+        QueryPerformanceCounter(&now);
+        // Absolute 60 Hz deadlines avoid adding serialization time to each frame.
+        // Skip missed slots after a stall instead of queuing a burst of old frames.
+        frame = std::max(frame + 1, (now.QuadPart - start) * 60 / frequency + 1);
+        const LONGLONG deadline = start + frame * frequency / 60;
+        LARGE_INTEGER due;
+        due.QuadPart = -std::max<LONGLONG>(1, (deadline - now.QuadPart) * 10000000 / frequency);
+        return SetWaitableTimer(timer.h, &due, 0, nullptr, nullptr, FALSE) &&
+               WaitForSingleObject(timer.h, 1000) == WAIT_OBJECT_0;
     }
 };
 struct LockWords {
@@ -95,7 +125,35 @@ struct CarResources {
     char model[30]{};
     float energy = 0;
     char compounds[4][18]{};
+    bool live = false;
+    double elapsed = 0, travel = 0, speed = 0;
 };
+
+static void liveProgress(CarResources &out, const VehicleScoringInfoV01 &scored,
+                         const TelemInfoV01 &current, double scoringTime) {
+    // Project measured movement onto the last scored forward axis. This is a
+    // short-lived estimate between scoring frames, never an official lap distance.
+    const double age = current.mElapsedTime - scoringTime;
+    const double dx = current.mPos.x - scored.mPos.x;
+    const double dy = current.mPos.y - scored.mPos.y;
+    const double dz = current.mPos.z - scored.mPos.z;
+    const double fx = -scored.mOri[0].z, fy = -scored.mOri[1].z, fz = -scored.mOri[2].z;
+    const double axisLength = fx * fx + fy * fy + fz * fz;
+    const double heading =
+        -(fx * current.mOri[0].z + fy * current.mOri[1].z + fz * current.mOri[2].z);
+    const double speed = -current.mLocalVel.z;
+    const double bound = 3 + 2 * std::max(std::abs(speed), std::abs(scored.mLocalVel.z)) * age;
+    const double displacement = std::sqrt(dx * dx + dy * dy + dz * dz);
+    if (!std::isfinite(age) || age < 0 || age > .5 || !std::isfinite(axisLength) ||
+        std::abs(axisLength - 1) > .01 || !std::isfinite(heading) || heading < .8 ||
+        !std::isfinite(speed) || !std::isfinite(bound) || !std::isfinite(displacement) ||
+        displacement > 100 || displacement > bound)
+        return;
+    out.live = true;
+    out.elapsed = current.mElapsedTime;
+    out.travel = dx * fx + dy * fy + dz * fz;
+    out.speed = speed;
+}
 struct Frame {
     long version;
     ScoringInfoV01 scoring;
@@ -130,6 +188,7 @@ static bool copyFrame(Frame &f, const SharedMemoryObjectOut &data) {
             std::abs(match->mElapsedTime - f.scoring.mCurrentET) > 1.5)
             continue;
         r.available = true;
+        liveProgress(r, f.cars[i], *match, f.scoring.mCurrentET);
         memcpy(r.model, match->mVehicleModel, sizeof r.model);
         r.energy = match->mVirtualEnergy;
         for (int wheel = 0; wheel < 4; ++wheel) {
@@ -276,8 +335,19 @@ static std::string serialize(const Frame &f, bool foreground) {
         n("pitStops", v.mNumPitstops);
         n("qualification", v.mQualification);
         n("countLap", v.mCountLapFlag);
-        o << ",\"resources\":";
         const auto &r = f.resources[i];
+        o << ",\"liveProgress\":";
+        if (!r.live)
+            o << "null";
+        else {
+            o << "{";
+            o << "\"et\":";
+            number(o, r.elapsed);
+            n("travel", r.travel);
+            n("speed", r.speed);
+            o << '}';
+        }
+        o << ",\"resources\":";
         if (!r.available)
             o << "null";
         else {
@@ -297,6 +367,18 @@ static std::string serialize(const Frame &f, bool foreground) {
     return o.str();
 }
 int main(int argc, char **argv) {
+    if (argc == 2 && !strcmp(argv[1], "--test-cadence")) {
+        RefreshClock clock;
+        for (unsigned i = 0; i < 120; ++i)
+            if (!clock.wait())
+                return 1;
+        LARGE_INTEGER now;
+        QueryPerformanceCounter(&now);
+        const double elapsed = double(now.QuadPart - clock.start) / clock.frequency;
+        std::printf("Overlay cadence: %.2f Hz across 120 deadlines (%.3f s).\n", 120 / elapsed,
+                    elapsed);
+        return elapsed >= 1.98 && elapsed <= 2.2 ? 0 : 1;
+    }
     if (argc == 2 && (!strcmp(argv[1], "--self-test") || !strcmp(argv[1], "--test-frame"))) {
         auto *data = new SharedMemoryObjectOut{};
         Frame f{};
@@ -365,6 +447,35 @@ int main(int argc, char **argv) {
         ok = ok && copyFrame(resources, *data) && !resources.resources[0].available &&
              !resources.resources[1].available && !resources.resources[0].model[0] &&
              !resources.resources[1].model[0];
+        VehicleScoringInfoV01 scored{};
+        TelemInfoV01 current{};
+        scored.mOri[2].z = current.mOri[2].z = 1;
+        scored.mLocalVel.z = current.mLocalVel.z = -40;
+        current.mElapsedTime = 2.25;
+        current.mPos.z = -10;
+        CarResources live{};
+        liveProgress(live, scored, current, 2);
+        ok = ok && live.live && live.travel == 10 && live.speed == 40;
+        match.resources[0].live = live.live;
+        match.resources[0].travel = live.travel;
+        match.resources[0].elapsed = live.elapsed;
+        match.resources[0].speed = live.speed;
+        for (unsigned invalid = 0; invalid < 5; ++invalid) {
+            auto changed = current;
+            if (invalid == 0)
+                changed.mElapsedTime = 1.9;
+            if (invalid == 1)
+                changed.mElapsedTime = 2.6;
+            if (invalid == 2)
+                changed.mPos.z = -200;
+            if (invalid == 3)
+                changed.mOri[2].z = -1;
+            if (invalid == 4)
+                changed.mPos.x = NAN;
+            CarResources rejected{};
+            liveProgress(rejected, scored, changed, 2);
+            ok = ok && !rejected.live;
+        }
         const auto json = serialize(match, false);
         ok = ok && json.find("\"temperatures\":[98,93,88]") != std::string::npos &&
              json.find("\"radius\":0.31") != std::string::npos;
@@ -406,6 +517,7 @@ int main(int argc, char **argv) {
     Handle event{OpenEventA(EVENT_MODIFY_STATE, FALSE, "LMU_SharedMemoryLockEvent")};
     if (!data.p || !words.p || !event.h)
         return 4;
+    RefreshClock refresh;
     while (WaitForSingleObject(game.h, 0) == WAIT_TIMEOUT &&
            WaitForSingleObject(parent.h, 0) == WAIT_TIMEOUT) {
         DWORD available = 0;
@@ -427,7 +539,8 @@ int main(int argc, char **argv) {
             if (puts(line.c_str()) == EOF || fflush(stdout))
                 break;
         }
-        Sleep(33);
+        if (!refresh.wait())
+            return 5;
     }
     return 0;
 }

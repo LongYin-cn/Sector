@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.2.11",
+    "changes": [
+      "Updates overlay telemetry at 60 Hz and presents the latest frame in sync with the display.",
+      "Updates Leaderboard and Relative gaps between scoring samples using measured vehicle movement. Estimated gaps are marked with ~.",
+      "Confirms visible front bodywork repair in the Mercedes-AMG LMGT3 live test with the v22 reset module."
+    ]
+  },
+  {
     "version": "0.2.10",
     "changes": [
       "Fixes a false damaged-car warning when saving a healthy car or a car repaired in the pits.",
@@ -134,9 +142,7 @@
   },
   {
     "version": "0.1.5",
-    "changes": [
-      "Animated first-run setup and guided-tour popups."
-    ]
+    "changes": ["Animated first-run setup and guided-tour popups."]
   },
   {
     "version": "0.1.4",
@@ -154,9 +160,7 @@
   },
   {
     "version": "0.1.2",
-    "changes": [
-      "Added the Help menu with access to Guide."
-    ]
+    "changes": ["Added the Help menu with access to Guide."]
   },
   {
     "version": "0.1.1",

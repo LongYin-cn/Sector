@@ -3,6 +3,15 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Overlay refresh: 0.2.11
+
+The reader's 120-deadline test measured 59.99 Hz. The short paused-game SDK check
+measured 59.20 output frames per second; it did not validate changing gaps while
+driving. Native projection checks, SDK serialization through the widget models,
+all 50 desktop model tests, the ten-widget UI smoke and packaged EXE smoke pass.
+The gap estimates and their limits are described in
+[Overlay telemetry](OVERLAY_TELEMETRY.md).
+
 ## Healthy-save regression: 0.2.10 / v22
 
 The 0.2.9 live capture recorded cause `92006` for healthy-save attempts without
@@ -14,7 +23,15 @@ Healthy flags are tested independently of severity, events and vertex changes.
 The corrected graphics fixture, combined adapter, loaded host and 113 Python
 tests pass. The packaged 0.2.10 EXE passes isolated startup and embedded-runtime
 checks. The read-only incident capture recorded 5,748 samples and no game writes.
-Visible bodywork repair remains unverified until the packaged retest succeeds.
+The packaged retest succeeded on the Mercedes-AMG LMGT3. The recorder collected
+4,294 samples over 228.625 seconds, without issuing commands or process writes.
+The user initiated one save and five successful restores. Two impact restores
+each verified 118 graphics writes, seven meshes and 6,981,920 vertex bytes,
+alongside 10,114 physical fields and four contacts, without compensation.
+Before repair, six meshes differed from their originals and a damage event was
+present. After repair, all seven matched, with zero severity and events. The
+user confirmed that the front bodywork was visibly repaired. This is evidence
+for that vehicle and impact case; rear impacts and other models remain untested.
 
 ## Bodywork integration: 0.2.9 / v21
 
@@ -33,8 +50,8 @@ Visible bodywork repair remains unverified until the packaged retest succeeds.
 - Packaged 0.2.9 passes isolated EXE startup, embedded Python imports, UI and
   overlay checks without connecting to LMU.
 
-These checks use owned memory and isolated processes. The packaged live test
-must still verify rendered bodywork and stability in LMU. Follow the
+These checks use owned memory and isolated processes. The v22 packaged retest
+above adds live front-bodywork evidence. For additional vehicle cases, follow the
 [bodywork test procedure](BODYWORK_RESTORE.md#packaged-live-test).
 
 ## Aerodynamic recovery: 0.2.8 live result

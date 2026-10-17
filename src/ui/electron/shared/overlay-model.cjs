@@ -4,6 +4,7 @@ const { VehicleIdentity } = require("./vehicle-identity.cjs");
 const { stintValues } = require("./stint-model.cjs");
 const { resourceValues } = require("./compound-model.cjs");
 const { HybridHistory, hybridValues } = require("./hybrid-model.cjs");
+const { relativeDistance, leaderboardGap } = require("./live-gaps.cjs");
 const finite = (v) => typeof v === "number" && Number.isFinite(v);
 const clamp = (v, min = 0, max = 1) =>
   finite(v) ? Math.max(min, Math.min(max, v)) : min;
@@ -372,7 +373,10 @@ function valuesFor(id, data, settings) {
                 ? `Lap ${v.laps}`
                 : v.lapsBehind !== list[0].lapsBehind
                   ? `${v.lapsBehind - list[0].lapsBehind}L`
-                  : signed(v.behind - list[0].behind),
+                  : (() => {
+                      const gap = leaderboardGap(v, list[0], data.et);
+                      return `${gap.estimated ? "~" : ""}${signed(gap.value)}`;
+                    })(),
           },
         ]),
       };
@@ -381,13 +385,11 @@ function valuesFor(id, data, settings) {
   }
   if (id === "relative") {
     const rows =
-      car && data.length > 0
+      car && finite(car.distance) && data.length > 0
         ? cars
+            .filter((v) => finite(v.distance))
             .map((v) => {
-              const distance =
-                ((v.distance - car.distance + data.length * 1.5) %
-                  data.length) -
-                data.length * 0.5;
+              const distance = relativeDistance(v, car, data.et, data.length);
               const lap = v.laps - car.laps;
               const gap =
                 (-distance / data.length) *
@@ -403,7 +405,7 @@ function valuesFor(id, data, settings) {
                 lapBg: lap > 0 ? "#E2483D" : "#2F7BEA",
                 gapTxt: v.player
                   ? "0.000"
-                  : car.estimated > 0 || best
+                  : finite(distance) && (car.estimated > 0 || best)
                     ? `~${signed(gap)}`
                     : dash,
                 gapFg: v.player

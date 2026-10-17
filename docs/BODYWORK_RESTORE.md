@@ -2,7 +2,8 @@
 
 Sector 0.2.9 introduces native host v21. It integrates CPU bodywork buffers with
 the existing physical reset transaction for the verified Steam 25661166 profile.
-Automated tests pass; visible repair in LMU still requires the packaged live test.
+Automated tests pass. The 0.2.10 packaged test also confirms visible front
+bodywork repair on the Mercedes-AMG LMGT3 after a settled impact.
 
 ## Healthy-save correction in 0.2.10 / v22
 
@@ -17,7 +18,14 @@ original vertex comparison, topology and lifetime checks still apply. Regression
 tests reproduce the old refusal and check healthy flags `0x5`, `0x7` and `0xa2`,
 while each actual damage indicator still independently rejects a save.
 Both loaded-host and combined-adapter fixtures now start with bit `0x2` set.
-The live visible-repair test remains pending because v21 never saved a checkpoint.
+The packaged v22 retest accepted the healthy checkpoint and completed five
+restores. The two impact restores each verified 118 graphics writes across
+seven meshes (6,981,920 vertex bytes), alongside 10,114 physical fields and four
+contact rebuilds. No compensation was needed. The capture observed six changed
+meshes and a damage event before repair; all seven meshes subsequently matched
+their originals and damage severity/events returned to zero. The user confirmed
+that the front bodywork also appeared repaired in LMU. This qualifies the tested
+Mercedes-AMG LMGT3 case, not every model, rear impact or continuing collision.
 
 ## What is captured and restored
 

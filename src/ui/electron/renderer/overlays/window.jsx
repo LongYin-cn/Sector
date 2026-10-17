@@ -27,14 +27,24 @@ function OverlayWindow() {
   }, [state?.editing]);
   useEffect(() => {
     let received = false;
+    let pending = null;
+    let animation = null;
     const off = api.onFrame((value) => {
       received = true;
-      setState(value);
+      pending = value;
+      if (animation !== null) return;
+      animation = requestAnimationFrame(() => {
+        animation = null;
+        setState(pending);
+      });
     });
     api.initialize().then((value) => {
       if (!received) setState(value);
     });
-    return off;
+    return () => {
+      off();
+      if (animation !== null) cancelAnimationFrame(animation);
+    };
   }, []);
   useEffect(() => {
     if (!state?.editing) return;

@@ -63,15 +63,16 @@ class Overlays {
     this.sync();
     return this.state();
   }
-  send(win, id) {
+  send(win, id, bounds) {
     if (win.isDestroyed() || win.webContents.isLoading()) return;
-    const { config, editing, frame } = this.state();
+    const { config, editing } = this;
+    const frame = this.telemetry.frame;
     win.webContents.send("sector:overlay-frame", {
       id,
       settings: config.widgets[id],
       editing,
       frame,
-      scale: this.windowBounds(id).scale,
+      scale: (bounds || this.windowBounds(id)).scale,
     });
   }
   windowBounds(id) {
@@ -191,7 +192,7 @@ class Overlays {
       ) {
         if (!win.isVisible()) win.showInactive();
       } else if (win.isVisible()) win.hide();
-      this.send(win, id);
+      this.send(win, id, b);
     }
     const desktop = this.desktop();
     if (desktop && !desktop.isDestroyed())

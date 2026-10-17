@@ -76,6 +76,10 @@ Driving a Hypercar puts your group in Hypercar, before the other classes. Its
 compound and virtual-energy columns show the available data for each car and
 can be hidden independently.
 
+Leaderboard and Relative update gaps between timing samples using measured car
+movement. A `~` marks an estimated gap. When fresh telemetry is unavailable,
+Sector keeps the latest timing value instead of predicting further ahead.
+
 **Hybrid** shows battery charge, electric power and deploy/regen state. Set the
 battery target and the number of laps to reach it. The deployment map automatically
 uses your car's range: 0 to 50 in steps of 10 for LMDh, or 0 to 200 in steps of 20

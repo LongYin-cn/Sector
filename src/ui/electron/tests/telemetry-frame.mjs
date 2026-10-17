@@ -9,10 +9,15 @@ const root = path.resolve(
   fileURLToPath(new URL("../../../..", import.meta.url)),
 );
 const raw = JSON.parse(
-  execFileSync(path.join(root, "bin/overlay-reader.exe"), ["--test-frame"], {
-    encoding: "utf8",
-    windowsHide: true,
-  }),
+  execFileSync(
+    process.env.SECTOR_OVERLAY_READER ||
+      path.join(root, "bin/overlay-reader.exe"),
+    ["--test-frame"],
+    {
+      encoding: "utf8",
+      windowsHide: true,
+    },
+  ),
 );
 assert.equal(raw.player.wheels.length, 4);
 assert.deepEqual(raw.player.wheels[0].temperatures, [98, 93, 88]);
@@ -26,6 +31,7 @@ assert.equal(raw.cars[0].vehicle, "Team #6");
 assert.equal(raw.cars[0].model, "Porsche 963");
 assert.equal(raw.cars[0].vehicleFile, "Porsche_963_6.veh");
 assert.equal(raw.cars[0].resources.compounds[0], "Soft");
+assert.deepEqual(raw.cars[0].liveProgress, { et: 2.25, travel: 10, speed: 40 });
 assert.ok(Math.abs(raw.cars[0].resources.energy - 0.42) < 0.0001);
 assert.deepEqual(raw.player.wheels[1].temperatures, [null, null, null]);
 const data = new model.TelemetryModel().update(raw);

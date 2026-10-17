@@ -60,6 +60,46 @@ const raw = (patch = {}) => ({
   ...patch,
 });
 
+test("leaderboard and relative update between scoring frames without changing lap gaps", () => {
+  const data = raw({ length: 1000 });
+  const leader = data.cars[0];
+  Object.assign(leader, {
+    distance: 300,
+    liveProgress: { et: 100.2, travel: 10, speed: 50 },
+  });
+  const follower = {
+    ...leader,
+    id: 2,
+    player: false,
+    place: 2,
+    distance: 200,
+    behind: 2,
+    liveProgress: { et: 100.2, travel: 8, speed: 40 },
+  };
+  data.cars.push(follower);
+  const settings = config.defaults().widgets;
+  const gap = () =>
+    model.valuesFor("leaderboard", data, settings.leaderboard).classes[0]
+      .rows[1].gap;
+  const relative = () =>
+    model
+      .valuesFor("relative", data, settings.relative)
+      .rows.find((r) => r.id === 2);
+  assert.equal(gap(), "~+2.040");
+  assert.equal(relative().distance, -102);
+  leader.liveProgress = { et: 100.3, travel: 15, speed: 50 };
+  follower.liveProgress = { et: 100.3, travel: 12, speed: 40 };
+  assert.equal(gap(), "~+2.060");
+  assert.equal(relative().distance, -103);
+  assert.equal(relative().gapTxt, "~+14.420");
+  follower.lapsBehind = 1;
+  assert.equal(gap(), "1L");
+  follower.lapsBehind = 0;
+  follower.liveProgress = null;
+  assert.equal(gap(), "+2.000");
+  assert.equal(relative().distance, -100);
+});
+
 test("requested opacity defaults migrate once without overwriting custom values", () => {
   assert.deepEqual(
     Object.values(config.defaults().widgets).map((w) => w.opacity),
