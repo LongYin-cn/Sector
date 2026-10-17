@@ -90,7 +90,7 @@ struct Memory {
     }
     static bool write(void *user, uintptr_t address, const void *input, size_t size) {
         auto &m = *static_cast<Memory *>(user);
-        CHECK(m.alive && m.locks.size() == 2);
+        CHECK(m.alive && m.locks.size() == size_t(m.get<int32_t>(root + 0x1a78)));
         CHECK(m.range(address, size));
         ++m.writes;
         const bool fail = m.writes == m.fault_write ||
@@ -305,7 +305,7 @@ void layout_diagnostics() {
         uint64_t check;
     };
     const Case cases[]{
-        {root + 0x1a78, 0, 2},        {components + 8, 1, 5},     {components + 0x18, 2, 6},
+        {root + 0x1a78, -1, 2},       {components + 8, 1, 5},     {components + 0x18, 2, 6},
         {components + 0x40, 21, 7},   {components + 0x1c, -1, 8}, {meshes + 0x14c, 0, 11},
         {meshes + 0x14c, 500000, 12}, {meshes + 0x168, 4097, 13},
     };
@@ -337,6 +337,68 @@ void layout_diagnostics() {
         CHECK(transaction.report().check == c.check);
         CHECK(!memory.writes && memory.locks.empty());
     }
+}
+
+void empty_models() {
+    for (uintptr_t entries : {uintptr_t{0}, components}) {
+        Memory memory;
+        memory.set<int32_t>(root + 0x1a78, 0);
+        memory.set<uintptr_t>(root + 0x1a80, entries);
+        memory.unreadable = components; // Unused allocations must never be read.
+        Transaction transaction(memory.backend());
+        Checkpoint checkpoint;
+        CHECK(transaction.capture(root, checkpoint) == Result::ok);
+        CHECK(!transaction.report().components && !transaction.report().meshes);
+        CHECK(transaction.begin(root, checkpoint) == Result::ok);
+        CHECK(transaction.apply() == Result::ok);
+        CHECK(transaction.finish(true) == Result::ok);
+        CHECK(!memory.writes && !memory.lock_calls);
+
+        // Root severity remains part of the checkpoint even without meshes.
+        memory.set<uint32_t>(root + 0x1a88, 2);
+        CHECK(transaction.capture(root, checkpoint) == Result::damaged_checkpoint);
+        CHECK(transaction.begin(root, checkpoint) == Result::ok);
+        CHECK(transaction.apply() == Result::ok);
+        CHECK(memory.get<uint32_t>(root + 0x1a88) == 0);
+        CHECK(transaction.finish(false) == Result::ok);
+        CHECK(memory.get<uint32_t>(root + 0x1a88) == 2);
+        CHECK(transaction.begin(root, checkpoint) == Result::ok);
+        CHECK(transaction.apply() == Result::ok);
+        CHECK(transaction.finish(true) == Result::ok);
+
+        const auto writes = memory.writes;
+        CHECK(transaction.begin(root, checkpoint) == Result::ok);
+        memory.alive = false;
+        CHECK(transaction.apply() == Result::not_pinned);
+        CHECK(transaction.finish(false) == Result::ok);
+        memory.alive = true;
+        ++memory.epoch;
+        CHECK(transaction.begin(root, checkpoint) == Result::topology_changed);
+        CHECK(memory.writes == writes && !memory.lock_calls);
+    }
+    for (bool initially_empty : {false, true}) {
+        Memory memory;
+        memory.set<int32_t>(root + 0x1a78, initially_empty ? 0 : 2);
+        Transaction transaction(memory.backend());
+        Checkpoint checkpoint;
+        CHECK(transaction.capture(root, checkpoint) == Result::ok);
+        memory.set<int32_t>(root + 0x1a78, initially_empty ? 2 : 0);
+        CHECK(transaction.begin(root, checkpoint) == Result::topology_changed);
+        CHECK(!memory.writes && memory.locks.empty());
+    }
+    Memory memory;
+    memory.set<int32_t>(root + 0x1a78, 0);
+    auto backend = memory.backend();
+    backend.read = [](void *user, uintptr_t address, void *out, size_t size) {
+        const bool ok = Memory::read(user, address, out, size);
+        if (address == root + 0x1a80)
+            static_cast<Memory *>(user)->set<int32_t>(root + 0x1a78, 2);
+        return ok;
+    };
+    Transaction transaction(backend);
+    Checkpoint checkpoint;
+    CHECK(transaction.capture(root, checkpoint) == Result::topology_changed);
+    CHECK(!memory.writes);
 }
 
 void failed_recovery(bool lose_pin) {
@@ -430,6 +492,7 @@ int main(int argc, char **argv) {
     recovery_and_guards();
     healthy_render_flags();
     layout_diagnostics();
+    empty_models();
     failed_recovery(false);
     failed_recovery(true);
     if (argc == 2)

@@ -3,6 +3,36 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Empty bodywork and consumption modes: 0.2.15 / v24
+
+The bodywork fixture now accepts empty models with either null or retained
+component allocations, without reading unused components or writing clean
+graphics. It verifies root-severity restoration and rollback, pin loss,
+generation changes, count changes during capture, and transitions between empty
+and populated models. Existing populated-model repair and 70 write-fault cases
+still pass, as do graphics lifetime tests.
+
+The loaded v24 host completes save/prepare/restore with both empty and populated
+bodywork, verifying all 10,114 physical fields and four contact rebuilds. The
+empty case uses a zero fuel consumption rate and performs no graphics writes.
+Both cases reject malformed counts and stale model generations before writing.
+Absent-player rejection, same-process host restart and the combined adapter's
+normal, recovery and quarantine cases pass.
+
+Eight numerical cases cover the independent fuel-consumption and tyre-wear
+switches with fresh or previously worn tyres. Both persistent tyre cache
+validation and mechanical restoration accept zero/unchanged wear. Saved fuel
+quantity/rate, mass, inertia and velocity are preserved. No session settings
+are written. All 115 Python and 63 desktop model tests pass. The packaged EXE
+passes isolated startup, bundled Python imports and UI/overlay checks. Diagnostic
+export passes cancellation, write-failure, JSON contents and confirmation tests
+against the packaged application.
+
+Live F6/F7 confirmation of 0.2.15 on the affected PC is still pending. The
+diagnostic report established the zero-count rejection but did not include the
+user's damage multiplier. These fixtures do not establish that every car,
+damage setting or LMU configuration has been tested in game.
+
 ## Experimental diagnostic release: 0.2.14 / v23
 
 The bodywork fixture exercises all seventeen named layout refusals without
@@ -19,7 +49,8 @@ Electron tests cover the updated Help menu, export cancellation, write failure,
 successful JSON contents and UI confirmation, plus existing Home and widget
 behavior. The packaged EXE passes isolated startup and the same diagnostic
 export scenarios, including cancellation and unwritable destinations. Live
-diagnosis of the other user's 92004 is pending their exported log.
+diagnosis was pending at release time; the subsequent export and correction
+are described in the 0.2.15 section above.
 
 ## First-run setup and online overlay discovery: 0.2.13
 

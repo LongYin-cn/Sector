@@ -1,8 +1,8 @@
 # Building a Windows release
 
-The current experimental build is **0.2.14**. A portable package starts with
+The current experimental build is **0.2.15**. A portable package starts with
 `Sector.exe`; keep its adjacent DLLs and resources together. It bundles Electron,
-CPython 3.13.12, the telemetry reader/diagnostic and revision 23 reset host.
+CPython 3.13.12, the telemetry reader/diagnostic and revision 24 reset host.
 The package is unsigned and does not require installed Node.js or Python.
 
 ## Prerequisites
@@ -46,7 +46,7 @@ does not replace the pinned compatibility checks.
    npm run test:release
    ```
 
-The output is `releases/Sector-0.2.12-win-x64/`. The builder refuses an existing
+The output is `releases/Sector-0.2.15-win-x64/`. The builder refuses an existing
 destination; preserve or deliberately remove a previous output before rebuilding.
 Generated releases are ignored by Git. Building or committing a version does not
 publish a GitHub release or promote `prod`.
@@ -59,11 +59,13 @@ publish a GitHub release or promote `prod`.
    move or overwrite a package that is currently running.
 3. Check that the package contains no logs, captures, caches or local installation
    paths. Include its complete runtime, notices and quick-start instructions.
-4. ZIP the complete `Sector-0.2.12-win-x64` folder and generate `SHA256SUMS.txt`.
+4. ZIP the complete `Sector-0.2.15-win-x64` folder and generate `SHA256SUMS.txt`.
    Reopen the archive and verify its contents before uploading.
-5. With explicit approval to promote, merge `dev` into `prod`, push both branches
-   and create the `v0.2.12` tag on the promoted commit. Do not force-update tags.
-6. Create the GitHub release with notes, the Windows ZIP and checksum file.
+5. For an experimental release, push `dev` and tag the tested commit `v0.2.15`.
+   Leave `prod` unchanged. A stable promotion requires explicit approval to
+   merge `dev` into `prod`; never force-update published tags.
+6. Create the GitHub prerelease with notes, the Windows ZIP and checksum file.
+   Do not mark an experimental build as the latest stable release.
    Verify its published assets and target commit. Binaries belong in release
    assets, not Git history.
 

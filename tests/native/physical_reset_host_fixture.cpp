@@ -246,6 +246,7 @@ static int run_fixture(int argc, char **argv) {
     original_boundaries = 0;
     correction_calls = collision_prepare_calls = 0;
     suppress_player_callback = argc == 4 && std::strcmp(argv[3], "no-player-callback") == 0;
+    const bool empty_model = argc == 4 && std::strcmp(argv[3], "empty-model") == 0;
     load_frame(argv[2]);
     // Reproduce the reader bug: sectors have advanced but applied body caches
     // have not. The original validator rejects it; the cache-aware one accepts
@@ -289,6 +290,11 @@ static int run_fixture(int argc, char **argv) {
     monitor_restored_sweep = false;
     std::memset(host_owner, 0, sizeof(host_owner));
     host_bodywork.bind(host_owner + 0x38);
+    if (empty_model) {
+        put(host_owner + 0x38 + 0x1a78, int32_t{0});
+        put(host_owner + 0x38 + 0x1a80, uintptr_t{0});
+        source_frame.dependencies.fuel.quantity_rate = 0;
+    }
     auto *physical = reinterpret_cast<unsigned char *>(source_bindings.address[104]);
     auto *body = reinterpret_cast<unsigned char *>(source_bindings.address[0]);
     for (unsigned i = 0; i < 3; ++i) {
@@ -367,7 +373,8 @@ static int run_fixture(int argc, char **argv) {
                 saved.readable);
     assert(saved.result == CONTROL_OK && saved.saves == 1 && !saved.forward_writes);
     assert(saved.speed >= 80);
-    host_bodywork.damage();
+    if (!empty_model)
+        host_bodywork.damage();
     for (size_t i = 0; i < source_frame.total_count; ++i)
         source_frame.bodies[i].position_world[0] += 1000;
     source_frame.bodies[0].velocity_world[0] = -100;
@@ -403,9 +410,15 @@ static int run_fixture(int argc, char **argv) {
            restored.forward_writes == expected_fields && restored.contact_mask == 15);
     assert(restored.verified_fields == expected_fields && restored.mismatched_fields == 0);
 #if LMU_RESET_HOST_REVISION >= 21
-    assert(host_bodywork.restored() && ipc->bodywork_result == 0 && ipc->bodywork_meshes == 1);
-    assert(ipc->bodywork_vertex_bytes == 176 && ipc->bodywork_attempted_writes > 0 &&
-           ipc->bodywork_attempted_writes == ipc->bodywork_verified_writes);
+    assert(ipc->bodywork_result == 0);
+    if (empty_model) {
+        assert(!ipc->bodywork_components && !ipc->bodywork_meshes && !ipc->bodywork_vertex_bytes &&
+               !ipc->bodywork_attempted_writes);
+    } else {
+        assert(host_bodywork.restored() && ipc->bodywork_meshes == 1);
+        assert(ipc->bodywork_vertex_bytes == 176 && ipc->bodywork_attempted_writes > 0 &&
+               ipc->bodywork_attempted_writes == ipc->bodywork_verified_writes);
+    }
 #endif
 #if LMU_RESET_HOST_REVISION >= 15
     assert(collision_rebuild_calls == 1 && spatial_calls == 1 && removed_pairs == 1);
@@ -483,8 +496,13 @@ static int run_fixture(int argc, char **argv) {
     mismatched_reads = 0;
 #if LMU_RESET_HOST_REVISION >= 21
     // Same addresses after publication must not make an old model checkpoint valid.
-    void(WINAPI *volatile graphics_publish)(void *, void *) = FixtureGraphicsPublish;
-    graphics_publish(host_bodywork.component, nullptr);
+    if (empty_model) {
+        void(WINAPI *volatile graphics_load)(void *) = FixtureGraphicsLoad;
+        graphics_load(host_owner + 0x38);
+    } else {
+        void(WINAPI *volatile graphics_publish)(void *, void *) = FixtureGraphicsPublish;
+        graphics_publish(host_bodywork.component, nullptr);
+    }
     auto stale_graphics = request(ipc, 6, HOST_RESTORE);
     assert(stale_graphics.result != CONTROL_OK && stale_graphics.cause == 92007);
     assert(stale_graphics.forward_writes == 0 &&
@@ -492,13 +510,16 @@ static int run_fixture(int argc, char **argv) {
     auto refreshed_graphics = request(ipc, 7, HOST_SAVE);
     assert(refreshed_graphics.result == CONTROL_OK && refreshed_graphics.saves == 2);
 #if LMU_RESET_HOST_REVISION >= 23
-    BodyworkFixtureModel::write(host_bodywork.component + 0x1c, int32_t{-1});
+    auto *bad_count = empty_model ? host_owner + 0x38 + 0x1a78 : host_bodywork.component + 0x1c;
+    BodyworkFixtureModel::write(bad_count, int32_t{-1});
     const auto bad_layout = request(ipc, 8, HOST_SAVE);
     assert(bad_layout.result != CONTROL_OK && bad_layout.cause == 92004);
-    assert(ipc->bodywork_check == 8 && ipc->bodywork_component_index == 1 &&
+    assert(ipc->bodywork_check == (empty_model ? 2 : 8) &&
+           ipc->bodywork_component_index == (empty_model ? 0 : 1) &&
            ipc->bodywork_mesh_index == 0 && ipc->bodywork_observed == -1 &&
-           ipc->bodywork_limit == 256 && ipc->physical_field_write_attempts == expected_fields);
-    BodyworkFixtureModel::write(host_bodywork.component + 0x1c, int32_t{1});
+           ipc->bodywork_limit == (empty_model ? 32 : 256) &&
+           ipc->physical_field_write_attempts == expected_fields);
+    BodyworkFixtureModel::write(bad_count, int32_t{empty_model ? 0 : 1});
 #endif
 #endif
     void(WINAPI *volatile reconstruct)(void *) = FixtureReconstruct;
@@ -509,7 +530,7 @@ static int run_fixture(int argc, char **argv) {
         Sleep(10);
     assert(ipc->status == 3 && !ipc->error && ipc->reserved == HOST_STOP_LIFECYCLE &&
            original_boundaries > 0 && ipc->physical_field_write_attempts == expected_fields);
-    if (argc == 4 && !suppress_player_callback) {
+    if (argc == 4 && std::strcmp(argv[3], "restart") == 0) {
         char second[MAX_PATH];
         std::snprintf(second, sizeof(second), "%s.restart.dll", argv[1]);
         assert(CopyFileA(argv[1], second, FALSE));

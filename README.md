@@ -16,9 +16,11 @@
 
 **Practice your driving and keep useful race information in view.**
 
-**Experimental build: [Sector 0.2.14](https://github.com/sector-lmu/Sector/releases/tag/v0.2.14).**
-This diagnostic pre-release may contain bugs and will receive further fixes.
-It adds detailed bodywork logs; it does not yet fix the reported 92004 refusal.
+**Experimental build: [Sector 0.2.15](https://github.com/sector-lmu/Sector/releases/tag/v0.2.15).**
+This pre-release may contain bugs and will receive further fixes.
+It fixes the empty-bodywork save refusal and includes regression coverage for
+fuel consumption and tyre wear enabled or disabled. Live confirmation on the
+affected PC is still pending.
 
 Sector is a Windows app for **Le Mans Ultimate**. Save a point on track and return
 to it to practice a corner or section again. Add customizable widgets over the

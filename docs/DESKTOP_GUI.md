@@ -1,7 +1,7 @@
 # Sector desktop
 
 Sector uses Electron, React and a locally built Vite renderer. The Python
-supervisor and v23 native host own reset commands; the desktop displays their
+supervisor and v24 native host own reset commands; the desktop displays their
 acknowledged state. See [overlays](OVERLAYS.md) for the separate telemetry path.
 
 ## Launch and first-run setup

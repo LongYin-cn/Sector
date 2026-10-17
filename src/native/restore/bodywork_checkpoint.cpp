@@ -125,9 +125,13 @@ struct Transaction::Work {
             return layout(LayoutCheck::graphics_root_range);
         if (!read(root + 0x1a78, count) || !read(root + 0x1a80, image.entries))
             return Result::read_failed;
-        if (count <= 0 || count > int32_t(max_components))
+        if (count < 0 || count > int32_t(max_components))
             return layout(LayoutCheck::component_count, count, max_components);
-        if (!address_range(image.entries, size_t(count) * component_stride))
+        // LMU can publish a model without deformable components. Its clear path
+        // also retains the allocation after setting the count to zero. Preserve
+        // that topology under the lifetime pin without reading unused entries.
+        if ((count && !address_range(image.entries, size_t(count) * component_stride)) ||
+            (!count && image.entries && !address_range(image.entries, 1)))
             return layout(LayoutCheck::component_array_range);
         image.root = root;
         image.generation = generation;
@@ -384,6 +388,8 @@ Result Transaction::apply() {
     auto &w = *work_;
     if (!w.begun || w.applied || w.touched || w.poisoned)
         return w.result(Result::wrong_phase);
+    if (!w.pinned())
+        return w.result(Result::not_pinned);
     // Preflight every span before the first write. A later partial write must be
     // included in recovery even when the backend reports that write as failed.
     for (const auto &p : w.patches)

@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$ZigPath,
     [string]$FrameDirectory,
-    [ValidateRange(1, 99)][int]$Revision = 23
+    [ValidateRange(1, 99)][int]$Revision = 24
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,6 +52,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Physical host fixture build failed' }
 if ($FrameDirectory) {
     & $fixtureExe $fixtureDll (Join-Path $FrameDirectory 'saved.frame')
     if ($LASTEXITCODE -ne 0) { throw 'Physical host fixture failed' }
+    if ($Revision -ge 24) {
+        & $fixtureExe $fixtureDll (Join-Path $FrameDirectory 'saved.frame') 'empty-model'
+        if ($LASTEXITCODE -ne 0) { throw 'Physical host empty-bodywork fixture failed' }
+    }
     & $fixtureExe $fixtureDll (Join-Path $FrameDirectory 'saved.frame') 'no-player-callback'
     if ($LASTEXITCODE -ne 0) { throw 'Physical host discovery refusal fixture failed' }
     if ($Revision -ge 9) {

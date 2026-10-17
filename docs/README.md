@@ -207,13 +207,16 @@ Explorer's address bar. This backs up settings and layout, not game checkpoints.
 
 ## Get more help
 
-### Export diagnostics in 0.2.14
+### Export diagnostics
 
 This is an experimental pre-release: bugs are expected and further fixes are
-planned. The new bodywork diagnostics identify why a layout is rejected; they
-do not add support for previously unsupported layouts.
+planned. Version 0.2.15 accepts models without deformable bodywork components.
+Active Reset supports fuel consumption and tyre wear enabled or disabled;
+leave those settings as you prefer. The app restores the saved state and does
+not change your session settings. After changing session settings, start a new
+Practice and save a new checkpoint.
 
-1. Quit Sector completely and restart LMU after upgrading to 0.2.14.
+1. Quit Sector completely and restart LMU after upgrading to 0.2.15.
 2. Reproduce the problem. For Active Reset, use Offline Practice without EAC.
 3. Open **Help → Export diagnostics → Save diagnostic file**.
 4. Choose a folder and share the resulting JSON file with your bug report.

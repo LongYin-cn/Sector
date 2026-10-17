@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.2.15",
+    "changes": [
+      "Experimental release. Bugs remain possible and further fixes are planned.",
+      "Fixes error 92004 when LMU publishes a stable bodywork model with zero deformable components. Models with components retain full bodywork restoration.",
+      "Verifies fuel consumption and tyre wear enabled or disabled without requiring their values to change. Session settings are preserved.",
+      "Keeps loading, model changes, damaged checkpoints and invalid memory guarded. Restart LMU after upgrading to the v24 reset module."
+    ]
+  },
+  {
     "version": "0.2.14",
     "changes": [
       "Experimental diagnostic release. Known and undiscovered bugs remain; further fixes are expected.",

@@ -1,5 +1,32 @@
 # Bodywork checkpoint and synchronization
 
+## Empty models in 0.2.15 / v24
+
+The supplied 0.2.14 diagnostic export identifies `92004`, check `component_count`,
+with a stable count of zero across seven save attempts on the Oreca 07. No
+physical or graphics writes took place. The export does not contain the user's
+damage setting, so it does not establish why LMU selected that representation.
+
+V24 accepts zero deformable components as an explicit empty model. It still
+requires a readable player graphics root, a lifetime pin, unchanged generation,
+consistent count/pointer reads and valid severity. The native loader can skip
+component construction; its clear path can also retain the allocation with
+count zero. Sector never reads unused entries in that allocation. Empty models
+retain root severity in the transaction but have no vertex buffers to restore.
+Nonempty models follow the existing full vertex restoration path.
+
+Changing between empty and populated models, replacing the allocation or
+reconstructing the model invalidates the checkpoint before any writes. Negative
+counts, invalid pointers and unsupported populated buffers still fail. This is
+not a retry that discards a failed graphics capture.
+
+Fuel consumption and tyre wear are state, not capture prerequisites: a zero
+fuel rate, unchanged quantity and zero or unchanged tyre wear remain valid.
+Sector does not edit session multipliers or enable damage/consumption. Numerical
+fixtures cover both consumption switches independently, with fresh and already
+worn tyres. Owned-process host tests cover both empty and populated graphics.
+These checks do not replace verification of the release on the affected PC.
+
 ## Detailed refusal diagnostics in 0.2.14 / v23
 
 This experimental release diagnoses error 92004 without relaxing admission or
@@ -22,8 +49,8 @@ Truncation and omissions are recorded. Windows user-directory names are masked;
 no data is uploaded. Existing native report files are retained in the versioned
 runtime workspace.
 
-Live reproduction on the affected user's PC is still required. The cause of
-their 92004 refusal is not yet established and is not claimed fixed.
+The later diagnostic export identified the zero-count admission failure
+addressed above. Other 92004 layout checks remain distinct failures.
 
 Sector 0.2.9 introduces native host v21. It integrates CPU bodywork buffers with
 the existing physical reset transaction for the verified Steam 25661166 profile.
