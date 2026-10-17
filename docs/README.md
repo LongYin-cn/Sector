@@ -36,6 +36,12 @@ Changing sessions or having the game rebuild your car can make a checkpoint
 unavailable. Check its status on the **Active Reset** page and save a new one
 when needed.
 
+Save with a healthy car and wait for **Checkpoint saved**. After an impact,
+wait until the collision ends before restoring. Damage repair is experimental;
+front bodywork repair has been verified on the Mercedes-AMG LMGT3, but other
+cars and impact types need more testing. Punctures and detached parts are not
+supported. Checkpoints do not persist across game restarts.
+
 ### Choose your shortcuts
 
 Click a shortcut on the Active Reset page, then press the key you want to assign.
@@ -58,6 +64,10 @@ The widget adjusts to the remaining content.
 
 For multiple monitors, choose the display in **Edit → Settings → Overlay**.
 Your layout and preferences are saved for the next launch.
+
+Widget updates automatically follow that display's refresh rate. Live widgets
+hide when you pause or switch away from LMU. During F7, the last frame stays
+visible until the new telemetry arrives, while lap and tyre histories reset.
 
 **Tyres** always shows all four tyres. You can hide readings and change the
 cold/hot color thresholds. Tyre laps stay
@@ -113,12 +123,13 @@ and start **Practice** for Active Reset. Session data updates even with overlays
 ## Settings, guide and background mode
 
 - Open **Edit → Settings** for app settings and overlay display selection.
+- Enable **Reduce motion** in Settings if you prefer fewer interface animations.
 - Open **Help → Changelog** for the changes in each version, newest first.
-- Enable **Reduce motion** there if you prefer fewer interface animations.
+- Open **Help → Guide** to replay the guided tour.
 
 The Sector launch animation appears only when starting the app. Click or press
 any key to skip it. Reopening Sector from the tray does not replay it.
-- Open **Help → Guide** to replay the guided tour.
+
 - Choose **Run in background** when closing the window to keep Sector active.
 - Reopen it from the Windows notification area or by launching `Sector.exe` again.
 - Choose **Quit Sector** to stop the app completely.
@@ -144,6 +155,14 @@ Check that **Overlays** and the individual widgets are enabled. Confirm the
 selected display in Settings. Load a session, bring LMU to the foreground and
 use windowed or borderless mode. Live widgets hide when game information is
 unavailable or when another app is in the foreground.
+They also hide while the game is paused. Resume the game before checking the layout.
+
+### Active Reset says the car or game version is unsupported
+
+Sector checks the installed LMU version before connecting. After a game update,
+check [Sector Releases](https://github.com/sector-lmu/Sector/releases/latest)
+for a compatible version. A game version warning is different from a damaged-car
+warning: for the latter, repair the car or start a fresh Practice and save again.
 
 ### The widgets are catching mouse clicks
 
@@ -170,7 +189,12 @@ published on that release yet.
 3. Launch `Sector.exe` from that folder and update any desktop shortcut you use.
 
 Keep all files in the new package together. Your settings and first-run choices
-are stored separately and are retained between versions.
+are stored separately and are retained between versions. If Sector requests an
+LMU restart, restart the game before creating your next checkpoint.
+
+To back up preferences, close Sector and copy the `LMUActiveReset` folder from
+`%LOCALAPPDATA%` to a safe location. You can paste `%LOCALAPPDATA%` into File
+Explorer's address bar. This backs up settings and layout, not game checkpoints.
 
 ## Get more help
 

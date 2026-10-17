@@ -20,6 +20,14 @@ Sector is a Windows app for **Le Mans Ultimate**. Save a point on track and retu
 to it to practice a corner or section again. Add customizable widgets over the
 game to see standings, lap times, pedal inputs and more.
 
+<p align="center">
+  <a href="https://github.com/sector-lmu/Sector/releases/tag/v0.2.12"><strong>Download Sector 0.2.12 for Windows</strong></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="docs/README.md">User guide</a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/sector-lmu/Sector/issues">Report a problem</a>
+</p>
+
 ![Sector Home with session information, reset actions and overlay layout](docs/media/home.png)
 
 ## 📥 Install Sector
@@ -35,9 +43,8 @@ Sector runs directly from its folder: there is no installer and no additional
 software to install. Keep the entire folder together; you can create a shortcut
 to `Sector.exe` on your desktop.
 
-If a release has no Windows ZIP attached, a ready-to-use package is not available
-there yet. GitHub's **Source code** downloads contain project files, not the
-ready-to-use app.
+Choose the **Windows app ZIP**, not GitHub's **Source code** downloads. You do
+not need to download the repository or install Python, Node.js or development tools.
 
 ## 🚦 First launch
 
@@ -64,6 +71,9 @@ update from the game; unavailable values appear as `-`.
 then start a **Practice** session. LMU must also be launched without
 **Easy Anti-Cheat (EAC)**.
 
+Sector checks compatibility with your installed game. If an LMU update is not
+supported, Active Reset will refuse to connect; check for a newer Sector release.
+
 ## 🏁 Active Reset
 
 Active Reset lets you repeat the same part of a track without driving a full lap
@@ -72,12 +82,28 @@ direction and driving state at that moment.
 
 1. Start LMU **without Easy Anti-Cheat (EAC)** and select **Offline** mode.
 2. Load a **Practice** session, enter **DRIVE** and wait for Sector to connect.
-3. Return to the game. At the point you want to practice from, press **F6** to save.
+3. With a healthy car, return to the game and press **F6** at your starting point.
+   Wait for **Checkpoint saved** before continuing.
 4. Keep driving, then press **F7** to return to that checkpoint.
 
 The car returns with the saved driving state, including its saved speed. Saving
 again replaces the checkpoint, so you can choose a new section to practice.
 If Sector reports that the checkpoint is no longer available, save a new one.
+
+Checkpoints belong to the current car and session. They are not saved practice
+files that you can reload after restarting the game. Changing sessions or having
+LMU rebuild your car can invalidate the checkpoint.
+
+### Restoring after damage
+
+Save while the car is healthy. After an impact has ended, restore that checkpoint
+to recover the supported physical and bodywork state. Visible front bodywork
+repair has been verified on the Mercedes-AMG LMGT3. Damage restoration is still
+experimental: other cars and impact types need further testing. Punctures and
+detached parts are not supported.
+
+If a save or restore is refused, read the message in Sector. Repair the car or
+start a fresh Practice if it cannot accept a healthy checkpoint.
 
 ### Change the keys and sounds
 
@@ -87,6 +113,13 @@ Release both keys before using them in the game.
 
 Confirmation sounds tell you when a save or restore succeeds, or when a request
 is rejected. You can preview or mute them on the same page.
+
+<details>
+<summary>View Active Reset settings</summary>
+
+![Sector Active Reset with save and restore shortcuts and confirmation sounds](docs/media/active-reset.png)
+
+</details>
 
 ## 📊 Overlay
 
@@ -141,8 +174,18 @@ become available after Sector records complete clean laps; unknown readings show
 </details>
 
 Run LMU in **windowed or borderless mode**. The live widgets appear when you are
-in a session with the game in the foreground. The editor can show sample data
-while you arrange your layout; unavailable live values appear as a dash.
+in a session with the game in the foreground. They hide when you pause, leave
+the game window or lose telemetry, and return when live data resumes. During F7,
+Sector keeps the last frame visible until the restored car's data arrives.
+
+Updates follow the refresh rate of the display selected for overlays. There is
+no refresh-rate setting to adjust. Actual data updates also depend on what LMU
+provides. A `~` marks estimated values, including gaps between timing updates
+and flat spot detection. Stint and hybrid suggestions need observed laps before
+they become available; they do not change the car's settings for you.
+
+The editor can show sample data while you arrange your layout. Live values that
+the game does not provide appear as `-`.
 
 ## Keep Sector running in the background
 
@@ -155,10 +198,37 @@ Closing the window gives you three choices:
 To reopen Sector, use its icon in the Windows notification area beside the clock,
 or launch `Sector.exe` again.
 
+## Update Sector
+
+1. Close the running version with **Quit Sector**, rather than leaving it in the background.
+2. Download the new Windows ZIP from [Releases](https://github.com/sector-lmu/Sector/releases/latest).
+3. Extract it into a new folder and launch its `Sector.exe`.
+4. Update your desktop shortcut if it still points to the old version.
+
+Your shortcut assignments, overlay layout and first-launch choices are retained.
+Keep the files from each package together; do not copy only the new EXE over an
+older installation. If Active Reset asks you to restart LMU, restart it before
+making a new checkpoint.
+
+### In 0.2.12
+
+- Widgets follow the selected monitor's refresh rate, including fractional rates.
+- Pausing LMU hides widgets more quickly.
+- F7 no longer clears the overlay frame while resetting lap and tyre histories.
+
+Open **Help → Changelog** for the complete in-app version history. The
+[release notes](https://github.com/sector-lmu/Sector/releases/tag/v0.2.12)
+include the download and current limitations.
+
 ## Need help?
 
 See the [user guide](docs/README.md) for setup help, common problems and updating
 Sector. You can also open **Help → Guide** inside the app.
+
+For a bug report, include your Sector version, LMU version, car and track, the
+exact message and the steps that reproduce it. For a display issue, include a
+screenshot and your monitor setup. Report problems through
+[GitHub Issues](https://github.com/sector-lmu/Sector/issues).
 
 ## Support Sector
 

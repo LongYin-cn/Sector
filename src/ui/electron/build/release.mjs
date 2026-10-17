@@ -171,6 +171,30 @@ fs.writeFileSync(
 );
 fs.writeFileSync(
   path.join(output, "README.txt"),
-  `Sector ${version}\r\nOpen Sector.exe. Keep this folder together. No Node or Python installation required.\r\nUse the verified LMU build in offline Practice without EAC.\r\nOverlays require windowed or borderless mode.\r\n`,
+  [
+    `Sector ${version}`,
+    "",
+    "GETTING STARTED",
+    "1. Extract the entire ZIP and open Sector.exe. Keep all files together.",
+    "2. Confirm your Le Mans Ultimate folder during first-launch setup.",
+    "3. For Active Reset, launch LMU without EAC, choose Offline > Practice and enter DRIVE.",
+    "4. With a healthy car, press F6 and wait for Checkpoint saved. Press F7 to return.",
+    "5. Enable widgets in Overlay. Use Edit layout to arrange them, then Lock layout.",
+    "",
+    "Overlays require windowed or borderless mode and follow the selected display refresh rate.",
+    "Change keys and sounds in Active Reset. Open settings through Edit > Settings.",
+    "Help > Guide reopens the tutorial. Help > Changelog lists version changes.",
+    "Closing the window offers background mode or Quit Sector. Quit fully before updating.",
+    "No Node.js or Python installation is required. Preferences are retained between updates.",
+    "",
+    "Damage repair is experimental. Punctures and detached parts are not supported.",
+    "Save a healthy car and wait until an impact ends before restoring.",
+    "Checkpoint availability depends on the current car, session and supported LMU version.",
+    "",
+    "User guide: https://github.com/sector-lmu/Sector/blob/prod/docs/README.md",
+    "Downloads: https://github.com/sector-lmu/Sector/releases",
+    "Report a problem: https://github.com/sector-lmu/Sector/issues",
+    "",
+  ].join("\r\n"),
 );
 console.log(output);

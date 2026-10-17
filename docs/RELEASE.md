@@ -1,8 +1,8 @@
 # Building a Windows release
 
-The current development version is **0.2.8**. A portable package starts with
+The release version is **0.2.12**. A portable package starts with
 `Sector.exe`; keep its adjacent DLLs and resources together. It bundles Electron,
-CPython 3.13.12, the telemetry reader/diagnostic and revision 20 reset host.
+CPython 3.13.12, the telemetry reader/diagnostic and revision 22 reset host.
 The package is unsigned and does not require installed Node.js or Python.
 
 ## Prerequisites
@@ -46,10 +46,30 @@ does not replace the pinned compatibility checks.
    npm run test:release
    ```
 
-The output is `releases/Sector-0.2.8-win-x64/`. The builder refuses an existing
+The output is `releases/Sector-0.2.12-win-x64/`. The builder refuses an existing
 destination; preserve or deliberately remove a previous output before rebuilding.
 Generated releases are ignored by Git. Building or committing a version does not
 publish a GitHub release or promote `prod`.
+
+## Publish an approved release
+
+1. Finish the changes on `dev`, including the README and version history. Run
+   the applicable tests, build the portable package and test the packaged EXE.
+2. Preserve an earlier local package before rebuilding the same version. Never
+   move or overwrite a package that is currently running.
+3. Check that the package contains no logs, captures, caches or local installation
+   paths. Include its complete runtime, notices and quick-start instructions.
+4. ZIP the complete `Sector-0.2.12-win-x64` folder and generate `SHA256SUMS.txt`.
+   Reopen the archive and verify its contents before uploading.
+5. With explicit approval to promote, merge `dev` into `prod`, push both branches
+   and create the `v0.2.12` tag on the promoted commit. Do not force-update tags.
+6. Create the GitHub release with notes, the Windows ZIP and checksum file.
+   Verify its published assets and target commit. Binaries belong in release
+   assets, not Git history.
+
+Keep evidence precise: the 0.2.12 display/pause/F7 changes passed automated
+checks, while their live-game visibility check remains pending. Earlier live
+bodywork validation does not establish that every model or impact is supported.
 
 ## Package contents and validation
 
