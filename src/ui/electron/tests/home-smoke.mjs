@@ -183,7 +183,8 @@ try {
         .getAttribute("aria-busy") === "false",
   );
   await page.getByRole("button", { name: "Help", exact: true }).click();
-  await page.getByRole("separator").waitFor();
+  await page.getByRole("separator").first().waitFor();
+  assert.equal(await page.getByRole("separator").count(), 2);
   await page.getByRole("menuitem", { name: "Changelog", exact: true }).click();
   const changelog = page.getByRole("dialog", {
     name: "Changelog",

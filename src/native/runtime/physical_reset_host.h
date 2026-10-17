@@ -29,9 +29,15 @@ struct ResetHostIPC {
     uint64_t bodywork_result, bodywork_components, bodywork_meshes, bodywork_vertex_bytes,
         bodywork_attempted_writes, bodywork_verified_writes, bodywork_recovery_writes;
 #endif
+#if LMU_RESET_HOST_REVISION >= 23
+    uint64_t bodywork_check, bodywork_component_index, bodywork_mesh_index, bodywork_mesh_flags;
+    int64_t bodywork_observed, bodywork_limit;
+#endif
 };
 static_assert(sizeof(ResetHostReport) == 216, "Reset report ABI");
-#if LMU_RESET_HOST_REVISION >= 21
+#if LMU_RESET_HOST_REVISION >= 23
+static_assert(sizeof(ResetHostIPC) == 432, "Reset host ABI with detailed bodywork diagnostics");
+#elif LMU_RESET_HOST_REVISION >= 21
 static_assert(sizeof(ResetHostIPC) == 384, "Reset host ABI with bodywork diagnostics");
 #else
 static_assert(sizeof(ResetHostIPC) == 328, "Legacy reset host ABI");

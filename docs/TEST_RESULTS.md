@@ -3,6 +3,24 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Experimental diagnostic release: 0.2.14 / v23
+
+The bodywork fixture exercises all seventeen named layout refusals without
+writing game state, in addition to existing restore and rollback cases. The
+loaded v23 host fixture reproduces a negative part count and verifies cause
+92004, check ID 8, component/mesh indices and signed observed/limit values across
+the native IPC. It also passes normal restore, absent-player refusal and restart
+in an owned process. No live game is opened by these tests.
+
+All 115 Python tests and 63 desktop model tests pass. Coverage includes the
+328/384/432-byte IPC versions, detailed acknowledgement decoding, log rotation,
+duplicate suppression, export limits, user-path masking and capture exclusion.
+Electron tests cover the updated Help menu, export cancellation, write failure,
+successful JSON contents and UI confirmation, plus existing Home and widget
+behavior. The packaged EXE passes isolated startup and the same diagnostic
+export scenarios, including cancellation and unwritable destinations. Live
+diagnosis of the other user's 92004 is pending their exported log.
+
 ## First-run setup and online overlay discovery: 0.2.13
 
 All 61 desktop model tests pass. New cases cover protected-process discovery,

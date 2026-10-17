@@ -1,8 +1,8 @@
 # Building a Windows release
 
-The current development build is **0.2.13**. A portable package starts with
+The current experimental build is **0.2.14**. A portable package starts with
 `Sector.exe`; keep its adjacent DLLs and resources together. It bundles Electron,
-CPython 3.13.12, the telemetry reader/diagnostic and revision 22 reset host.
+CPython 3.13.12, the telemetry reader/diagnostic and revision 23 reset host.
 The package is unsigned and does not require installed Node.js or Python.
 
 ## Prerequisites

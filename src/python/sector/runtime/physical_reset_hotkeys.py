@@ -18,6 +18,13 @@ def expected_restore_fields(revision):
 
 def rejection_reason(report):
     cause = report.get("cause")
+    if cause == 92004 and report.get("bodywork_check_name"):
+        return (
+            f"Bodywork layout rejected: {report['bodywork_check_name']} "
+            f"(component {report.get('bodywork_component_index', 0)}, "
+            f"mesh {report.get('bodywork_mesh_index', 0)}). "
+            "Use Help > Export diagnostics to share the log."
+        )
     bodywork_reasons = {
         92003: "Bodywork is being updated. Wait for the impact or loading to finish and retry.",
         92004: "Bodywork buffers are not ready or have an unsupported layout.",

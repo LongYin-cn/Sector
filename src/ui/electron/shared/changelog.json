@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.2.14",
+    "changes": [
+      "Experimental diagnostic release. Known and undiscovered bugs remain; further fixes are expected.",
+      "Adds Help > Export diagnostics to save bounded text logs, system graphics information and session context without uploading anything.",
+      "Identifies the exact bodywork layout check behind error 92004, with component, mesh and observed limits. This release diagnoses the refusal; it does not fix unsupported bodywork layouts.",
+      "Requires an LMU restart when upgrading to the v23 diagnostic reset module."
+    ]
+  },
+  {
     "version": "0.2.13",
     "changes": [
       "Keeps first-launch setup open until a valid LMU folder is confirmed, with a native Windows folder picker.",

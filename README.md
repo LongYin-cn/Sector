@@ -16,6 +16,10 @@
 
 **Practice your driving and keep useful race information in view.**
 
+**Experimental build: [Sector 0.2.14](https://github.com/sector-lmu/Sector/releases/tag/v0.2.14).**
+This diagnostic pre-release may contain bugs and will receive further fixes.
+It adds detailed bodywork logs; it does not yet fix the reported 92004 refusal.
+
 Sector is a Windows app for **Le Mans Ultimate**. Save a point on track and return
 to it to practice a corner or section again. Add customizable widgets over the
 game to see standings, lap times, pedal inputs and more.
@@ -239,6 +243,12 @@ For a bug report, include your Sector version, LMU version, car and track, the
 exact message and the steps that reproduce it. For a display issue, include a
 screenshot and your monitor setup. Report problems through
 [GitHub Issues](https://github.com/sector-lmu/Sector/issues).
+
+In 0.2.14, reproduce the problem, then open **Help → Export diagnostics** and
+choose **Save diagnostic file**. Send the resulting JSON file with your report.
+It contains recent text logs, reset error details, app/graphics versions and
+available car/track context. Windows user-directory names are masked. Nothing
+is uploaded automatically. Restart LMU after upgrading to this diagnostic build.
 
 ## Support Sector
 

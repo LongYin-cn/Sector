@@ -274,6 +274,71 @@ void healthy_render_flags() {
     }
 }
 
+void layout_diagnostics() {
+    {
+        Memory memory;
+        Transaction transaction(memory.backend());
+        Checkpoint checkpoint;
+        CHECK(transaction.capture(0, checkpoint) == Result::bad_layout);
+        CHECK(transaction.report().check == 1 && !memory.writes);
+        CHECK(transaction.capture(root, checkpoint) == Result::ok);
+        memory.set<uint32_t>(root + 0x1a88, 3);
+        CHECK(transaction.begin(root, checkpoint) == Result::bad_layout);
+        CHECK(transaction.report().check == 4 && transaction.report().observed == 3);
+        CHECK(!memory.writes && memory.locks.empty());
+    }
+    {
+        Memory memory;
+        memory.set<uintptr_t>(meshes + 0x300 + 0x150, vertices);
+        memory.set<uintptr_t>(parts + 0x28 + 0x10, originals);
+        Transaction transaction(memory.backend());
+        Checkpoint checkpoint;
+        CHECK(transaction.capture(root, checkpoint) == Result::ok);
+        memory.damage();
+        CHECK(transaction.begin(root, checkpoint) == Result::bad_layout);
+        CHECK(transaction.report().check == 17 && !transaction.report().component_index);
+        CHECK(!memory.writes && memory.locks.empty());
+    }
+    struct Case {
+        uintptr_t address;
+        int32_t value;
+        uint64_t check;
+    };
+    const Case cases[]{
+        {root + 0x1a78, 0, 2},        {components + 8, 1, 5},     {components + 0x18, 2, 6},
+        {components + 0x40, 21, 7},   {components + 0x1c, -1, 8}, {meshes + 0x14c, 0, 11},
+        {meshes + 0x14c, 500000, 12}, {meshes + 0x168, 4097, 13},
+    };
+    for (const auto &c : cases) {
+        Memory memory;
+        memory.set<int32_t>(c.address, c.value);
+        Transaction transaction(memory.backend());
+        Checkpoint checkpoint;
+        CHECK(transaction.capture(root, checkpoint) == Result::bad_layout);
+        CHECK(transaction.report().check == c.check);
+        CHECK(transaction.report().observed == c.value);
+        CHECK(!memory.writes && memory.locks.empty());
+    }
+    struct PointerCase {
+        uintptr_t address;
+        uint64_t check;
+    };
+    for (const auto &c : {PointerCase{root + 0x1a80, 3},
+                          {components + 0x20, 9},
+                          {parts, 10},
+                          {meshes + 0x150, 14},
+                          {parts + 0x10, 15},
+                          {meshes + 0x170, 16}}) {
+        Memory memory;
+        memory.set<uintptr_t>(c.address, 0);
+        Transaction transaction(memory.backend());
+        Checkpoint checkpoint;
+        CHECK(transaction.capture(root, checkpoint) == Result::bad_layout);
+        CHECK(transaction.report().check == c.check);
+        CHECK(!memory.writes && memory.locks.empty());
+    }
+}
+
 void failed_recovery(bool lose_pin) {
     Memory memory;
     Transaction t(memory.backend());
@@ -364,6 +429,7 @@ int main(int argc, char **argv) {
     faults(count, true);
     recovery_and_guards();
     healthy_render_flags();
+    layout_diagnostics();
     failed_recovery(false);
     failed_recovery(true);
     if (argc == 2)

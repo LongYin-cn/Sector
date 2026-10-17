@@ -37,6 +37,27 @@ enum class Result {
     wrong_phase,
 };
 
+enum class LayoutCheck : uint64_t {
+    none = 0,
+    graphics_root_range = 1,
+    component_count = 2,
+    component_array_range = 3,
+    damage_value = 4,
+    replay_component = 5,
+    dirty_flag = 6,
+    damage_event_count = 7,
+    part_count = 8,
+    part_array_range = 9,
+    mesh_object_range = 10,
+    vertex_count = 11,
+    vertex_budget = 12,
+    submesh_count = 13,
+    vertex_buffer_range = 14,
+    original_buffer_range = 15,
+    submesh_array_range = 16,
+    overlapping_restore_spans = 17,
+};
+
 struct Report {
     Result result = Result::ok;
     size_t components = 0;
@@ -45,6 +66,9 @@ struct Report {
     size_t attempted_writes = 0;
     size_t verified_writes = 0;
     size_t recovery_writes = 0;
+    // One-based indices; zero means the failure is outside a component/mesh.
+    uint64_t check = 0, component_index = 0, mesh_index = 0, mesh_flags = 0;
+    int64_t observed = 0, limit = 0;
 };
 
 // Addresses and bytes are held outside the physical snapshot ABI. Copying a

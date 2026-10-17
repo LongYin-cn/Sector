@@ -54,6 +54,7 @@ function App() {
   const [preview, setPreview] = useState(true);
   const [modal, setModal] = useState(null);
   const [error, setError] = useState("");
+  const [exportState, setExportState] = useState("");
   const [captureHint, setCaptureHint] = useState(
     "Press one key. Esc to cancel.",
   );
@@ -295,6 +296,16 @@ function App() {
                     onClick={() => setModal("changelog")}
                   >
                     <Glyph icon={history} /> Changelog
+                  </Menu.Item>
+                  <Menu.Separator className="help-menu-separator" />
+                  <Menu.Item
+                    className="help-menu-item"
+                    onClick={() => {
+                      setExportState("");
+                      setModal("diagnostics");
+                    }}
+                  >
+                    <Glyph icon={save} /> Export diagnostics
                   </Menu.Item>
                 </Menu.Popup>
               </Menu.Positioner>
@@ -551,26 +562,30 @@ function App() {
               <div className="modal-icon">
                 <Glyph
                   icon={
-                    shownModal === "changelog"
-                      ? history
-                      : shownModal === "settings"
-                        ? gear
-                        : shownModal === "close"
-                          ? monitor
-                          : keyboard
+                    shownModal === "diagnostics"
+                      ? save
+                      : shownModal === "changelog"
+                        ? history
+                        : shownModal === "settings"
+                          ? gear
+                          : shownModal === "close"
+                            ? monitor
+                            : keyboard
                   }
                 />
               </div>
               <Dialog.Title>
-                {shownModal === "changelog"
-                  ? "Changelog"
-                  : shownModal === "settings"
-                    ? "Settings"
-                    : shownModal === "close"
-                      ? "Keep Sector running?"
-                      : shownModal === "save_key"
-                        ? "Set save shortcut"
-                        : "Set restore shortcut"}
+                {shownModal === "diagnostics"
+                  ? "Export diagnostics"
+                  : shownModal === "changelog"
+                    ? "Changelog"
+                    : shownModal === "settings"
+                      ? "Settings"
+                      : shownModal === "close"
+                        ? "Keep Sector running?"
+                        : shownModal === "save_key"
+                          ? "Set save shortcut"
+                          : "Set restore shortcut"}
               </Dialog.Title>
               <Dialog.Description
                 className={
@@ -579,15 +594,47 @@ function App() {
                     : undefined
                 }
               >
-                {shownModal === "changelog"
-                  ? "Changes in each Sector update."
-                  : shownModal === "settings"
-                    ? "Appearance and overlay display preferences."
-                    : shownModal === "close"
-                      ? "Keep your shortcuts active in the background, or quit Sector."
-                      : captureHint}
+                {shownModal === "diagnostics"
+                  ? "Save a diagnostic file to share with support. It includes recent text logs, app and graphics versions, and the current car and track. Nothing is uploaded automatically."
+                  : shownModal === "changelog"
+                    ? "Changes in each Sector update."
+                    : shownModal === "settings"
+                      ? "Appearance and overlay display preferences."
+                      : shownModal === "close"
+                        ? "Keep your shortcuts active in the background, or quit Sector."
+                        : captureHint}
               </Dialog.Description>
-              {shownModal === "changelog" ? (
+              {shownModal === "diagnostics" ? (
+                <>
+                  <p role="status">{exportState}</p>
+                  <div className="onboarding-actions">
+                    <Dialog.Close className="secondary">Close</Dialog.Close>
+                    <button
+                      className="primary"
+                      disabled={pending}
+                      onClick={async () => {
+                        setPending(true);
+                        setExportState("");
+                        try {
+                          const result = await api.exportDiagnostics();
+                          if (!result.canceled)
+                            setExportState(
+                              result.ok
+                                ? "Diagnostics saved. Attach the file to your bug report."
+                                : result.error,
+                            );
+                        } catch {
+                          setExportState("Export failed. Please try again.");
+                        } finally {
+                          setPending(false);
+                        }
+                      }}
+                    >
+                      Save diagnostic file
+                    </button>
+                  </div>
+                </>
+              ) : shownModal === "changelog" ? (
                 <>
                   <Changelog />
                   <Dialog.Close className="secondary settings-done">

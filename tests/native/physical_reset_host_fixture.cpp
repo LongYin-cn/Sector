@@ -491,6 +491,15 @@ static int run_fixture(int argc, char **argv) {
            ipc->physical_field_write_attempts == expected_fields);
     auto refreshed_graphics = request(ipc, 7, HOST_SAVE);
     assert(refreshed_graphics.result == CONTROL_OK && refreshed_graphics.saves == 2);
+#if LMU_RESET_HOST_REVISION >= 23
+    BodyworkFixtureModel::write(host_bodywork.component + 0x1c, int32_t{-1});
+    const auto bad_layout = request(ipc, 8, HOST_SAVE);
+    assert(bad_layout.result != CONTROL_OK && bad_layout.cause == 92004);
+    assert(ipc->bodywork_check == 8 && ipc->bodywork_component_index == 1 &&
+           ipc->bodywork_mesh_index == 0 && ipc->bodywork_observed == -1 &&
+           ipc->bodywork_limit == 256 && ipc->physical_field_write_attempts == expected_fields);
+    BodyworkFixtureModel::write(host_bodywork.component + 0x1c, int32_t{1});
+#endif
 #endif
     void(WINAPI *volatile reconstruct)(void *) = FixtureReconstruct;
     reconstruct(reinterpret_cast<void *>(source_bindings.address[104]));

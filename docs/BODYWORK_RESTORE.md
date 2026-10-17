@@ -1,5 +1,30 @@
 # Bodywork checkpoint and synchronization
 
+## Detailed refusal diagnostics in 0.2.14 / v23
+
+This experimental release diagnoses error 92004 without relaxing admission or
+changing restore writes. Seventeen named layout checks identify invalid root or
+array ranges, component/part/vertex/submesh counts, damage values, replay and
+dirty flags, event counts, vertex budget and overlapping restore spans.
+
+The native report adds the check ID, one-based component and mesh indices, mesh
+flags, observed value and applicable limit. Zero indices mean no component or
+mesh has been selected. The Python acknowledgement adds the stable check name.
+Native host v23 appends 48 bytes to the v21/v22 IPC; older resident modules retain
+their original layout and require a restart before the new diagnostics apply.
+
+**Help → Export diagnostics** collects recent reports and desktop events in one
+JSON file. It includes app/OS/graphics versions and available car/track context,
+but excludes memory dumps, raw physics captures and checkpoint payloads. The
+desktop event log rotates at 256 KiB, repeated unchanged states are suppressed,
+and exports read at most 256 KiB per file, 30 files and 4 MiB of source text.
+Truncation and omissions are recorded. Windows user-directory names are masked;
+no data is uploaded. Existing native report files are retained in the versioned
+runtime workspace.
+
+Live reproduction on the affected user's PC is still required. The cause of
+their 92004 refusal is not yet established and is not claimed fixed.
+
 Sector 0.2.9 introduces native host v21. It integrates CPU bodywork buffers with
 the existing physical reset transaction for the verified Steam 25661166 profile.
 Automated tests pass. The 0.2.10 packaged test also confirms visible front

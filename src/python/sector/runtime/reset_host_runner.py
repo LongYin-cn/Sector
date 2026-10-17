@@ -95,7 +95,7 @@ class LegacyIPC(C.Structure):
         return self.physical_field_write_attempts
 
 
-class IPC(LegacyIPC):
+class BodyworkIPC(LegacyIPC):
     _fields_ = [
         (f"bodywork_{name}", C.c_uint64)
         for name in (
@@ -110,17 +110,54 @@ class IPC(LegacyIPC):
     ]
 
 
-assert C.sizeof(Report) == 216 and C.sizeof(LegacyIPC) == 328 and C.sizeof(IPC) == 384
+class IPC(BodyworkIPC):
+    _fields_ = [
+        (f"bodywork_{name}", C.c_uint64)
+        for name in ("check", "component_index", "mesh_index", "mesh_flags")
+    ] + [("bodywork_observed", C.c_int64), ("bodywork_limit", C.c_int64)]
+
+
+BODYWORK_CHECKS = (
+    "none",
+    "graphics_root_range",
+    "component_count",
+    "component_array_range",
+    "damage_value",
+    "replay_component",
+    "dirty_flag",
+    "damage_event_count",
+    "part_count",
+    "part_array_range",
+    "mesh_object_range",
+    "vertex_count",
+    "vertex_budget",
+    "submesh_count",
+    "vertex_buffer_range",
+    "original_buffer_range",
+    "submesh_array_range",
+    "overlapping_restore_spans",
+)
+
+assert C.sizeof(Report) == 216 and C.sizeof(LegacyIPC) == 328
+assert C.sizeof(BodyworkIPC) == 384 and C.sizeof(IPC) == 432
 
 
 def ipc_type_for_magic(magic):
-    return LegacyIPC if magic <= 0x4C4D555253543030 + 20 else IPC
+    revision = magic - 0x4C4D555253543030
+    return LegacyIPC if revision <= 20 else BodyworkIPC if revision <= 22 else IPC
 
 
 def bodywork_diagnostics(ipc):
     if ipc.magic < 0x4C4D555253543030 + 21:
         return {}
-    return {name: getattr(ipc, name) for name, _ in IPC._fields_}
+    row = {name: getattr(ipc, name) for name, _ in BodyworkIPC._fields_}
+    if ipc.magic >= 0x4C4D555253543030 + 23:
+        row.update({name: getattr(ipc, name) for name, _ in IPC._fields_})
+        code = ipc.bodywork_check
+        row["bodywork_check_name"] = (
+            BODYWORK_CHECKS[code] if code < len(BODYWORK_CHECKS) else "unknown"
+        )
+    return row
 
 
 def as_dict(report):
@@ -152,7 +189,7 @@ def context_attempt(ipc, hotkeys, reasons, fetch=get_json, clock=KERNEL.GetTickC
 
 def final_acknowledgement(view, ipc, last_id):
     sequence = ipc.report_sequence
-    copy = IPC.from_buffer_copy(C.string_at(view, C.sizeof(IPC)))
+    copy = type(ipc).from_buffer_copy(C.string_at(view, C.sizeof(ipc)))
     if (
         sequence & 1
         or copy.report_sequence != ipc.report_sequence
@@ -260,6 +297,7 @@ def run(args):
         )
     )
     prefix.parent.mkdir(parents=True, exist_ok=True)
+    ipc_class = ipc_type_for_magic(0x4C4D555253543030 + args.revision)
     mapping = view = ipc = native = console = None
     originals = []
     failure = None
@@ -314,7 +352,7 @@ def run(args):
             None,
             4,
             0,
-            C.sizeof(IPC),
+            C.sizeof(ipc_class),
             (
                 f"Local\\LMU_PhysicalReset_{dll.name}_{args.pid}"
                 if args.revision >= 9
@@ -323,11 +361,11 @@ def run(args):
         )
         if not mapping or C.get_last_error() == 183:
             raise ValueError("Host mapping already exists or is unavailable")
-        view = k.MapViewOfFile(mapping, 0xF001F, 0, 0, C.sizeof(IPC))
+        view = k.MapViewOfFile(mapping, 0xF001F, 0, 0, C.sizeof(ipc_class))
         if not view:
             raise OSError("Host mapping unavailable")
-        ipc = IPC.from_address(view)
-        C.memset(view, 0, C.sizeof(IPC))
+        ipc = ipc_class.from_address(view)
+        C.memset(view, 0, C.sizeof(ipc_class))
         ipc.magic, ipc.version, ipc.pid = MAGIC + args.revision - 1, 1, args.pid
         ipc.owner_thread = args.owner_thread
         ipc.heartbeat_ms = KERNEL.GetTickCount64()
@@ -428,7 +466,7 @@ def run(args):
                 completed = ipc.completed_id
                 sequence = ipc.report_sequence
                 if completed > last_completed and not sequence & 1:
-                    copy = IPC.from_buffer_copy(C.string_at(view, C.sizeof(IPC)))
+                    copy = type(ipc).from_buffer_copy(C.string_at(view, C.sizeof(ipc)))
                     if (
                         copy.report_sequence == ipc.report_sequence == sequence
                         and copy.completed_id == completed

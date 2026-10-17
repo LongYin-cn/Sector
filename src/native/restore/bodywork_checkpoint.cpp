@@ -91,6 +91,14 @@ struct Transaction::Work {
     Result result(Result r) {
         return report.result = r;
     }
+    Result layout(LayoutCheck check, int64_t observed = 0, int64_t limit = 0) {
+        if (check == LayoutCheck::overlapping_restore_spans)
+            report.component_index = report.mesh_index = report.mesh_flags = 0;
+        report.check = static_cast<uint64_t>(check);
+        report.observed = observed;
+        report.limit = limit;
+        return Result::bad_layout;
+    }
     bool valid_backend() const {
         return backend.pinned && backend.generation && backend.read && backend.write &&
                backend.try_lock && backend.unlock;
@@ -114,12 +122,13 @@ struct Transaction::Work {
     Result load(uintptr_t root, Image &image, bool healthy) {
         int32_t count = 0;
         if (!address_range(root, 0x1aa8))
-            return Result::bad_layout;
+            return layout(LayoutCheck::graphics_root_range);
         if (!read(root + 0x1a78, count) || !read(root + 0x1a80, image.entries))
             return Result::read_failed;
-        if (count <= 0 || count > int32_t(max_components) ||
-            !address_range(image.entries, size_t(count) * component_stride))
-            return Result::bad_layout;
+        if (count <= 0 || count > int32_t(max_components))
+            return layout(LayoutCheck::component_count, count, max_components);
+        if (!address_range(image.entries, size_t(count) * component_stride))
+            return layout(LayoutCheck::component_array_range);
         image.root = root;
         image.generation = generation;
         locks.reserve(size_t(count));
@@ -143,9 +152,13 @@ struct Transaction::Work {
             return Result::read_failed;
         for (auto damage : image.damage)
             if (damage > 2 || (healthy && damage))
-                return healthy ? Result::damaged_checkpoint : Result::bad_layout;
+                return healthy ? Result::damaged_checkpoint
+                               : layout(LayoutCheck::damage_value, damage, 2);
         image.components.resize(size_t(count));
         for (size_t i = 0; i < image.components.size(); ++i) {
+            report.component_index = i + 1;
+            report.mesh_index = 0;
+            report.mesh_flags = 0;
             auto &component = image.components[i];
             component.address = image.entries + i * component_stride;
             unsigned char replay = 0;
@@ -157,39 +170,54 @@ struct Transaction::Work {
                 !read(component.address + 0x20, component.parts) ||
                 !read(component.address + 0x40, component.events))
                 return Result::read_failed;
-            if (replay || component.dirty > 1 || component.events > 20 || parts <= 0 ||
-                size_t(parts) > max_meshes - report.meshes ||
-                !address_range(component.parts, size_t(parts) * part_stride))
-                return Result::bad_layout;
+            if (replay)
+                return layout(LayoutCheck::replay_component, replay, 0);
+            if (component.dirty > 1)
+                return layout(LayoutCheck::dirty_flag, component.dirty, 1);
+            if (component.events > 20)
+                return layout(LayoutCheck::damage_event_count, component.events, 20);
+            if (parts <= 0 || size_t(parts) > max_meshes - report.meshes)
+                return layout(LayoutCheck::part_count, parts, max_meshes - report.meshes);
+            if (!address_range(component.parts, size_t(parts) * part_stride))
+                return layout(LayoutCheck::part_array_range);
             if (healthy && component.events)
                 return Result::damaged_checkpoint;
             component.meshes.resize(size_t(parts));
             for (size_t j = 0; j < component.meshes.size(); ++j) {
+                report.mesh_index = j + 1;
+                report.mesh_flags = 0;
                 auto &mesh = component.meshes[j];
                 mesh.record = component.parts + j * part_stride;
                 uint32_t flags = 0;
                 if (!read(mesh.record, mesh.object) || !read(mesh.record + 0x10, mesh.original))
                     return Result::read_failed;
                 if (!address_range(mesh.object, 0x178))
-                    return Result::bad_layout;
+                    return layout(LayoutCheck::mesh_object_range);
                 if (!read(mesh.object, flags) || !read(mesh.object + 0x14c, mesh.count) ||
                     !read(mesh.object + 0x150, mesh.vertices) ||
                     !read(mesh.object + 0x168, mesh.submesh_count) ||
                     !read(mesh.object + 0x170, mesh.submeshes))
                     return Result::read_failed;
+                report.mesh_flags = flags;
                 // Native 52C5B0 can map a GPU buffer for this flag. That path needs
                 // its own thread contract; do not treat its CPU address as writable.
                 if (flags & 0x80)
                     return Result::unsupported_buffer;
-                if (mesh.count <= 0 ||
-                    size_t(mesh.count) > (max_vertex_bytes - report.vertex_bytes) / vertex_stride ||
-                    mesh.submesh_count < 0 || size_t(mesh.submesh_count) > max_submeshes)
-                    return Result::bad_layout;
+                if (mesh.count <= 0)
+                    return layout(LayoutCheck::vertex_count, mesh.count, 1);
+                if (size_t(mesh.count) > (max_vertex_bytes - report.vertex_bytes) / vertex_stride)
+                    return layout(LayoutCheck::vertex_budget, mesh.count,
+                                  (max_vertex_bytes - report.vertex_bytes) / vertex_stride);
+                if (mesh.submesh_count < 0 || size_t(mesh.submesh_count) > max_submeshes)
+                    return layout(LayoutCheck::submesh_count, mesh.submesh_count, max_submeshes);
                 const size_t bytes = size_t(mesh.count) * vertex_stride;
-                if (!address_range(mesh.vertices, bytes) || !address_range(mesh.original, bytes) ||
-                    (mesh.submesh_count &&
-                     !address_range(mesh.submeshes, size_t(mesh.submesh_count) * submesh_stride)))
-                    return Result::bad_layout;
+                if (!address_range(mesh.vertices, bytes))
+                    return layout(LayoutCheck::vertex_buffer_range);
+                if (!address_range(mesh.original, bytes))
+                    return layout(LayoutCheck::original_buffer_range);
+                if (mesh.submesh_count &&
+                    !address_range(mesh.submeshes, size_t(mesh.submesh_count) * submesh_stride))
+                    return layout(LayoutCheck::submesh_array_range);
                 mesh.bytes.resize(bytes);
                 if (!read(mesh.vertices, mesh.bytes.data(), bytes))
                     return Result::read_failed;
@@ -336,7 +364,7 @@ Result Transaction::begin(uintptr_t graphics, const Checkpoint &checkpoint) {
             std::sort(ranges.begin(), ranges.end());
             for (size_t i = 1; i < ranges.size(); ++i)
                 if (ranges[i].first < ranges[i - 1].second)
-                    r = Result::bad_layout;
+                    r = w.layout(LayoutCheck::overlapping_restore_spans);
         }
     } catch (const std::bad_alloc &) {
         r = Result::allocation_failed;

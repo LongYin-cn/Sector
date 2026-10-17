@@ -207,6 +207,26 @@ Explorer's address bar. This backs up settings and layout, not game checkpoints.
 
 ## Get more help
 
+### Export diagnostics in 0.2.14
+
+This is an experimental pre-release: bugs are expected and further fixes are
+planned. The new bodywork diagnostics identify why a layout is rejected; they
+do not add support for previously unsupported layouts.
+
+1. Quit Sector completely and restart LMU after upgrading to 0.2.14.
+2. Reproduce the problem. For Active Reset, use Offline Practice without EAC.
+3. Open **Help → Export diagnostics → Save diagnostic file**.
+4. Choose a folder and share the resulting JSON file with your bug report.
+
+You can export after leaving or restarting the game: recent logs remain on disk
+in the same Sector version. Export before switching to another version. Include
+the vehicle and whether the failure happened with F6 or F7 if they are not
+available in the captured session context.
+
+The file contains recent text logs and system graphics information, with bounded
+size and masked Windows user-directory names. Memory dumps, raw physics captures
+and checkpoint data are excluded. Exporting does not upload or send the file.
+
 Open an [issue on GitHub](https://github.com/sector-lmu/Sector/issues) with the
 Sector version you are using, what you were doing and the exact message shown
 by the app. A screenshot can help explain a display problem.

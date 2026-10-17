@@ -5,6 +5,7 @@ import unittest
 
 from sector.runtime.reset_host_runner import (
     IPC,
+    BodyworkIPC,
     LegacyIPC,
     bodywork_diagnostics,
     final_acknowledgement,
@@ -16,16 +17,17 @@ from sector.runtime.physical_reset_hotkeys import rejection_reason
 class BodyworkProtocolTests(unittest.TestCase):
     def test_legacy_prefix_and_resident_size(self):
         self.assertEqual(C.sizeof(LegacyIPC), 328)
-        self.assertEqual(C.sizeof(IPC), 384)
+        self.assertEqual(C.sizeof(IPC), 432)
+        self.assertEqual(C.sizeof(BodyworkIPC), 384)
         for name, _ in LegacyIPC._fields_:
             self.assertEqual(getattr(IPC, name).offset, getattr(LegacyIPC, name).offset)
         for revision in range(1, 21):
             self.assertIs(ipc_type_for_magic(0x4C4D555253543030 + revision), LegacyIPC)
-        self.assertIs(ipc_type_for_magic(0x4C4D555253543030 + 21), IPC)
+        self.assertIs(ipc_type_for_magic(0x4C4D555253543030 + 21), BodyworkIPC)
         self.assertEqual(bodywork_diagnostics(LegacyIPC()), {})
 
     def test_completed_ack_includes_graphics_diagnostics(self):
-        ipc = IPC()
+        ipc = BodyworkIPC()
         ipc.magic = 0x4C4D555253543030 + 21
         ipc.report_sequence = 2
         ipc.completed_id = 1
@@ -49,3 +51,22 @@ class BodyworkProtocolTests(unittest.TestCase):
             (92010, "Restart"),
         ]:
             self.assertIn(word, rejection_reason({"cause": cause}))
+
+    def test_detailed_layout_failure_survives_acknowledgement(self):
+        ipc = IPC()
+        ipc.magic = 0x4C4D555253543030 + 23
+        ipc.report_sequence = 2
+        ipc.completed_id = 1
+        ipc.report.cause = 92004
+        ipc.bodywork_check = 8
+        ipc.bodywork_component_index = 2
+        ipc.bodywork_observed = -1
+        ipc.bodywork_limit = 256
+        row = final_acknowledgement(C.addressof(ipc), ipc, 0)
+        self.assertEqual(row["bodywork_check_name"], "part_count")
+        self.assertEqual(row["bodywork_observed"], -1)
+        self.assertIn("part_count", rejection_reason(row))
+        self.assertIn("Export diagnostics", rejection_reason(row))
+        self.assertIs(ipc_type_for_magic(ipc.magic), IPC)
+        for name, _ in BodyworkIPC._fields_:
+            self.assertEqual(getattr(IPC, name).offset, getattr(BodyworkIPC, name).offset)

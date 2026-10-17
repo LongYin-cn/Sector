@@ -331,6 +331,14 @@ static void publish(uint64_t id) {
     ipc->bodywork_attempted_writes = bodywork.attempted_writes;
     ipc->bodywork_verified_writes = bodywork.verified_writes;
     ipc->bodywork_recovery_writes = bodywork.recovery_writes;
+#if LMU_RESET_HOST_REVISION >= 23
+    ipc->bodywork_check = bodywork.check;
+    ipc->bodywork_component_index = bodywork.component_index;
+    ipc->bodywork_mesh_index = bodywork.mesh_index;
+    ipc->bodywork_mesh_flags = bodywork.mesh_flags;
+    ipc->bodywork_observed = bodywork.observed;
+    ipc->bodywork_limit = bodywork.limit;
+#endif
     if (report.result && bodywork.result != sector_bodywork::Result::ok)
         report.cause = 92000 + static_cast<uint64_t>(bodywork.result);
 #endif

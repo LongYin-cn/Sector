@@ -18,6 +18,7 @@ const { Overlays } = require("./overlays.cjs");
 const { Runtime, resolvePython, discoverGame } = require("./runtime.cjs");
 const setupStore = require("./onboarding.cjs");
 const { GameLauncher } = require("./game-launcher.cjs");
+const { Diagnostics } = require("./diagnostics.cjs");
 const {
   defaults,
   keys,
@@ -56,6 +57,21 @@ const smoke = preview && process.argv.includes("--smoke");
 const onboardingSmoke = smoke && process.argv.includes("--onboarding-smoke");
 const previewRoot = path.join(root, "work/electron-preview");
 if (preview) app.setPath("userData", previewRoot);
+const diagnostics = new Diagnostics(
+  preview ? previewRoot : root,
+  app.getVersion(),
+);
+diagnostics.record("startup", {
+  version: app.getVersion(),
+  packaged: app.isPackaged,
+  preview,
+});
+process.on("uncaughtExceptionMonitor", (error) =>
+  diagnostics.record("uncaught-error", {
+    message: error.message,
+    stack: error.stack,
+  }),
+);
 app.setName("Sector");
 app.setAppUserModelId("Sector.Desktop");
 protocol.registerSchemesAsPrivileged([
@@ -154,6 +170,44 @@ function handle(channel, callback) {
 }
 
 function installBridge() {
+  handle("sector:diagnostics-export", async () => {
+    const selected = await dialog.showSaveDialog(window, {
+      title: "Export Sector diagnostics",
+      defaultPath: path.join(
+        app.getPath("downloads"),
+        `Sector-${app.getVersion()}-diagnostics.json`,
+      ),
+      filters: [{ name: "Sector diagnostics", extensions: ["json"] }],
+    });
+    if (selected.canceled || !selected.filePath) return { canceled: true };
+    try {
+      const frame = overlays?.telemetry.frame;
+      const graphics = await app.getGPUInfo("basic").catch(() => null);
+      const bundle = diagnostics.bundle({
+        reset: runtime.state,
+        telemetry: {
+          status: overlays?.telemetry.status,
+          track: frame?.track,
+          car: frame?.player?.model,
+          session: frame?.session,
+        },
+        graphics,
+      });
+      fs.writeFileSync(
+        selected.filePath,
+        JSON.stringify(bundle, null, 2),
+        "utf8",
+      );
+      return { ok: true };
+    } catch (error) {
+      diagnostics.record("export-error", { message: error.message });
+      return {
+        ok: false,
+        error:
+          "Could not export diagnostics. Choose a writable folder and retry.",
+      };
+    }
+  });
   handle("sector:initialize", () => {
     const launchAnimation = launchAnimationPending;
     launchAnimationPending = false;
@@ -373,10 +427,28 @@ if (!app.requestSingleInstanceLock()) {
       });
       installBridge();
       runtime.on("status", (state) => {
+        diagnostics.record("reset-status", {
+          phase: state.phase,
+          message: state.message,
+          checkpoint: state.checkpoint,
+          log_prefix: state.log_prefix,
+          restore_count: state.restore_count,
+        });
         overlays.telemetry.onResetStatus(state);
         if (!window.isDestroyed())
           window.webContents.send("sector:status", state);
       });
+      overlays.telemetry.on("frame", (frame) =>
+        diagnostics.record("session", {
+          status: overlays.telemetry.status,
+          track: frame?.track,
+          car: frame?.player?.model,
+          session: frame?.session,
+        }),
+      );
+      window.webContents.on("render-process-gone", (_event, details) =>
+        diagnostics.record("renderer-exit", details),
+      );
       tray = new Tray(path.join(root, "assets/sector.ico"));
       tray.setToolTip(preview ? "Sector - Preview" : "Sector");
       tray.setContextMenu(
