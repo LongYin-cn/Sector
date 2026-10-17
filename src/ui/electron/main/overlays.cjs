@@ -15,7 +15,10 @@ class Overlays {
       this.config = store.defaults();
       this.error = e.message;
     }
-    this.telemetry = new OverlayTelemetry(root, { discover });
+    this.telemetry = new OverlayTelemetry(root, {
+      discover,
+      getRefreshRate: () => this.display().displayFrequency,
+    });
     this.telemetry.on("frame", () => this.sync());
     this.changed = () => this.sync();
     screen.on("display-added", this.changed);
@@ -75,10 +78,14 @@ class Overlays {
       scale: (bounds || this.windowBounds(id)).scale,
     });
   }
-  windowBounds(id) {
-    const display =
+  display() {
+    return (
       screen.getAllDisplays().find((d) => d.id === this.config.displayId) ||
-      screen.getPrimaryDisplay();
+      screen.getPrimaryDisplay()
+    );
+  }
+  windowBounds(id) {
+    const display = this.display();
     return store.bounds(
       id,
       this.config.widgets[id],
@@ -154,6 +161,7 @@ class Overlays {
   }
   sync() {
     if (this.closed) return;
+    this.telemetry.setRefreshRate(this.display().displayFrequency);
     const active = this.ready() && (this.config.enabled || this.editing);
     // Home uses session telemetry even when all overlay windows are disabled.
     if (this.ready() && !this.preview) this.telemetry.start();
@@ -187,6 +195,7 @@ class Overlays {
         (this.editing ||
           (this.config.enabled &&
             frame?.connected &&
+            !frame.paused &&
             frame.cars?.length > 0 &&
             frame.foreground))
       ) {

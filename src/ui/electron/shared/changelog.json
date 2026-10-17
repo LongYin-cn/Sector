@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.2.12",
+    "changes": [
+      "Matches overlay updates to the selected display refresh rate, including fractional rates and monitor changes.",
+      "Hides widgets promptly when LMU pauses, with faster detection when telemetry stops advancing.",
+      "Keeps widgets visible through F7 instead of briefly hiding them while reset histories are cleared."
+    ]
+  },
+  {
     "version": "0.2.11",
     "changes": [
       "Updates overlay telemetry at 60 Hz and presents the latest frame in sync with the display.",

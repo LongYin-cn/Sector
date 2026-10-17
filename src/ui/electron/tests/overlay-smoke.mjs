@@ -490,6 +490,65 @@ try {
     ),
     true,
   );
+  const resetVisibility = await app.evaluate(() => {
+    const o = global.sectorTest.overlays();
+    const win = o.windows.get("inputs");
+    let hides = 0;
+    const hidden = () => hides++;
+    win.on("hide", hidden);
+    o.telemetry.onResetStatus({
+      phase: "active",
+      reset_action: 2,
+      restore_count: 0,
+    });
+    o.sync();
+    o.telemetry.onResetStatus({
+      phase: "active",
+      reset_action: 0,
+      restore_count: 1,
+    });
+    o.sync();
+    o.telemetry.publish(
+      {
+        ...o.telemetry.frame,
+        player: { ...o.telemetry.frame.player, speed: 40 },
+      },
+      "Live",
+    );
+    win.removeListener("hide", hidden);
+    return { hides, visible: win.isVisible() };
+  });
+  assert.deepEqual(resetVisibility, { hides: 0, visible: true });
+  assert.equal(
+    await app.evaluate(() => {
+      const o = global.sectorTest.overlays();
+      const frame = o.telemetry.frame;
+      o.telemetry.publish({ ...frame, paused: true }, "Paused");
+      const hidden = [...o.windows.values()].every((win) => !win.isVisible());
+      o.telemetry.publish({ ...frame, paused: false }, "Live");
+      return hidden && [...o.windows.values()].every((win) => win.isVisible());
+    }),
+    true,
+  );
+  const monitorRate = await app.evaluate(({ screen }) => {
+    const o = global.sectorTest.overlays();
+    const original = screen.getAllDisplays;
+    const originalId = o.config.displayId;
+    const display = screen.getPrimaryDisplay();
+    try {
+      screen.getAllDisplays = () => [
+        { ...display, id: 98765, displayFrequency: 143.856 },
+      ];
+      o.config.displayId = 98765;
+      o.sync();
+      return o.telemetry.refreshRate;
+    } finally {
+      screen.getAllDisplays = original;
+      o.config.displayId = originalId;
+      o.sync();
+    }
+  });
+  assert.equal(monitorRate, 143.856);
   await app.evaluate(() => {
     const o = global.sectorTest.overlays();
     o.telemetry.publish({ ...o.telemetry.frame, foreground: false }, "Live");

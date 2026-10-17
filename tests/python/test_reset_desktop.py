@@ -14,6 +14,23 @@ from sector.runtime.start_reset_hotkeys import supervise
 
 
 class DesktopTests(unittest.TestCase):
+    def test_overlay_restore_action_is_structured_and_cleared_on_completion_or_pause(self):
+        self.session.publish(phase="active")
+        self.session.command(2, 1)
+        self.assertEqual(self.session.state["reset_action"], 2)
+        self.session.report(dict(id=1, action=2, result=0))
+        self.assertEqual(self.session.state["reset_action"], 2)
+        self.session.command(3, 2)
+        self.assertEqual(self.session.state["reset_action"], 3)
+        self.session.report(dict(id=2, action=3, result=0))
+        self.assertEqual(self.session.state["reset_action"], 0)
+        self.session.command(2, 3)
+        self.session.report(dict(id=3, action=2, result=9, cause=3))
+        self.assertEqual(self.session.state["reset_action"], 0)
+        self.session.command(2, 4)
+        self.session.publish(phase="paused")
+        self.assertEqual(self.session.state["reset_action"], 0)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

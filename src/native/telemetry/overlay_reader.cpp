@@ -35,6 +35,7 @@ struct View {
 struct RefreshClock {
     Handle timer{CreateWaitableTimerExW(nullptr, nullptr, 0x2, TIMER_ALL_ACCESS)};
     LONGLONG frequency = 0, start = 0, frame = 0;
+    double rate = 60;
     RefreshClock() {
         // Older Windows versions may not support a high-resolution waitable timer.
         if (!timer.h)
@@ -45,19 +46,73 @@ struct RefreshClock {
         QueryPerformanceCounter(&value);
         start = value.QuadPart;
     }
+    bool setRate(double value) {
+        if (!std::isfinite(value) || value < 1 || value > 1000)
+            return false;
+        if (value != rate) {
+            rate = value;
+            LARGE_INTEGER now;
+            QueryPerformanceCounter(&now);
+            start = now.QuadPart;
+            frame = 0;
+        }
+        return true;
+    }
     bool wait() {
         if (!timer.h || frequency <= 0)
             return false;
         LARGE_INTEGER now;
         QueryPerformanceCounter(&now);
-        // Absolute 60 Hz deadlines avoid adding serialization time to each frame.
+        // Absolute display-rate deadlines include serialization time in the budget.
         // Skip missed slots after a stall instead of queuing a burst of old frames.
-        frame = std::max(frame + 1, (now.QuadPart - start) * 60 / frequency + 1);
-        const LONGLONG deadline = start + frame * frequency / 60;
+        frame = std::max(frame + 1, LONGLONG((now.QuadPart - start) * rate / frequency) + 1);
+        const LONGLONG deadline = start + LONGLONG(frame * double(frequency) / rate);
         LARGE_INTEGER due;
         due.QuadPart = -std::max<LONGLONG>(1, (deadline - now.QuadPart) * 10000000 / frequency);
         return SetWaitableTimer(timer.h, &due, 0, nullptr, nullptr, FALSE) &&
                WaitForSingleObject(timer.h, 1000) == WAIT_OBJECT_0;
+    }
+};
+
+static bool parseRate(const char *text, double &rate) {
+    char *end = nullptr;
+    const double value = strtod(text, &end);
+    if (end == text || *end || !std::isfinite(value) || value < 1 || value > 1000)
+        return false;
+    rate = value;
+    return true;
+}
+
+struct ReaderControl {
+    std::string pending;
+    bool consume(const char *bytes, size_t count, RefreshClock &clock) {
+        for (size_t i = 0; i < count; ++i) {
+            if (bytes[i] == '\n') {
+                if (!pending.empty() && pending.back() == '\r')
+                    pending.pop_back();
+                double rate = 0;
+                if (pending.compare(0, 5, "rate ") != 0 || !parseRate(pending.c_str() + 5, rate) ||
+                    !clock.setRate(rate))
+                    return false;
+                pending.clear();
+            } else {
+                if (pending.size() >= 64 || bytes[i] == '\0')
+                    return false;
+                pending += bytes[i];
+            }
+        }
+        return true;
+    }
+    bool poll(RefreshClock &clock) {
+        DWORD available = 0, read = 0;
+        const HANDLE input = GetStdHandle(STD_INPUT_HANDLE);
+        if (!PeekNamedPipe(input, nullptr, 0, nullptr, &available, nullptr))
+            return false;
+        if (!available)
+            return true;
+        char bytes[128];
+        return ReadFile(input, bytes, std::min<DWORD>(available, sizeof bytes), &read, nullptr) &&
+               read && consume(bytes, read, clock);
     }
 };
 struct LockWords {
@@ -224,7 +279,8 @@ static std::string serialize(const Frame &f, bool foreground) {
     o.precision(10);
     o << "{\"schema\":1,\"connected\":true,\"foreground\":" << (foreground ? "true" : "false")
       << ",\"driving\":" << (s.mInRealtime && f.player ? "true" : "false")
-      << ",\"session\":" << s.mSession << ",\"track\":";
+      << ",\"paused\":" << (s.mGamePhase == 9 ? "true" : "false") << ",\"session\":" << s.mSession
+      << ",\"track\":";
     text(o, s.mTrackName);
     auto n = [&](const char *key, double value) {
         o << ",\"" << key << "\":";
@@ -367,23 +423,37 @@ static std::string serialize(const Frame &f, bool foreground) {
     return o.str();
 }
 int main(int argc, char **argv) {
-    if (argc == 2 && !strcmp(argv[1], "--test-cadence")) {
+    if ((argc == 2 || argc == 3) && !strcmp(argv[1], "--test-cadence")) {
         RefreshClock clock;
-        for (unsigned i = 0; i < 120; ++i)
+        double rate = 60;
+        if ((argc == 3 && !parseRate(argv[2], rate)) || !clock.setRate(rate))
+            return 2;
+        const unsigned samples = unsigned(std::ceil(rate * 2));
+        for (unsigned i = 0; i < samples; ++i)
             if (!clock.wait())
                 return 1;
         LARGE_INTEGER now;
         QueryPerformanceCounter(&now);
         const double elapsed = double(now.QuadPart - clock.start) / clock.frequency;
-        std::printf("Overlay cadence: %.2f Hz across 120 deadlines (%.3f s).\n", 120 / elapsed,
-                    elapsed);
-        return elapsed >= 1.98 && elapsed <= 2.2 ? 0 : 1;
+        std::printf("Overlay cadence: %.2f Hz, target %.3f Hz (%u deadlines, %.3f s).\n",
+                    samples / elapsed, rate, samples, elapsed);
+        const double expected = samples / rate;
+        return elapsed >= expected - .02 && elapsed <= expected * 1.1 ? 0 : 1;
     }
     if (argc == 2 && (!strcmp(argv[1], "--self-test") || !strcmp(argv[1], "--test-frame"))) {
         auto *data = new SharedMemoryObjectOut{};
         Frame f{};
         data->generic.gameVersion = 14200;
         bool ok = copyFrame(f, *data) && !f.player;
+        RefreshClock testClock;
+        ReaderControl control;
+        ok = ok && control.consume("rate 14", 7, testClock) && testClock.rate == 60 &&
+             control.consume("4\nrate 59.94\n", 13, testClock) && testClock.rate == 59.94;
+        for (const char *invalid :
+             {"rate 0\n", "rate nan\n", "rate 1001\n", "rate 60junk\n", "stop\n"}) {
+            ReaderControl rejected;
+            ok = ok && !rejected.consume(invalid, strlen(invalid), testClock);
+        }
         data->scoring.scoringInfo.mNumVehicles = 105;
         ok = ok && !copyFrame(f, *data);
         data->scoring.scoringInfo.mNumVehicles = 1;
@@ -477,6 +547,9 @@ int main(int argc, char **argv) {
             ok = ok && !rejected.live;
         }
         const auto json = serialize(match, false);
+        match.scoring.mGamePhase = 9;
+        ok = ok && serialize(match, false).find("\"paused\":true") != std::string::npos &&
+             json.find("\"paused\":false") != std::string::npos;
         ok = ok && json.find("\"temperatures\":[98,93,88]") != std::string::npos &&
              json.find("\"radius\":0.31") != std::string::npos;
         std::ostringstream encoded;
@@ -490,7 +563,10 @@ int main(int argc, char **argv) {
         puts(ok ? "PASS overlay SDK bounds and player identity" : "FAIL");
         return ok ? 0 : 1;
     }
-    if (argc != 3)
+    if (argc != 3 && argc != 4)
+        return 2;
+    double rate = 60;
+    if (argc == 4 && !parseRate(argv[3], rate))
         return 2;
     DWORD pid = strtoul(argv[1], nullptr, 10), owner = strtoul(argv[2], nullptr, 10);
     if (!pid || !owner)
@@ -518,12 +594,11 @@ int main(int argc, char **argv) {
     if (!data.p || !words.p || !event.h)
         return 4;
     RefreshClock refresh;
+    refresh.setRate(rate);
+    ReaderControl control;
     while (WaitForSingleObject(game.h, 0) == WAIT_TIMEOUT &&
            WaitForSingleObject(parent.h, 0) == WAIT_TIMEOUT) {
-        DWORD available = 0;
-        if (!PeekNamedPipe(GetStdHandle(STD_INPUT_HANDLE), nullptr, 0, nullptr, &available,
-                           nullptr) ||
-            available)
+        if (!control.poll(refresh))
             break;
         Frame f{};
         bool copied = false;

@@ -79,7 +79,8 @@ test("observed tyre age reset after rewind and tyre replacement", () => {
   reader.model = state;
   reader.publish(data, "Live");
   reader.onResetStatus({ restore_count: 1 });
-  assert.equal(reader.frame, null);
+  // Preserve the visible frame until fresh telemetry arrives; only histories reset.
+  assert.equal(reader.frame, data);
   assert.equal(reader.model.previous, null);
 });
 

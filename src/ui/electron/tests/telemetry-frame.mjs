@@ -20,6 +20,7 @@ const raw = JSON.parse(
   ),
 );
 assert.equal(raw.player.wheels.length, 4);
+assert.equal(raw.paused, false);
 assert.deepEqual(raw.player.wheels[0].temperatures, [98, 93, 88]);
 assert.equal(raw.player.wheels[0].radius, 0.31);
 assert.equal(raw.player.wheels[0].wear, 0.71);

@@ -3,6 +3,17 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Display synchronization and visibility: 0.2.12
+
+The reader timer measured 143.99 Hz at a 144 Hz target and 59.93 Hz at a 59.94 Hz
+target. Native self-tests cover fragmented display-rate commands and pause
+serialization. All 56 desktop model tests and 114 Python tests pass, including
+fast pause expiry, independent scoring timeout and bounded reset continuity.
+The Electron widget smoke checks zero native hide events during the simulated
+F7 handoff, pause/resume visibility and a selected display at 143.856 Hz.
+SDK serialization and isolated startup of the packaged 0.2.12 EXE also pass.
+Live pause/F7 visibility still needs observation in LMU.
+
 ## Overlay refresh: 0.2.11
 
 The reader's 120-deadline test measured 59.99 Hz. The short paused-game SDK check

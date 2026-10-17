@@ -21,6 +21,7 @@ class DesktopSession:
             "saved_speed_kmh": None,
             "saved_at": None,
             "restore_count": 0,
+            "reset_action": 0,
             "message": "",
             "sequence": 0,
         }
@@ -43,6 +44,11 @@ class DesktopSession:
             return True
 
     def publish(self, **changes):
+        if (
+            changes.get("phase", self.state["phase"]) != "active"
+            or changes.get("last_event") == "rejected"
+        ):
+            changes["reset_action"] = 0
         if changes.get("checkpoint") is False:
             changes.update(saved_speed_kmh=None, saved_at=None, restore_count=0)
         if not self.dirty and all(self.state.get(k) == v for k, v in changes.items()):
@@ -119,11 +125,11 @@ class DesktopSession:
         if self.request:
             self.request_native_id = request_id
         if action == 1:
-            self.publish(message="Saving checkpoint…")
+            self.publish(message="Saving checkpoint…", reset_action=1)
         elif action == 2:
-            self.publish(message="Preparing restore…")
+            self.publish(message="Preparing restore…", reset_action=2)
         elif action == 3:
-            self.publish(message="Restoring checkpoint…")
+            self.publish(message="Restoring checkpoint…", reset_action=3)
 
     def settings(self):
         from sector.runtime.physical_reset_hotkeys import virtual_key
@@ -144,6 +150,8 @@ class DesktopSession:
 
         feedback = report_feedback(row)
         changes = {}
+        if row["result"] != 0 or row["action"] in (1, 3):
+            changes["reset_action"] = 0
         if row["action"] == 1 and row["result"] == 0:
             speed = row.get("speed")
             speed_kmh = (

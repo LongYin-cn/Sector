@@ -4,18 +4,30 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { discoverGame } = require("./runtime.cjs");
 const { TelemetryModel } = require("../shared/overlay-model.cjs");
+const PAUSE_TIMEOUT = 300;
+const SCORING_TIMEOUT = 1500;
+const displayRate = (value) =>
+  Number.isFinite(value) && value >= 1 && value <= 1000 ? value : 60;
 class OverlayTelemetry extends EventEmitter {
   constructor(
     root,
-    { discover = discoverGame, spawnChild = spawn, now = Date.now } = {},
+    {
+      discover = discoverGame,
+      spawnChild = spawn,
+      now = Date.now,
+      getRefreshRate = () => 60,
+    } = {},
   ) {
     super();
-    Object.assign(this, { root, discover, spawnChild, now });
+    Object.assign(this, { root, discover, spawnChild, now, getRefreshRate });
     this.model = new TelemetryModel();
     this.frame = null;
     this.status = "Waiting for LMU";
     this.stopped = true;
     this.last = 0;
+    this.refreshRate = displayRate(getRefreshRate());
+    this.restoreUntil = 0;
+    this.restorePending = false;
   }
   publish(frame, status) {
     this.frame = frame;
@@ -23,27 +35,62 @@ class OverlayTelemetry extends EventEmitter {
     this.emit("frame", frame);
   }
   onResetStatus(state) {
+    const wasPending = this.restorePending;
+    const pending =
+      state.phase === "active" && [2, 3].includes(state.reset_action);
+    if (pending && !this.restorePending) this.restoreUntil = this.now() + 1000;
+    this.restorePending = pending;
     const count = Number.isSafeInteger(state.restore_count)
       ? state.restore_count
       : 0;
     if (count > (this.restoreCount || 0)) {
       // A short rewind may not cross a lap or the position discontinuity threshold.
       this.model.reset();
-      this.publish(null, "Waiting for telemetry");
+      // Keep the displayed frame until the next sample, without keeping lap history.
+      this.restoreUntil = Math.max(
+        this.restoreUntil,
+        this.now() + PAUSE_TIMEOUT,
+      );
+    } else if ((wasPending && !pending) || state.phase !== "active") {
+      this.restoreUntil = 0;
     }
     this.restoreCount = count;
+  }
+  setRefreshRate(value) {
+    const rate = displayRate(value);
+    if (rate === this.refreshRate) return;
+    this.refreshRate = rate;
+    if (
+      this.child &&
+      !this.child.stdin.destroyed &&
+      !this.child.stdin.writableEnded
+    )
+      this.child.stdin.write(`rate ${rate}\n`);
+  }
+  expire() {
+    if (!this.frame || this.now() < this.restoreUntil) return;
+    const timeout =
+      this.frame.driving && this.frame.player ? PAUSE_TIMEOUT : SCORING_TIMEOUT;
+    if (
+      this.now() - this.last >= timeout ||
+      this.now() - this.lastScoring >= SCORING_TIMEOUT
+    )
+      this.publish(null, "Waiting for telemetry");
   }
   start() {
     if (!this.stopped) return;
     this.stopped = false;
-    this.timer = setInterval(() => void this.tick(), 500);
+    this.timer = setInterval(() => void this.tick(), 50);
     void this.tick();
   }
   async tick() {
     if (this.stopped || this.busy) return;
+    if (this.now() >= (this.nextRateCheck || 0)) {
+      this.nextRateCheck = this.now() + 1000;
+      this.setRefreshRate(this.getRefreshRate());
+    }
     if (this.child) {
-      if (this.now() - this.last > 1500 && this.frame)
-        this.publish(null, "Waiting for telemetry");
+      this.expire();
       return;
     }
     if (this.now() < (this.retry || 0)) return;
@@ -66,16 +113,20 @@ class OverlayTelemetry extends EventEmitter {
       }
       const child = this.spawnChild(
         binary,
-        [String(games[0].pid), String(process.pid)],
+        [String(games[0].pid), String(process.pid), String(this.refreshRate)],
         { windowsHide: true, stdio: ["pipe", "pipe", "ignore"] },
       );
       this.child = child;
       this.last = this.now();
+      this.lastET = this.lastETScoring = undefined;
+      this.lastScoring = this.lastTelemetry = this.last;
+      this.restoreUntil = 0;
       this.model.reset();
       let buffer = "";
       child.stdin.on("error", () => {});
       child.stdout.setEncoding("utf8");
       child.stdout.on("data", (chunk) => {
+        if (this.stopped || this.child !== child) return;
         buffer += chunk;
         if (buffer.length > 1024 * 1024) {
           buffer = "";
@@ -103,10 +154,25 @@ class OverlayTelemetry extends EventEmitter {
               this.lastScoring = now;
               this.lastETScoring = raw.et;
             }
-            this.last = raw.player
-              ? Math.min(this.lastTelemetry ?? now, this.lastScoring ?? now)
-              : (this.lastScoring ?? now);
-            if (now - this.last > 1500) continue;
+            this.last =
+              raw.driving && raw.player ? this.lastTelemetry : this.lastScoring;
+            // The SDK pause heartbeat takes priority even during a reset handoff.
+            if (raw.paused === true) {
+              this.restoreUntil = 0;
+              this.publish(null, "Paused");
+              continue;
+            }
+            const timeout =
+              raw.driving && raw.player ? PAUSE_TIMEOUT : SCORING_TIMEOUT;
+            if (
+              now - this.last >= timeout ||
+              now - this.lastScoring >= SCORING_TIMEOUT
+            ) {
+              if (!raw.foreground || !raw.connected || !raw.cars.length)
+                this.restoreUntil = 0;
+              this.expire();
+              continue;
+            }
             this.publish(
               this.model.update(raw),
               raw.cars.length ? "Live" : "Waiting for session",
@@ -136,8 +202,10 @@ class OverlayTelemetry extends EventEmitter {
     this.stopped = true;
     clearInterval(this.timer);
     this.timer = null;
+    this.restoreUntil = 0;
+    this.restorePending = false;
     this.child?.stdin.end("stop\n");
     this.publish(null, "Disabled");
   }
 }
-module.exports = { OverlayTelemetry };
+module.exports = { OverlayTelemetry, displayRate };
