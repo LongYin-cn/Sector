@@ -7,7 +7,7 @@ class GameLauncher extends EventEmitter {
   constructor({ installation, discover, preview = false, spawnChild = spawn }) {
     super();
     Object.assign(this, { installation, discover, preview, spawnChild });
-    this.state = { running: false, launching: false, error: "" };
+    this.state = { running: false, launching: false, eac: false, error: "" };
   }
 
   publish(patch) {
@@ -19,9 +19,14 @@ class GameLauncher extends EventEmitter {
     const running = games.length > 0;
     if (running) {
       clearTimeout(this.timeout);
-      this.publish({ running: true, launching: false, error: "" });
+      this.publish({
+        running: true,
+        launching: false,
+        eac: games.some((game) => game.eac === true),
+        error: "",
+      });
     } else if (this.state.running) {
-      this.publish({ running: false });
+      this.publish({ running: false, eac: false });
     }
   }
 
@@ -41,6 +46,8 @@ class GameLauncher extends EventEmitter {
         return { ok: true };
       }
       const child = this.spawnChild(
+        // Directly open the game executable, not Steam's EAC launcher.
+        // Discovery still verifies the resulting process protection state.
         path.join(folder, "Le Mans Ultimate.exe"),
         [],
         {

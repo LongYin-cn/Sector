@@ -5,7 +5,7 @@ const { randomUUID } = require("node:crypto");
 const { spawn, execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const execute = promisify(execFile);
-const { resetAccess } = require("./reset-access.cjs");
+const { resetAccess, EAC_MESSAGE } = require("./reset-access.cjs");
 
 const emptyCheckpoint = {
   checkpoint: false,
@@ -25,7 +25,11 @@ async function discoverGame(installation, { telemetryOnly = false } = {}) {
   );
   const parsed = stdout.trim() ? JSON.parse(stdout) : [];
   const games = Array.isArray(parsed) ? parsed : [parsed];
-  return selectGames(games, installation, telemetryOnly);
+  // Protected processes may hide their path. Retain them only so reset
+  // admission can report EAC explicitly before checking installation identity.
+  return games.some((game) => game.eac === true)
+    ? games
+    : selectGames(games, installation, telemetryOnly);
 }
 
 function selectGames(games, installation, telemetryOnly = false) {
@@ -89,7 +93,16 @@ class Runtime extends EventEmitter {
   }
 
   publish(patch) {
+    if (patch.blocked_reason === "eac") this.eacBlocked = true;
     this.state = { ...this.state, ...patch };
+    if (this.eacBlocked)
+      Object.assign(this.state, {
+        phase: "blocked",
+        blocked_reason: "eac",
+        reset_action: 0,
+        ...emptyCheckpoint,
+        message: EAC_MESSAGE,
+      });
     if (!this.state.checkpoint) Object.assign(this.state, emptyCheckpoint);
     this.emit("status", this.state);
   }
@@ -102,6 +115,7 @@ class Runtime extends EventEmitter {
 
   requestReset(action) {
     const reject = (error) => Promise.resolve({ ok: false, error });
+    if (this.eacBlocked) return reject(EAC_MESSAGE);
     if (!["save", "restore"].includes(action))
       return reject("Unknown reset action.");
     if (
@@ -174,6 +188,31 @@ class Runtime extends EventEmitter {
           this.nextHeartbeat = this.now() + 1000;
         }
         this.readStatus();
+        if (
+          !this.stopping &&
+          !this.protectionCheck &&
+          this.now() >= this.nextDiscovery
+        ) {
+          this.nextDiscovery = this.now() + 1500;
+          const child = this.child;
+          // Discovery can take seconds; keep heartbeat and acknowledgements
+          // flowing while checking for a late EAC process.
+          this.protectionCheck = this.discover()
+            .then((games) => {
+              if (
+                !this.stopping &&
+                this.child === child &&
+                games.some((game) => game.eac === true)
+              )
+                this.blockEac();
+            })
+            .catch(() => {
+              // The native runner retains its own process/context checks.
+            })
+            .finally(() => {
+              this.protectionCheck = null;
+            });
+        }
         return;
       }
       if (this.stopping || this.now() < this.nextDiscovery) return;
@@ -181,6 +220,12 @@ class Runtime extends EventEmitter {
       const games = await this.discover();
       // A quit request may arrive while PowerShell is discovering the game.
       if (this.stopping) return;
+      if (games.some((game) => game.eac === true)) {
+        this.blockEac();
+        return;
+      }
+      this.eacBlocked = false;
+      this.state.blocked_reason = null;
       if (games.length !== 1) {
         this.blockedIdentity = null;
         this.publish({
@@ -215,6 +260,13 @@ class Runtime extends EventEmitter {
     } finally {
       this.busy = false;
     }
+  }
+
+  blockEac() {
+    this.eacBlocked = true;
+    this.finishReset({ ok: false, error: EAC_MESSAGE });
+    this.publish({});
+    if (this.child) fs.writeFileSync(path.join(this.session, "stop"), "");
   }
 
   launch(pid) {
@@ -332,6 +384,7 @@ class Runtime extends EventEmitter {
   }
 
   dispose() {
+    this.stopping = true;
     this.finishReset({ ok: false, error: "Reset listener stopped." });
     clearInterval(this.timer);
     this.timer = null;

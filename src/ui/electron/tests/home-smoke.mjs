@@ -26,9 +26,9 @@ try {
   await app.evaluate(() => global.sectorTest.window().showInactive());
   assert.equal(
     await page
-      .getByRole("button", { name: "Launch LMU", exact: true })
-      .isDisabled(),
-    true,
+      .getByRole("button", { name: "Open LMU without EAC", exact: true })
+      .count(),
+    0,
   );
   assert.equal(
     (await page.evaluate(() => window.sector.launchGame())).ok,
@@ -52,6 +52,13 @@ try {
   await page
     .getByRole("heading", { name: "Active Reset.", exact: true })
     .waitFor();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Open LMU without EAC", exact: true })
+      .isDisabled(),
+    true,
+  );
+
   await page
     .getByRole("button", { name: "Change save shortcut, F6", exact: true })
     .click();
@@ -60,6 +67,48 @@ try {
   await page
     .getByRole("button", { name: "Change save shortcut, G", exact: true })
     .waitFor();
+  await app.evaluate(() =>
+    global.sectorTest.publish({
+      phase: "blocked",
+      blocked_reason: "eac",
+      checkpoint: false,
+    }),
+  );
+  await page
+    .getByRole("heading", {
+      name: "Active Reset is disabled while EAC is detected",
+    })
+    .waitFor();
+  await page.screenshot({ path: path.join(output, "reset-eac-blocked.png") });
+  await page.getByRole("tab", { name: "Home", exact: true }).click();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Save checkpoint", exact: true })
+      .isDisabled(),
+    true,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Restore checkpoint", exact: true })
+      .isDisabled(),
+    true,
+  );
+  assert.equal(
+    await page
+      .getByRole("switch", { name: "Enable overlays", exact: true })
+      .isDisabled(),
+    false,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Edit layout", exact: true })
+      .isDisabled(),
+    false,
+  );
+  await app.evaluate(() => {
+    // Reset only the isolated preview fixture; real admission clears on discovery.
+    global.sectorTest.clearProtection();
+  });
   await page.getByRole("tab", { name: "Home", exact: true }).click();
   await page
     .getByRole("switch", { name: "Enable overlays", exact: true })

@@ -8,6 +8,7 @@ export function statusView(status) {
     stopping: "Disconnecting",
     stopped: "Disconnected",
     error: "Connection stopped",
+    blocked: "Active Reset unavailable",
   };
   const saved = status.checkpoint === true;
   const speed =
@@ -21,7 +22,7 @@ export function statusView(status) {
     tone:
       status.phase === "active"
         ? "connected"
-        : status.phase === "error"
+        : status.phase === "error" || status.phase === "blocked"
           ? "error"
           : "waiting",
     saved,

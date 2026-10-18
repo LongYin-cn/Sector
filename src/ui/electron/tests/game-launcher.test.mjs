@@ -49,8 +49,11 @@ test("launches the selected executable once without a shell and awaits discovery
   launcher.observe([{ pid: 42 }]);
   assert.equal(launcher.state.launching, false);
   assert.equal(launcher.state.running, true);
+  launcher.observe([{ pid: 42, eac: true }]);
+  assert.equal(launcher.state.eac, true);
   launcher.observe([]);
   assert.equal(launcher.state.running, false);
+  assert.equal(launcher.state.eac, false);
 });
 
 test("existing game, invalid installation and preview never spawn a game", async (t) => {

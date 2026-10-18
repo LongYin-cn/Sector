@@ -13,27 +13,6 @@
   justify-content: space-between;
   gap: 16px;
 }
-.home-launch {
-  min-height: 46px;
-  padding: 0 20px;
-  border-radius: 12px;
-  background: var(--accent);
-  color: #0d1220;
-  font-size: 14px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.home-launch:hover:not(:disabled) {
-  background: #9cbcff;
-}
-.home-launch.is-running {
-  background: #3ddc841a;
-  border: 1px solid #3ddc8459;
-  color: #7ee2a8;
-  opacity: 1;
-}
 .home-session {
   border-radius: 20px;
   background: linear-gradient(#82acff14, #82acff14), var(--surface);
@@ -248,9 +227,5 @@
   }
   .home-heading {
     align-items: flex-start;
-  }
-  .home-launch {
-    padding: 0 14px;
-    font-size: 12px;
   }
 }

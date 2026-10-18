@@ -1,10 +1,12 @@
 // Desktop admission only. The native runner repeats compatibility, offline and EAC checks.
+const EAC_MESSAGE =
+  "Easy Anti-Cheat detected. Save/Restore and their shortcuts are disabled. Close LMU, then use Open LMU without EAC for Offline Practice. Overlays remain available.";
 async function resetAccess(game, request = fetch) {
   if (game.eac === true)
     return {
       allowed: false,
-      reason:
-        "Active Reset requires LMU without EAC. Overlays remain available.",
+      code: "eac",
+      reason: EAC_MESSAGE,
     };
   try {
     const response = await request("http://127.0.0.1:6397/navigation/state", {
@@ -27,4 +29,4 @@ async function resetAccess(game, request = fetch) {
       "Active Reset requires Offline Practice. Overlays remain available.",
   };
 }
-module.exports = { resetAccess };
+module.exports = { resetAccess, EAC_MESSAGE };

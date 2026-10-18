@@ -18,6 +18,7 @@ import { OverlayEditor } from "./overlays/editor.jsx";
 import { GuidedTour } from "./guided-tour.jsx";
 import { Onboarding } from "./onboarding.jsx";
 import { Home } from "./home.jsx";
+import { ResetLaunch } from "./reset-launch.jsx";
 import { StartupSplash } from "./startup-splash.jsx";
 import { Changelog } from "./changelog.jsx";
 import history from "@iconify-icons/solar/history-linear";
@@ -71,6 +72,7 @@ function App() {
   const captureBusy = useRef(false);
   const audio = useRef(null);
   const view = statusView(status);
+  const eacBlocked = status.blocked_reason === "eac" || game.eac === true;
 
   useEffect(() => {
     document.documentElement.dataset.reduceMotion = String(
@@ -366,23 +368,42 @@ function App() {
           <Tabs.Panel value="home" className="page home-page">
             <Home
               game={game}
-              preview={preview}
               view={view}
               status={status}
               saveKey={key("save_key")}
               restoreKey={key("restore_key")}
               disabled={!settings || pending || quitting}
+              resetUnavailable={eacBlocked}
               onNavigate={setTab}
             />
           </Tabs.Panel>
           <Tabs.Panel value="reset" className="page">
-            <div className="page-heading">
+            <div className="page-heading reset-heading">
               <div>
                 <h1>
                   Active Reset<span className="accent">.</span>
                 </h1>
               </div>
+              <ResetLaunch
+                game={game}
+                preview={preview}
+                disabled={!settings || pending || quitting}
+              />
             </div>
+            {eacBlocked && (
+              <section className="reset-blocked" role="alert">
+                <Glyph icon={close} />
+                <div>
+                  <h2>Active Reset is disabled while EAC is detected</h2>
+                  <p>
+                    Save/Restore and their shortcuts ({key("save_key")} /{" "}
+                    {key("restore_key")}) are blocked. Close LMU, then use Open
+                    LMU without EAC and enter Offline Practice. Overlays remain
+                    available.
+                  </p>
+                </div>
+              </section>
+            )}
             <section
               className={`checkpoint ${view.saved ? "is-saved" : ""}`}
               data-tour="checkpoint"
@@ -400,7 +421,9 @@ function App() {
                   {view.saved ? "Checkpoint ready" : "No checkpoint"}
                 </h2>
                 <p className="checkpoint-help">
-                  {view.saved ? (
+                  {eacBlocked ? (
+                    <>Close LMU and reopen it without EAC to use checkpoints.</>
+                  ) : view.saved ? (
                     <>
                       Return to this moment with <kbd>{key("restore_key")}</kbd>
                     </>

@@ -97,7 +97,9 @@ const gameLauncher = new GameLauncher({
 });
 const discoverInstallation = async () => {
   if (!setupReady()) return [];
-  return discoverGame(setup.lmuPath);
+  const games = await discoverGame(setup.lmuPath);
+  gameLauncher.observe(games);
+  return games;
 };
 const discoverOverlayGame = async () => {
   if (!setupReady()) return [];
@@ -479,6 +481,10 @@ if (!app.requestSingleInstanceLock()) {
       if (smoke)
         global.sectorTest = {
           publish: (state) => runtime.publish(state),
+          clearProtection: () => {
+            runtime.eacBlocked = false;
+            runtime.publish({ phase: "idle", blocked_reason: null });
+          },
           show: showWindow,
           window: () => window,
           hasListener: () => Boolean(runtime.child || runtime.timer),

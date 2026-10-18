@@ -185,6 +185,7 @@ try {
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   const tourTargets = [
+    "launch",
     "checkpoint",
     "shortcuts",
     "audio",
@@ -218,7 +219,7 @@ try {
         .locator(`[data-tour="${target}"][data-tour-active="true"]`)
         .waitFor();
       await page
-        .getByText(`Quick guide, ${index + 1} of 7`, {
+        .getByText(`Quick guide, ${index + 1} of ${tourTargets.length}`, {
           exact: true,
         })
         .waitFor();
@@ -227,7 +228,7 @@ try {
       if (index === 0) {
         assert.match(
           await page.locator(".tour-popup").innerText(),
-          /press G to save/,
+          /Easy Anti-Cheat/,
         );
         await page.screenshot({
           path: path.join(
@@ -240,9 +241,14 @@ try {
           Boolean(document.activeElement.closest(".tour-popup")),
         );
       }
+      if (target === "checkpoint")
+        assert.match(
+          await page.locator(".tour-popup").innerText(),
+          /press G to save/,
+        );
       await page
         .getByRole("button", {
-          name: index === 6 ? "Finish" : "Next",
+          name: index === tourTargets.length - 1 ? "Finish" : "Next",
           exact: true,
         })
         .click();
@@ -266,7 +272,7 @@ try {
   await page
     .getByRole("button", { name: "Previous step", exact: true })
     .click();
-  await page.getByText("Quick guide, 1 of 7", { exact: true }).waitFor();
+  await page.getByText("Quick guide, 1 of 8", { exact: true }).waitFor();
   await page.keyboard.press("Escape");
   await page.locator(".tour-popup").waitFor({ state: "hidden" });
   assert.equal(

@@ -7,6 +7,12 @@ import arrowRight from "@iconify-icons/solar/arrow-right-linear";
 export function GuidedTour({ saveKey, restoreKey, onTabChange, onFinish }) {
   const steps = [
     {
+      target: "launch",
+      title: "Open LMU for Active Reset",
+      text: "Use Open LMU without EAC, then choose Offline Practice and enter DRIVE. Sector checks for Easy Anti-Cheat: when detected, Save/Restore and their shortcuts are blocked. Close the game before reopening it here. For online racing, open LMU normally with EAC; overlays remain available.",
+      side: "bottom",
+    },
+    {
       target: "checkpoint",
       title: "Save a moment. Try it again.",
       text: `In LMU, press ${saveKey} to save your car's state, then ${restoreKey} to return to it. A new save replaces the previous checkpoint.`,

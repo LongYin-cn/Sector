@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import play from "@iconify-icons/solar/play-linear";
 import check from "@iconify-icons/solar/check-circle-linear";
 import layout from "../shared/overlay-layout.cjs";
 import model from "../shared/overlay-model.cjs";
@@ -59,12 +58,12 @@ function LayoutPreview({ state }) {
 
 export function Home({
   game,
-  preview,
   view,
   status,
   saveKey,
   restoreKey,
   disabled,
+  resetUnavailable = false,
   onNavigate,
 }) {
   const [state, setState] = useState(null);
@@ -133,28 +132,14 @@ export function Home({
     ? Object.values(state.config.widgets).filter((w) => w.enabled).length
     : 0;
   const total = state ? Object.keys(state.definitions).length : 0;
-  const resetBlocked = disabled || busy.reset || status.phase !== "active";
+  const resetBlocked =
+    disabled || resetUnavailable || busy.reset || status.phase !== "active";
   return (
     <div className="home-content">
       <div className="home-heading">
         <h1>
           Home<span className="accent">.</span>
         </h1>
-        <button
-          className={`home-launch ${running ? "is-running" : ""}`}
-          disabled={
-            disabled || busy.launch || preview || running || game.launching
-          }
-          title={preview ? "Game launch is unavailable in preview" : undefined}
-          onClick={() => action("launch", () => api.launchGame())}
-        >
-          <Icon icon={running ? check : play} aria-hidden="true" />
-          {running
-            ? "LMU running"
-            : game.launching
-              ? "Launching LMU..."
-              : "Launch LMU"}
-        </button>
       </div>
 
       <section className="home-session" aria-label="Session overview">
@@ -282,9 +267,9 @@ export function Home({
           </div>
         </section>
       </div>
-      {(error || game.error) && (
+      {error && (
         <p className="home-error" role="alert">
-          {error || game.error}
+          {error}
         </p>
       )}
     </div>

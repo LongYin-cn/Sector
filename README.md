@@ -19,8 +19,8 @@
 **Experimental build: [Sector 0.2.15](https://github.com/sector-lmu/Sector/releases/tag/v0.2.15).**
 This pre-release may contain bugs and will receive further fixes.
 It fixes the empty-bodywork save refusal and includes regression coverage for
-fuel consumption and tyre wear enabled or disabled. Live confirmation on the
-affected PC is still pending.
+fuel consumption and tyre wear enabled or disabled. The reported failure has
+also been confirmed resolved on the affected PC.
 
 Sector is a Windows app for **Le Mans Ultimate**. Save a point on track and return
 to it to practice a corner or section again. Add customizable widgets over the
@@ -68,7 +68,9 @@ You can then choose a short guided tour. Open it again at any time through
 **Help → Guide** in Sector's top menu.
 
 The **Home** tab brings together your session, checkpoint and overlay layout.
-Choose **Launch LMU** to open the game from the installation folder you confirmed.
+In **Active Reset**, choose **Open LMU without EAC** to open the game from the
+installation folder you confirmed. If EAC is detected, Sector shows a warning
+and blocks Save/Restore and their shortcuts. Close LMU before reopening it here.
 Steam must be available. The button shows when LMU is already running.
 
 From Home, use **Save checkpoint** or **Restore checkpoint** to perform the action.

@@ -191,6 +191,74 @@ test("quit during session admission cannot launch a reset listener", async (t) =
   assert.equal(spawned.length, 0);
 });
 
+test("EAC with a hidden process path blocks shortcuts before admission and clears on restart", async (t) => {
+  let games = [{ pid: 42, identity: null, executable: null, eac: true }];
+  let admissions = 0;
+  const { runtime, spawned, advance } = fixture(t, {
+    discover: async () => games,
+    admission: async () => {
+      admissions++;
+      return { allowed: true };
+    },
+  });
+  await runtime.tick();
+  assert.equal(admissions, 0);
+  assert.equal(spawned.length, 0);
+  assert.equal(runtime.state.phase, "blocked");
+  assert.equal(runtime.state.blocked_reason, "eac");
+  assert.match((await runtime.requestReset("save")).error, /Anti-Cheat/);
+  assert.match((await runtime.requestReset("restore")).error, /Anti-Cheat/);
+  games = [];
+  advance();
+  await runtime.tick();
+  assert.equal(runtime.state.phase, "idle");
+  games = [{ pid: 43, identity: "43:2", eac: false }];
+  advance();
+  await runtime.tick();
+  assert.equal(spawned.length, 1);
+  assert.equal(runtime.state.blocked_reason, null);
+});
+
+test("late EAC stops the listener, cancels queued commands and cannot be overwritten by status", async (t) => {
+  let games = [{ pid: 42, identity: "42:1", eac: false }];
+  const { runtime, spawned, advance, report } = fixture(t, {
+    discover: async () => games,
+  });
+  await runtime.tick();
+  report({ phase: "active", checkpoint: true, log_prefix: "host" });
+  await runtime.tick();
+  const pending = runtime.requestReset("restore");
+  games = [{ pid: 42, identity: "42:1", eac: true }];
+  advance();
+  await runtime.tick();
+  await runtime.protectionCheck;
+  assert.equal((await pending).ok, false);
+  assert.ok(fs.existsSync(path.join(runtime.session, "stop")));
+  assert.ok(!fs.existsSync(path.join(runtime.session, "command.json")));
+  report({ sequence: 2, phase: "active", checkpoint: true });
+  await runtime.tick();
+  assert.equal(runtime.state.phase, "blocked");
+  assert.equal(runtime.state.checkpoint, false);
+  spawned[0].child.emit("close", 0);
+  assert.equal(runtime.state.phase, "blocked");
+  assert.match(runtime.state.message, /shortcuts are disabled/);
+});
+
+test("native EAC module rejection is retained as an explicit block", async (t) => {
+  const { runtime, spawned, report } = fixture(t);
+  await runtime.tick();
+  report({
+    phase: "error",
+    blocked_reason: "eac",
+    message: "EAC module present",
+  });
+  await runtime.tick();
+  spawned[0].child.emit("close", 1);
+  assert.equal(runtime.state.phase, "blocked");
+  assert.equal(runtime.state.blocked_reason, "eac");
+  assert.equal((await runtime.requestReset("save")).ok, false);
+});
+
 test("reports native acknowledgement, retains failed-save checkpoint and invalidates on detach", async (t) => {
   const { runtime, report, spawned } = fixture(t);
   await runtime.tick();

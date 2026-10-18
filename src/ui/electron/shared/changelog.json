@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.2.16",
+    "changes": [
+      "Moves Open LMU without EAC to Active Reset and explains offline launch in Guide.",
+      "Shows an explicit EAC warning and disables Save/Restore and their shortcuts, including when Windows hides the protected game path.",
+      "Monitors for late EAC detection and stops the reset listener cooperatively while overlays remain available."
+    ]
+  },
+  {
     "version": "0.2.15",
     "changes": [
       "Experimental release. Bugs remain possible and further fixes are planned.",

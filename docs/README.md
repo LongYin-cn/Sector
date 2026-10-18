@@ -117,9 +117,14 @@ is not available from the game reader; you can hide those sections.
 ## Home
 
 The **Home** tab shows your current session, checkpoint actions and overlay
-layout. **Launch LMU** opens the game from the folder chosen during setup;
-keep Steam available. It does not select a game mode for you: choose **Offline**
-and start **Practice** for Active Reset. Session data updates even with overlays off.
+layout. Session data updates even with overlays off.
+
+In **Active Reset**, **Open LMU without EAC** opens the game from the folder chosen
+during setup; keep Steam available. Choose **Offline > Practice** in LMU.
+Sector checks for EAC when the game is found and while the reset listener runs.
+If detected, a warning appears in Active Reset and Save/Restore, including their
+keyboard shortcuts, are blocked. Close LMU and reopen it using this button.
+For online racing, launch LMU normally with EAC and use overlays without Active Reset.
 
 - **Save checkpoint** and **Restore checkpoint** perform the action while the game is ready in driving.
 - **Open Active Reset** lets you change the assigned keys and confirmation sounds.

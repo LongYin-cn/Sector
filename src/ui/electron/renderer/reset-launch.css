@@ -1,0 +1,55 @@
+.reset-heading {
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.reset-launch-button {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #0d1220;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.reset-launch-button:hover:not(:disabled) {
+  background: #9cbcff;
+}
+.reset-launch-button svg {
+  width: 20px;
+  height: 20px;
+}
+.reset-launch p {
+  max-width: 300px;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 8px;
+}
+.reset-blocked {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #e8ad6355;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  background: #e8ad6310;
+  color: #edc28d;
+}
+.reset-blocked > svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.reset-blocked h2 {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+.reset-blocked p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}

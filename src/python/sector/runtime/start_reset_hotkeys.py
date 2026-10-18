@@ -112,7 +112,12 @@ def main():
     except KeyboardInterrupt:
         args.desktop.publish(phase="stopped", checkpoint=False, message="Disconnected.")
     except Exception as error:
-        args.desktop.publish(phase="error", checkpoint=False, message=str(error))
+        args.desktop.publish(
+            phase="error",
+            checkpoint=False,
+            message=str(error),
+            blocked_reason="eac" if str(error) == "EAC module present" else None,
+        )
         raise
     finally:
         if handle:

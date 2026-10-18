@@ -3,6 +3,24 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Active Reset launch and EAC status: 0.2.16
+
+The launch button now lives in Active Reset and opens the selected game
+executable directly. Guide explains offline launch, EAC blocking and online
+overlay use. The native reset module remains v24.
+
+All 66 desktop model tests and 115 Python tests pass. New cases verify EAC
+blocking before admission even with an unreadable game path, rejection of both
+desktop commands, cooperative listener stop after late detection, removal of
+a queued command, protection against stale status overwrites and recovery after
+the game restarts. Native EAC-module refusals also retain the explicit block.
+
+Electron tests pass for all eight Guide steps, compact layout, shortcut editing,
+Home actions and widgets. The EAC preview verifies the banner and disabled
+Save/Restore while overlay controls remain enabled. The portable 0.2.16 EXE
+passes isolated startup, bundled runtime imports and UI/overlay smoke tests.
+These tests do not launch LMU or reproduce a live EAC session.
+
 ## Empty bodywork and consumption modes: 0.2.15 / v24
 
 The bodywork fixture now accepts empty models with either null or retained
@@ -28,7 +46,8 @@ passes isolated startup, bundled Python imports and UI/overlay checks. Diagnosti
 export passes cancellation, write-failure, JSON contents and confirmation tests
 against the packaged application.
 
-Live F6/F7 confirmation of 0.2.15 on the affected PC is still pending. The
+On 18 October 2026, the user confirmed that 0.2.15 also works on the affected
+PC. This confirms that reported failure, not every car/settings combination. The
 diagnostic report established the zero-count rejection but did not include the
 user's damage multiplier. These fixtures do not establish that every car,
 damage setting or LMU configuration has been tested in game.
