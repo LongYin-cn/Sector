@@ -465,12 +465,15 @@ static void WINAPI boundary(uint64_t input) {
             report.epoch = epoch_pin.generation;
             context.simulation_time = last_time;
             std::memcpy(context.contacts, samples, sizeof(samples));
+            // Establish the pinned sample time before diagnostic reads and
+            // checkpoint validation consume wall time on this same boundary.
+            const bool adapter_bound = vehicle_restore_adapter_bind(adapter, &context);
             report.readable =
                 pinned(nullptr, &context) &&
                 read_vehicle(base, physics_root, 1, last_time, diagnostic, &diagnostic_bindings);
             if (!report.readable)
                 report.cause = pinned(nullptr, &context) ? diagnostic->binding_status : 90004;
-            if (report.readable && vehicle_restore_adapter_bind(adapter, &context)) {
+            if (report.readable && adapter_bound) {
                 bodywork_report_ready = true;
                 trace_body = diagnostic_bindings.address[0];
                 if (action == HOST_SAVE || action == HOST_RESTORE) {
@@ -519,6 +522,9 @@ static void WINAPI boundary(uint64_t input) {
                                                          report.recovery_writes);
                         report.flow_result = runtime->report.result;
                         report.cause = runtime->report.cause;
+                        if (action == HOST_SAVE && result.control_result == CONTROL_SAVE_FAILED)
+                            report.cause = static_cast<uint64_t>(
+                                vehicle_restore_adapter_capture_cause(adapter));
                         const auto contact_report = vehicle_restore_adapter_contact_report(adapter);
                         report.contact_mask = contact_report.completed_mask;
                         report.contact_calls = contact_report.refresh_calls;

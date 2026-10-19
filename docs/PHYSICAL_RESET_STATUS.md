@@ -1,6 +1,6 @@
 # Physical reset: current status
 
-**Development desktop: 0.2.18. Native host: v26 for the pinned Steam 25661166 /
+**Development desktop: 0.2.19. Native host: v27 for the pinned Steam 25661166 /
 app build 14200 compatibility profile.** Matching the display version alone is
 insufficient: runtime admission also checks the pinned identities and hashes.
 The 0.2.5 impact trial crashed LMU. V19 passed the subsequent ordinary and
@@ -16,6 +16,12 @@ damage checks. See the
 [bodywork implementation and test procedure](BODYWORK_RESTORE.md).
 
 ## Implemented behavior
+
+Version 0.2.19 corrects contact freshness timing during a pinned checkpoint
+capture and reports individual capture failures. It also restores the puncture
+flags and the tire model state changed by native deflation. The automated
+fixtures cover four punctured tires and rollback; live qualification is pending.
+See [the evidence and test procedure](TIRE_PUNCTURE_RESTORE.md).
 
 The 0.2.17 live trial on the Porsche 963 at Sebring confirmed that F6 alone
 allows the next timed lap to start. F7 restored the car before the line, but
@@ -119,7 +125,8 @@ graphics transaction described above.
 Detachment remains unsupported: native `EEB800` also changes the active
 constraint set. Merely clearing its flag would leave a broken suspension.
 V18 reports the detached corner explicitly and preserves the existing
-checkpoint. Puncture repair and missing-assembly reconstruction remain unsupported.
+checkpoint. Version 0.2.19 adds experimental puncture restoration, pending a live test.
+Missing-assembly reconstruction remains unsupported.
 The recorded v20 aerodynamic restore succeeded. V21 visual repair still needs
 the packaged live test.
 

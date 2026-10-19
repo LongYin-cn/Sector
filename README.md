@@ -110,8 +110,8 @@ LMU rebuild your car can invalidate the checkpoint.
 Save while the car is healthy. After an impact has ended, restore that checkpoint
 to recover the supported physical and bodywork state. Visible front bodywork
 repair has been verified on the Mercedes-AMG LMGT3. Damage restoration is still
-experimental: other cars and impact types need further testing. Punctures and
-detached parts are not supported.
+experimental: other cars and impact types need further testing. Puncture repair is experimental and awaits in-game verification.
+Detached parts are not supported.
 
 If a save or restore is refused, read the message in Sector. Repair the car or
 start a fresh Practice if it cannot accept a healthy checkpoint.

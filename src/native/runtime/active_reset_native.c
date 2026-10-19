@@ -6,6 +6,10 @@ typedef struct Dispatch {
 } Dispatch;
 static int capture(void *user, const ResetIdentity *identity) {
     Dispatch *d = user;
+    // A save has no restore transaction. Do not publish a prior F7's fields,
+    // writes or failure cause as if they belonged to this F6 request.
+    d->runtime->plan.count = 0;
+    memset(&d->runtime->report, 0, sizeof(d->runtime->report));
     return d->adapter.capture(d->adapter.user, identity);
 }
 static int restore(void *user, const ResetIdentity *identity) {

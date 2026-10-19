@@ -35,6 +35,27 @@ def rejection_reason(report):
     }
     if cause in bodywork_reasons:
         return bodywork_reasons[cause]
+    capture_reasons = {
+        93001: "Save rejected: the vehicle identity changed.",
+        93002: "Save rejected: the physics synchronization was lost.",
+        93003: "Save rejected: the physical state could not be read consistently.",
+        93004: "Save rejected: the aerodynamic state is inconsistent.",
+        93005: "Save rejected: aerodynamic damage is still present. Repair the car before saving.",
+        93006: "Save rejected: the wheel deformation state is inconsistent.",
+        93007: "Save rejected: the suspension alignment state is invalid.",
+        93008: "Save rejected: the physical checkpoint failed validation.",
+        93009: "Save rejected: the tire contact samples were stale or did not match the vehicle.",
+        93010: "Save rejected: the tire contact geometry failed validation.",
+        93011: "Save rejected: the lap sector is unavailable or outside its supported range.",
+        93012: "Save rejected: the collision state is invalid.",
+        93013: "Save rejected: the tire model or puncture tables could not be validated.",
+        93014: "Save rejected: a tire is punctured. Repair it before saving a checkpoint.",
+    }
+    if cause in capture_reasons:
+        return (
+            f"{capture_reasons[cause]} Code {cause}. "
+            "Use Help > Export diagnostics to share the log."
+        )
     if cause in (91001, 91002, 91003, 91004):
         wheel = ("Front-left", "Front-right", "Rear-left", "Rear-right")[cause - 91001]
         return f"{wheel} wheel detached. This reset version cannot rebuild detached suspension."

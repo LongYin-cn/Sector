@@ -11,7 +11,7 @@
 #endif
 #include <cassert>
 #include <initializer_list>
-static unsigned char tire[4][0x1200], pool[4][4][0x110], surface[4][2][0x58];
+static unsigned char tire[4][0x1200], pool[4][504][0x110], surface[4][2][0x58];
 static uintptr_t active[4][8];
 static uint32_t bits[4];
 static uint64_t calls;

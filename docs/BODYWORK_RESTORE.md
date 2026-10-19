@@ -125,7 +125,7 @@ No automatic retry or partial graphics fallback is used.
 - Bounds are 32 components, 256 meshes, 4,096 submeshes per mesh and 32 MiB of
   vertex data. Malformed layouts, overlapping spans and changed topology fail
   before writes.
-- Punctures and detached assemblies remain unsupported.
+- Punctures have a separate [experimental restore path](TIRE_PUNCTURE_RESTORE.md), pending live verification. Detached assemblies remain unsupported.
 - Restoration during a continuing impact and other vehicle models need separate
   live qualification. There is no speed or distance cap in this implementation.
 

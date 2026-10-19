@@ -4,10 +4,27 @@ from sector.runtime.physical_reset_hotkeys import (
     expected_restore_fields,
     virtual_key,
     preparation_ready,
+    rejection_reason,
 )
 
 
 class HotkeyTests(unittest.TestCase):
+    def test_capture_failures_explain_the_rejected_subsystem(self):
+        for code, subsystem in (
+            (93001, "identity"), (93002, "synchronization"), (93003, "physical state"),
+            (93004, "aerodynamic state"), (93005, "aerodynamic damage"),
+            (93006, "wheel deformation"), (93007, "suspension alignment"),
+            (93008, "checkpoint"), (93009, "contact samples"),
+            (93010, "contact geometry"), (93011, "lap sector"), (93012, "collision state"),
+            (93013, "tire model"), (93014, "punctured"),
+        ):
+            with self.subTest(code=code):
+                message = rejection_reason({"result": 4, "cause": code})
+                self.assertIn(subsystem, message)
+                self.assertIn(str(code), message)
+                self.assertIn("Export diagnostics", message)
+        self.assertIsNone(rejection_reason({"result": 4, "cause": 0}))
+
     def setUp(self):
         self.keys = HotkeyCommands(10085)
 
@@ -123,7 +140,7 @@ class HotkeyTests(unittest.TestCase):
         self.assertEqual(self.poll(report=report), {})
         self.assertIn("complete native preflight required", self.keys.notice)
         self.assertTrue(self.keys.saved)
-        for revision in (0, 27):
+        for revision in (0, 28):
             with self.assertRaises(ValueError):
                 expected_restore_fields(revision)
 

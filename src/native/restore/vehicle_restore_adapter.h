@@ -42,12 +42,31 @@ struct VehicleRestoreHost {
 };
 
 struct VehicleRestoreAdapter;
+// Stable diagnostic codes carried by the existing IPC cause field.
+enum class VehicleCaptureCause : uint64_t {
+    none = 0,
+    identity = 93001,
+    owner = 93002,
+    physical_state = 93003,
+    aero_state = 93004,
+    aero_damage = 93005,
+    wheel_deformation = 93006,
+    hinge_axes = 93007,
+    checkpoint = 93008,
+    contact_sample = 93009,
+    contact_state = 93010,
+    scoring_sector = 93011,
+    collision_state = 93012,
+    puncture_state = 93013,
+    punctured_checkpoint = 93014,
+};
 VehicleRestoreAdapter *vehicle_restore_adapter_create(const VehicleRestoreHost *);
 void vehicle_restore_adapter_destroy(VehicleRestoreAdapter *);
 bool vehicle_restore_adapter_bind(VehicleRestoreAdapter *, const VehicleRestoreContext *);
 ResetNativeAdapter vehicle_restore_adapter_ops(VehicleRestoreAdapter *);
 ContactBatchReport vehicle_restore_adapter_contact_report(const VehicleRestoreAdapter *);
 sector_bodywork::Report vehicle_restore_adapter_bodywork_report(const VehicleRestoreAdapter *);
+VehicleCaptureCause vehicle_restore_adapter_capture_cause(const VehicleRestoreAdapter *);
 
 #ifdef LMU_VEHICLE_ADAPTER_FIXTURE
 // Test-only dependency substitution; absent from the production object.

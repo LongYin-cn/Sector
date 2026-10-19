@@ -278,7 +278,7 @@ static int run_fixture(int argc, char **argv) {
     source_frame.tire_mass_cache[0] = cached_mass;
     source_frame.bodies[0].velocity_world[0] = 80;
     auto memory = std::make_unique<unsigned char[]>(108 * 0x5000 + 2593 * 0x110);
-    for (unsigned i = 0; i < RESTORE_OBJECT_COUNT; ++i)
+    for (unsigned i = 0; i <= RESTORE_COLLISION_EXPORT_SLOT; ++i)
         source_bindings.address[i] = reinterpret_cast<uintptr_t>(memory.get()) +
                                      (i < 108 ? i * 0x5000 : 108 * 0x5000 + (i - 108) * 0x110);
     source_bindings.body_count = source_frame.total_count;
@@ -313,11 +313,14 @@ static int run_fixture(int argc, char **argv) {
 #endif
     for (unsigned i = 0; i < source_frame.constraint_count; ++i)
         source_bindings.constraint_kind[i] = source_frame.recipes[i].kind;
-    expected_fields = 10094 + initialize_hinge_axes() + AERO_FIELD_COUNT;
+    expected_fields =
+        10094 + initialize_hinge_axes() + AERO_FIELD_COUNT + TirePunctureFixtureModel::added_fields;
     write_fixture_aero(fixture_aero(false));
     init();
     for (unsigned i = 0; i < 4; ++i)
         source_bindings.address[96 + i] = reinterpret_cast<uintptr_t>(tire[i]);
+    auto punctures = std::make_unique<TirePunctureFixtureModel>();
+    punctures->initialize(source_bindings);
     for (unsigned offset : {0x160u, 0x27290u, 0x27360u})
         put(score + offset, int32_t{2});
     put(score + 0x18, int32_t{2});
@@ -375,6 +378,8 @@ static int run_fixture(int argc, char **argv) {
     assert(saved.result == CONTROL_OK && saved.saves == 1 && !saved.forward_writes);
     assert(saved.speed >= 80);
     put(score + 0x18, int32_t{0});
+    for (unsigned w = 0; w < 4; ++w)
+        punctures->damage(w);
     if (!empty_model)
         host_bodywork.damage();
     for (size_t i = 0; i < source_frame.total_count; ++i)
@@ -511,6 +516,10 @@ static int run_fixture(int argc, char **argv) {
            ipc->physical_field_write_attempts == expected_fields);
     auto refreshed_graphics = request(ipc, 7, HOST_SAVE);
     assert(refreshed_graphics.result == CONTROL_OK && refreshed_graphics.saves == 2);
+#if LMU_RESET_HOST_REVISION >= 27
+    assert(refreshed_graphics.cause == 0 && refreshed_graphics.fields == 0 &&
+           refreshed_graphics.forward_writes == 0 && refreshed_graphics.recovery_writes == 0);
+#endif
 #if LMU_RESET_HOST_REVISION >= 23
     auto *bad_count = empty_model ? host_owner + 0x38 + 0x1a78 : host_bodywork.component + 0x1c;
     BodyworkFixtureModel::write(bad_count, int32_t{-1});
@@ -523,6 +532,16 @@ static int run_fixture(int argc, char **argv) {
            ipc->physical_field_write_attempts == expected_fields);
     BodyworkFixtureModel::write(bad_count, int32_t{empty_model ? 0 : 1});
 #endif
+#endif
+#if LMU_RESET_HOST_REVISION >= 27
+    put(score + 0x18, int32_t{3});
+    const auto invalid_sector = request(ipc, 9, HOST_SAVE);
+    assert(invalid_sector.result == CONTROL_SAVE_FAILED && invalid_sector.cause == 93011);
+    assert(invalid_sector.forward_writes == 0 && invalid_sector.recovery_writes == 0 &&
+           ipc->physical_field_write_attempts == expected_fields);
+    put(score + 0x18, int32_t{2});
+    const auto valid_sector = request(ipc, 10, HOST_SAVE);
+    assert(valid_sector.result == CONTROL_OK && valid_sector.cause == 0 && valid_sector.saves == 3);
 #endif
     void(WINAPI *volatile reconstruct)(void *) = FixtureReconstruct;
     reconstruct(reinterpret_cast<void *>(source_bindings.address[104]));

@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 import wave
 
 from sector.runtime.physical_reset_hotkeys import HotkeyCommands
+from sector.runtime.resident_identity import HOST_REVISION
 from sector.desktop.reset_desktop_session import DesktopSession
 from sector.desktop.reset_feedback import Feedback, report_feedback, write_sounds
 from sector.runtime.start_reset_hotkeys import supervise
@@ -253,7 +254,7 @@ class DesktopTests(unittest.TestCase):
             supervise(args, run, audit, alive, wait=wait, sleep=lambda _: None)
         self.assertEqual(run.call_count, 3)
         self.assertEqual(audit.call_count, 3)
-        self.assertEqual(args.revision, 24)
+        self.assertEqual(args.revision, HOST_REVISION)
         self.assertFalse(self.session.state["checkpoint"])
         self.assertFalse(hasattr(args, "seconds"))
 

@@ -3,6 +3,39 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Checkpoint capture and punctures: 0.2.19 / v27
+
+The exported 0.2.18 diagnostics contain 16 failed F6 commands with result 4,
+cause 0 and no physical writes, plus one successful F6. Failed captures stopped
+before bodywork capture. The export does not identify the internal failed
+check, so it cannot prove that every refusal had the same cause.
+
+A local regression reproduced a timing defect: delaying snapshot reads by
+150 ms made valid contact samples exceed the 100 ms freshness threshold even
+though both native locks kept physics pinned. That regression failed before
+the change and passes after it. Freshness is now measured at bind, before the
+host diagnostic read and adapter validation. Samples already stale or from the
+future at entry, invalid ownership and incorrect identity remain rejected.
+
+Capture failures now publish distinct causes 93001 through 93014. Bodywork
+causes retain their existing 920xx details. F6 also clears the prior restore
+report, so fields, writes and causes cannot leak from an earlier F7.
+
+Puncture coverage and its static/live evidence are documented in
+[Tire puncture restoration](TIRE_PUNCTURE_RESTORE.md). Four-tire repair shares
+the physical transaction and compensation paths. The owned-memory adapter
+fixture passes normal restore, contact failure, failed compensation quarantine
+and collision failure. Its 504-node model verifies all 16,191 planned fields.
+A separate 504-node layout verifies 6,076 added fields, selected-node overlap
+avoidance, table changes, count bounds and capacity failure without partial
+publication. Loaded-host normal, empty-bodywork, missing-player and restart
+fixtures pass. All 116 Python checks (including the corrected current-revision
+assertion), 68 desktop tests and the isolated packaged EXE smoke check pass.
+No game process was modified during these tests.
+
+Live F6/F7, puncture repair and the finish-line timing behavior still need
+verification in 0.2.19. A successful local fixture is not a live-game result.
+
 ## Sector progression: 0.2.18 / v26
 
 On 19 October 2026, the user tested 0.2.17 with the Porsche 963 in offline

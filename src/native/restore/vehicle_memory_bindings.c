@@ -10,10 +10,27 @@ int restore_binding_field(const RestoreBindings *b, uint32_t slot, uint32_t off,
         slot >= RESTORE_OBJECT_COUNT || !n || n > 128 || !b->epoch)
         return 0;
     uintptr_t address = b->address[slot];
-    if (address < 0x10000 || address >= UINT64_C(0x800000000000) || off > 0x5000 - n ||
+    if (address < 0x10000 || address >= UINT64_C(0x800000000000) ||
         address > UINT64_C(0x800000000000) - off - n)
         return 0;
 #define F(offset, bytes) field(off, n, (offset), (bytes))
+    if (slot >= RESTORE_PUNCTURE_POOL_BASE) {
+        const uint32_t node = off / 0x110, member = off % 0x110;
+        const uint32_t count = b->puncture_nodes[slot - RESTORE_PUNCTURE_POOL_BASE];
+        return count <= 256 * 7 && node < count &&
+               ((member == 0x38 && n == 8) || (member == 0x108 && n == 8) ||
+                (member == 0x30 && n == 48) || (member == 0x100 && n == 16));
+    }
+    if (off > 0x5000 - n)
+        return 0;
+    if (slot >= RESTORE_PUNCTURE_TABLE_BASE) {
+        if (F(0x1b0, 16) || F(0x1f0, 8))
+            return 1;
+        if (off < 0x1f8 || off >= 0x1cc8 || (off - 0x1f8) % 128)
+            return 0;
+        const uint32_t remaining = 0x1cc8 - off;
+        return n == (remaining < 128 ? remaining : 128);
+    }
     if (slot == RESTORE_COLLISION_EXPORT_SLOT)
         return F(0, 96) || F(0x68, 4); /* Vehicle kinematics and exported mass. */
     if (slot >= RESTORE_THERMAL_BASE) {
@@ -75,6 +92,8 @@ int restore_binding_field(const RestoreBindings *b, uint32_t slot, uint32_t off,
         return 0;
     }
     if (slot < 100) {
+        if (F(8, 1) || F(0xfa0, 16) || F(0xc90, 64) || F(0x1088, 48))
+            return 1;
         if (F(0xc18, 8) || F(0xc20, 24) || F(0xc, 4) || F(0xfb0, 8) || F(0xfb8, 8) || F(0xfc0, 8) ||
             F(0xce4, 12))
             return 1;
@@ -86,7 +105,8 @@ int restore_binding_field(const RestoreBindings *b, uint32_t slot, uint32_t off,
     }
     if (slot < 104)
         return F(0x4b8, 8) || F(0x5d8, 8) || F(0x120, 16) || F(0x5e0, 32) || F(0x630, 8) ||
-               F(0x138, 8) || F(0x302, 1) || F(0x308, 32);
+               F(0x138, 8) || F(0x302, 1) || F(0x308, 32) || F(0x3e0, 1) || F(0x3b8, 8) ||
+               F(0x3c8, 8);
     if (slot == 104) {
         for (unsigned i = 0; i < AERO_FIELD_COUNT; ++i)
             if (F(aero_field_offsets[i], 8))

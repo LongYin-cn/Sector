@@ -1,6 +1,7 @@
 #include "vehicle_restore_adapter.h"
 #include "vehicle_checkpoint.h"
 #include "aerodynamic_state.h"
+#include "tire_puncture_state.h"
 #include "../runtime/native_lock_witness.h"
 #include <cmath>
 #include <cstring>
@@ -11,12 +12,16 @@ struct VehicleRestoreAdapter {
     VehicleRestoreContext context;
     ResetIdentity saved_identity;
     uint64_t saved_epoch;
+    uint64_t bound_tick_ms;
+    VehicleCaptureCause capture_cause = VehicleCaptureCause::none;
     bool bound, occupied, held, quarantined;
     SnapshotFrame saved, current;
     WheelDeformation saved_deformation[4], current_deformation[4];
     unsigned char saved_deformed[4], current_deformed[4];
     double saved_hinge_axes[64][6], current_hinge_axes[64][6];
     sector_aero::State saved_aero, current_aero;
+    sector_puncture::State current_puncture;
+    std::unique_ptr<sector_puncture::State> saved_puncture;
     RestoreBindings bindings;
     uintptr_t scoring;
     int32_t saved_sector;
@@ -39,6 +44,16 @@ struct VehicleRestoreAdapter {
 };
 static bool prepare_contacts(VehicleRestoreAdapter *);
 template <typename T> static bool field(uintptr_t address, T &value);
+
+static bool read_failed(VehicleRestoreAdapter *adapter, VehicleCaptureCause cause) {
+    adapter->capture_cause = cause;
+    return false;
+}
+
+static int capture_failed(VehicleRestoreAdapter *adapter, VehicleCaptureCause cause) {
+    adapter->capture_cause = cause;
+    return 1;
+}
 
 template <typename T, size_t N> static bool finite(const T (&values)[N]) {
     for (auto value : values)
@@ -132,28 +147,29 @@ static void release_graphics(VehicleRestoreAdapter *a) {
 static bool read_current(VehicleRestoreAdapter *adapter) {
     const auto &context = adapter->context;
     if (!owner(adapter, context.epoch))
-        return false;
+        return read_failed(adapter, VehicleCaptureCause::owner);
 #ifdef LMU_VEHICLE_ADAPTER_FIXTURE
     const auto reader = adapter->reader;
 #else
     const auto reader = vehicle_read_25661166;
 #endif
     if (!reader(adapter->host.module_base, context.physics, context.epoch, context.simulation_time,
-                &adapter->current, &adapter->bindings) ||
-        !owner(adapter, context.epoch))
-        return false;
+                &adapter->current, &adapter->bindings))
+        return read_failed(adapter, VehicleCaptureCause::physical_state);
+    if (!owner(adapter, context.epoch))
+        return read_failed(adapter, VehicleCaptureCause::owner);
     if (!sector_aero::capture(context.physics, adapter->current_aero, field<double>))
-        return false;
+        return read_failed(adapter, VehicleCaptureCause::aero_state);
     for (unsigned w = 0; w < 4; ++w) {
         const auto wheel = adapter->bindings.address[RESTORE_WHEEL_BASE + w];
         if (!field(wheel + 0x302, adapter->current_deformed[w]) ||
             !field(wheel + 0x308, adapter->current_deformation[w]) ||
             adapter->current_deformed[w] != adapter->current.wheel_phase[w].spin.deformed)
-            return false;
+            return read_failed(adapter, VehicleCaptureCause::wheel_deformation);
     }
     if (!wheel_phase_deformed_valid(adapter->current.wheel_phase, adapter->current_deformation,
                                     adapter->current.bodies, adapter->current.total_count))
-        return false;
+        return read_failed(adapter, VehicleCaptureCause::wheel_deformation);
     // PureHinge stores its two physical alignment axes separately from the
     // solver row basis at +0xa8/+0x150. Impact repair changes the body-B axis
     // at +0x68 through native setter 3F4D90 (parameter 3).
@@ -163,28 +179,48 @@ static bool read_current(VehicleRestoreAdapter *adapter) {
         auto &axes = adapter->current_hinge_axes[i];
         if (!field(adapter->bindings.address[RESTORE_CONSTRAINT_BASE + i] + 0x50, axes) ||
             !finite(axes))
-            return false;
+            return read_failed(adapter, VehicleCaptureCause::hinge_axes);
         for (unsigned side = 0; side < 2; ++side) {
             double norm = 0;
             for (unsigned k = 0; k < 3; ++k)
                 norm += axes[side * 3 + k] * axes[side * 3 + k];
             if (std::fabs(norm - 1) > 1e-3)
-                return false;
+                return read_failed(adapter, VehicleCaptureCause::hinge_axes);
         }
     }
     if (adapter->host.collision_vehicle)
         adapter->bindings.address[RESTORE_COLLISION_EXPORT_SLOT] =
             adapter->host.collision_vehicle + 0x159e8;
+    if (!sector_puncture::capture(
+            adapter->bindings, adapter->current_puncture,
+            [](uintptr_t address, auto &value) { return field(address, value); }))
+        return read_failed(adapter, VehicleCaptureCause::puncture_state);
     return true;
 }
 
 static int capture(void *user, const ResetIdentity *identity) {
     auto *adapter = static_cast<VehicleRestoreAdapter *>(user);
-    if (!identity || !same_identity(*identity, adapter->context.identity) ||
-        !read_current(adapter) || !sector_aero::healthy(adapter->current_aero) ||
-        vehicle_checkpoint_validate(adapter->workspace, &adapter->current) ||
-        !prepare_contacts(adapter) || !owner(adapter, adapter->context.epoch))
+    adapter->capture_cause = VehicleCaptureCause::none;
+    if (!identity || !same_identity(*identity, adapter->context.identity))
+        return capture_failed(adapter, VehicleCaptureCause::identity);
+    if (!read_current(adapter))
         return 1;
+    if (!sector_aero::healthy(adapter->current_aero))
+        return capture_failed(adapter, VehicleCaptureCause::aero_damage);
+    if (!sector_puncture::healthy(adapter->current_puncture))
+        return capture_failed(adapter, VehicleCaptureCause::punctured_checkpoint);
+    std::unique_ptr<sector_puncture::State> next_puncture;
+    try {
+        next_puncture = std::make_unique<sector_puncture::State>(adapter->current_puncture);
+    } catch (const std::bad_alloc &) {
+        return capture_failed(adapter, VehicleCaptureCause::puncture_state);
+    }
+    if (vehicle_checkpoint_validate(adapter->workspace, &adapter->current))
+        return capture_failed(adapter, VehicleCaptureCause::checkpoint);
+    if (!prepare_contacts(adapter))
+        return 1;
+    if (!owner(adapter, adapter->context.epoch))
+        return capture_failed(adapter, VehicleCaptureCause::owner);
     uintptr_t scoring =
         vehicle_scoring_25661166(adapter->host.module_base, adapter->context.physics);
 #ifdef LMU_VEHICLE_ADAPTER_FIXTURE
@@ -192,7 +228,7 @@ static int capture(void *user, const ResetIdentity *identity) {
 #endif
     int32_t sector;
     if (!scoring || !field(scoring + 0x18, sector) || sector < 0 || sector > 2)
-        return 1;
+        return capture_failed(adapter, VehicleCaptureCause::scoring_sector);
     sector_bodywork::Checkpoint next_bodywork;
     if (adapter->bodywork) {
         if (!pin_graphics(adapter))
@@ -216,7 +252,7 @@ static int capture(void *user, const ResetIdentity *identity) {
             !finite(velocity) || !field(adapter->context.physics + 0x2550, omega) ||
             !finite(omega) || !field(adapter->host.collision_vehicle + 0x15a50, mass) ||
             !std::isfinite(mass) || mass <= 0)
-            return 1;
+            return capture_failed(adapter, VehicleCaptureCause::collision_state);
         std::memcpy(adapter->saved_export, exported, sizeof(exported));
         std::memcpy(adapter->saved_position, position, sizeof(position));
         std::memcpy(adapter->saved_orientation, orientation, sizeof(orientation));
@@ -229,6 +265,7 @@ static int capture(void *user, const ResetIdentity *identity) {
     if (adapter->bodywork)
         adapter->saved_bodywork = std::move(next_bodywork);
     adapter->saved_aero = adapter->current_aero;
+    adapter->saved_puncture = std::move(next_puncture);
     std::memcpy(adapter->saved_deformation, adapter->current_deformation,
                 sizeof(adapter->saved_deformation));
     std::memcpy(adapter->saved_deformed, adapter->current_deformed,
@@ -281,20 +318,24 @@ static bool prepare_contacts(VehicleRestoreAdapter *adapter) {
     batch.owner_alive = owner;
     batch.refresh = adapter->host.refresh;
     batch.world = reinterpret_cast<void *>(adapter->host.module_base + 0x1aa4090);
-    const auto now = GetTickCount64();
+    // Both native locks pin this context from bind through capture/restore.
+    // Check freshness at entry, not after our own snapshot validation has
+    // consumed wall time while the simulation could not produce newer samples.
+    const auto now = adapter->bound_tick_ms;
     for (unsigned i = 0; i < 4; ++i) {
         const auto &sample = adapter->context.contacts[i];
         if (sample.tire != adapter->bindings.address[96 + i] || sample.epoch != batch.epoch ||
             sample.thread != batch.owner_thread ||
             sample.world != reinterpret_cast<uintptr_t>(batch.world) || sample.tick_ms > now ||
             now - sample.tick_ms > 100)
-            return false;
+            return read_failed(adapter, VehicleCaptureCause::contact_sample);
         batch.tire[i] = sample.tire;
         batch.dt[i] = sample.dt;
         batch.horizon[i] = sample.horizon;
         batch.angular[i] = sample.angular;
     }
-    return contact_batch_preflight_25661166(&batch) != 0;
+    return contact_batch_preflight_25661166(&batch) != 0 ||
+           read_failed(adapter, VehicleCaptureCause::contact_state);
 }
 
 static int prepare(void *user, const ResetIdentity *identity, RestorePlan *plan,
@@ -303,7 +344,8 @@ static int prepare(void *user, const ResetIdentity *identity, RestorePlan *plan,
     plan->count = 0;
     *bindings = {};
     *scoring = 0;
-    if (!identity || !adapter->occupied || adapter->saved_epoch != adapter->context.epoch ||
+    if (!identity || !adapter->occupied || !adapter->saved_puncture ||
+        adapter->saved_epoch != adapter->context.epoch ||
         !same_identity(*identity, adapter->saved_identity) ||
         !same_identity(*identity, adapter->context.identity) || !read_current(adapter) ||
         !sector_aero::same_config(adapter->saved_aero, adapter->current_aero))
@@ -446,6 +488,11 @@ static int prepare(void *user, const ResetIdentity *identity, RestorePlan *plan,
             std::memcpy(entry.desired, cache.saved, cache.size);
         }
     }
+    if (!sector_puncture::plan(*adapter->saved_puncture, adapter->current_puncture, *bindings,
+                               *plan)) {
+        plan->count = 0;
+        return 1;
+    }
     return 0;
 }
 
@@ -558,6 +605,8 @@ bool vehicle_restore_adapter_bind(VehicleRestoreAdapter *adapter,
     if (!adapter || adapter->held || adapter->quarantined)
         return false;
     adapter->bound = false;
+    adapter->capture_cause = VehicleCaptureCause::none;
+    adapter->bound_tick_ms = GetTickCount64();
     adapter->bodywork_report = {};
     if (!context || !context->epoch || !context->physics || !context->identity.process ||
         !context->identity.session || !context->identity.vehicle ||
@@ -585,6 +634,10 @@ ContactBatchReport vehicle_restore_adapter_contact_report(const VehicleRestoreAd
 sector_bodywork::Report
 vehicle_restore_adapter_bodywork_report(const VehicleRestoreAdapter *adapter) {
     return adapter ? adapter->bodywork_report : sector_bodywork::Report{};
+}
+
+VehicleCaptureCause vehicle_restore_adapter_capture_cause(const VehicleRestoreAdapter *adapter) {
+    return adapter ? adapter->capture_cause : VehicleCaptureCause::identity;
 }
 
 #ifdef LMU_VEHICLE_ADAPTER_FIXTURE

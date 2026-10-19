@@ -2,6 +2,7 @@
 #include "../../src/native/runtime/active_reset_boundary.h"
 #include "../../src/native/runtime/native_lifetime_handoff.h"
 #include "vehicle_contact_fixture_model.h"
+#include "tire_puncture_fixture_model.h"
 #include "../../src/native/restore/aerodynamic_state.h"
 #include <memory>
 #include <cstdlib>
@@ -25,6 +26,7 @@ static DWORD WINAPI control_loop(void *) {
     return 0;
 }
 static bool pinned = true;
+static DWORD read_delay_ms;
 static int original_calls;
 static int fault;
 static unsigned char collision_vehicle[0x18000];
@@ -48,6 +50,8 @@ static void WINAPI refresh(void *object, double dt, double horizon, void *world,
 }
 static bool fixture_read(uintptr_t, uintptr_t, uint64_t epoch, double time, SnapshotFrame *frame,
                          RestoreBindings *bindings) {
+    if (read_delay_ms)
+        Sleep(read_delay_ms);
     *frame = source_frame;
     frame->simulation_time = time;
     *bindings = source_bindings;
@@ -125,11 +129,12 @@ static void write_fixture_aero(const sector_aero::State &state) {
 
 int main(int argc, char **argv) {
     assert(argc == 4);
+    check_selected_puncture_nodes();
     fault = std::atoi(argv[3]);
     assert(fault >= 0 && fault <= 3);
     load_frame(argv[1]);
     auto memory = std::make_unique<unsigned char[]>(108 * 0x5000 + 2593 * 0x110);
-    for (unsigned i = 0; i < RESTORE_OBJECT_COUNT; ++i)
+    for (unsigned i = 0; i <= RESTORE_COLLISION_EXPORT_SLOT; ++i)
         source_bindings.address[i] = reinterpret_cast<uintptr_t>(memory.get()) +
                                      (i < 108 ? i * 0x5000 : 108 * 0x5000 + (i - 108) * 0x110);
     source_bindings.body_count = source_frame.total_count;
@@ -142,6 +147,8 @@ int main(int argc, char **argv) {
     init();
     for (unsigned i = 0; i < 4; ++i)
         source_bindings.address[96 + i] = reinterpret_cast<uintptr_t>(tire[i]);
+    auto punctures = std::make_unique<TirePunctureFixtureModel>();
+    punctures->initialize(source_bindings);
     for (unsigned offset : {0x160u, 0x27290u, 0x27360u})
         put(score + offset, int32_t{2});
     score[0x164] = 1;
@@ -233,15 +240,39 @@ int main(int argc, char **argv) {
                                               &ops, GetTickCount64(), &context.identity, 1,
                                               &request, original, 77);
     };
+    samples();
+    // Once both native locks are held, a slow read must not age out the
+    // samples from the frozen boundary. This failed with the wall-clock check.
+    read_delay_ms = 150;
     assert(dispatch(1, RESET_SAVE).control_result == CONTROL_OK);
+    read_delay_ms = 0;
+    assert(vehicle_restore_adapter_capture_cause(adapter) == VehicleCaptureCause::none);
     assert(get<int32_t>(score + 0x18) == 2); // Save never changes the scoring gate.
-    put(score + 0x18, int32_t{0});           // Native finish-line crossing after the save.
+    for (int32_t invalid_sector : {-1, 3}) {
+        put(score + 0x18, invalid_sector);
+        assert(ops.capture(ops.user, &context.identity) != 0);
+        assert(vehicle_restore_adapter_capture_cause(adapter) ==
+               VehicleCaptureCause::scoring_sector);
+    }
+    put(score + 0x18, int32_t{0}); // Native finish-line crossing after the save.
+    for (bool future : {false, true}) {
+        samples();
+        context.contacts[3].tick_ms = future ? GetTickCount64() + 1000 : GetTickCount64() - 101;
+        assert(vehicle_restore_adapter_bind(adapter, &context));
+        assert(ops.capture(ops.user, &context.identity) != 0);
+        assert(vehicle_restore_adapter_capture_cause(adapter) ==
+               VehicleCaptureCause::contact_sample);
+    }
+    samples();
+    assert(vehicle_restore_adapter_bind(adapter, &context));
     auto broken_aero = fixture_aero(true);
     write_fixture_aero(broken_aero);
     assert(ops.capture(ops.user, &context.identity) != 0); // damaged replacement
+    assert(vehicle_restore_adapter_capture_cause(adapter) == VehicleCaptureCause::aero_damage);
     broken_aero.values[7] += 1;
     write_fixture_aero(broken_aero);
     assert(ops.capture(ops.user, &context.identity) != 0); // inconsistent derived cache
+    assert(vehicle_restore_adapter_capture_cause(adapter) == VehicleCaptureCause::aero_state);
     broken_aero = fixture_aero(false);
     broken_aero.config[15] = NAN;
     write_fixture_aero(broken_aero);
@@ -254,6 +285,7 @@ int main(int argc, char **argv) {
         auto *axis = reinterpret_cast<double *>(source_bindings.address[32 + i] + 0x68);
         axis[0] = 0;
         assert(ops.capture(ops.user, &context.identity) != 0);
+        assert(vehicle_restore_adapter_capture_cause(adapter) == VehicleCaptureCause::hinge_axes);
         axis[0] = NAN;
         assert(ops.capture(ops.user, &context.identity) != 0);
         axis[0] = 1;
@@ -261,11 +293,20 @@ int main(int argc, char **argv) {
     }
     put(collision_vehicle + 0x159e8, float{0}); // Singular collision-facing rotation.
     assert(ops.capture(ops.user, &context.identity) != 0);
+    assert(vehicle_restore_adapter_capture_cause(adapter) == VehicleCaptureCause::collision_state);
     put(collision_vehicle + 0x159e8, float{1});
     auto original_saved_position = source_frame.bodies[0].position_world[0];
     source_frame.terminal_failure = 1;
     assert(dispatch(2, RESET_SAVE).control_result == CONTROL_SAVE_FAILED);
+    assert(vehicle_restore_adapter_capture_cause(adapter) == VehicleCaptureCause::checkpoint);
     load_frame(argv[2]);
+    for (unsigned w = 0; w < 4; ++w)
+        punctures->damage(w);
+    samples();
+    assert(vehicle_restore_adapter_bind(adapter, &context));
+    assert(ops.capture(ops.user, &context.identity) != 0);
+    assert(vehicle_restore_adapter_capture_cause(adapter) ==
+           VehicleCaptureCause::punctured_checkpoint);
     bodywork_model.damage();
     write_fixture_aero(fixture_aero(true));
     // Native suspension damage changes the body-B axis, not only the row
@@ -345,7 +386,8 @@ int main(int argc, char **argv) {
     std::fprintf(stderr, "full adapter result=%d fields=%zu flow=%d cause=%d contacts=%llu\n",
                  result.control_result, runtime->plan.count, runtime->report.result,
                  runtime->report.cause, static_cast<unsigned long long>(calls));
-    assert(runtime->plan.count == 10094 + hinge_count + AERO_FIELD_COUNT);
+    assert(runtime->plan.count ==
+           10094 + hinge_count + AERO_FIELD_COUNT + TirePunctureFixtureModel::added_fields);
     assert(result.control_result == (fault == 2   ? CONTROL_QUARANTINED
                                      : fault != 0 ? CONTROL_RESTORE_RECOVERED
                                                   : CONTROL_OK));
@@ -386,7 +428,7 @@ int main(int argc, char **argv) {
             const auto &field = runtime->plan.fields[i];
             const auto address = field.object_slot == RESTORE_OBJECT_COUNT
                                      ? reinterpret_cast<uintptr_t>(score)
-                                     : source_bindings.address[field.object_slot];
+                                     : runtime->bindings.address[field.object_slot];
             assert(std::memcmp(reinterpret_cast<void *>(address + field.field_offset),
                                fault ? field.expected : field.desired, field.size) == 0);
         }

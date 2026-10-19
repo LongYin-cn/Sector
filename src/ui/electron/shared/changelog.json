@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.2.19",
+    "changes": [
+      "Experimental restoration of punctured tires, including saved pressure, model flags, lookup tables and tread-node caches. Detached wheels remain unsupported.",
+      "Fixes checkpoint captures rejecting fresh contact samples after slow validation while physics is pinned.",
+      "Save refusals now identify the failed subsystem instead of reporting cause 0; save reports no longer inherit an earlier restore result.",
+      "Local packaging removes older builds after the new build succeeds. Restart LMU to load v27. Live puncture and lap-timing verification is pending."
+    ]
+  },
+  {
     "version": "0.2.18",
     "changes": [
       "Experimental fix for a timed lap not restarting after restoring a checkpoint before the finish line.",
