@@ -236,6 +236,7 @@ static void flow_init() {
         sf.field_offset = offsets[i];
         sf.size = 4;
         memcpy(sf.expected, &flag, 4);
+        sf.desired[0] = 1;
         memcpy(score + offsets[i], &flag, 4);
     }
     flow_batch = {};

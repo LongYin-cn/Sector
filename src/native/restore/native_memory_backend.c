@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "native_memory_backend.h"
+#include "lap_scoring_plan.h"
 #include <stdlib.h>
 #include <string.h>
 typedef struct NativeMemory {
@@ -125,28 +126,14 @@ static int validate_joint(const RestorePlan *plan, NativeMemory *native) {
         plan->count > RESTORE_MAX_FIELDS)
         return RESTORE_BAD_PLAN;
     JointRange ranges[RESTORE_MAX_FIELDS];
-    unsigned mask = 0;
     for (size_t i = 0; i < plan->count; i++) {
         const RestoreField *f = plan->fields + i;
         if (f->reserved || !allowed(native, f->object_slot, f->field_offset, f->size))
             return RESTORE_FIELD_FORBIDDEN;
         uintptr_t start = address_of(native, f->object_slot, f->field_offset);
         ranges[i] = (JointRange){start, start + f->size};
-        if (f->object_slot == RESTORE_OBJECT_COUNT) {
-            const int failure = f->field_offset == 0xd4;
-            unsigned bit = failure                      ? 8
-                           : f->field_offset == 0x160   ? 1
-                           : f->field_offset == 0x27290 ? 2
-                                                        : 4;
-            int32_t expected, desired;
-            memcpy(&expected, f->expected, 4);
-            memcpy(&desired, f->desired, 4);
-            if (mask & bit || expected < 0 || expected > (failure ? 9 : 2) || desired)
-                return RESTORE_BAD_PLAN;
-            mask |= bit;
-        }
     }
-    if (mask != 7 && mask != 15)
+    if (!lap_scoring_fields_valid(plan, RESTORE_OBJECT_COUNT))
         return RESTORE_BAD_PLAN;
     qsort(ranges, plan->count, sizeof(*ranges), compare_joint_range);
     for (size_t i = 1; i < plan->count; i++)

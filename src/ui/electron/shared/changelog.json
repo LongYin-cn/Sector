@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.2.17",
+    "changes": [
+      "Experimental lap-scoring change, pending automated and in-game verification.",
+      "F7 removes timing eligibility from a counted attempt while preserving finish-line counting and existing next-lap restrictions. Native no-count states remain unchanged.",
+      "F6 remains capture-only. The reported first-lap timing failure after saving at Le Mans still needs in-game confirmation.",
+      "Restart LMU after upgrading to load the v25 reset module."
+    ]
+  },
+  {
     "version": "0.2.16",
     "changes": [
       "Moves Open LMU without EAC to Active Reset and explains offline launch in Guide.",

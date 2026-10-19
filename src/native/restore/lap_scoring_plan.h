@@ -8,4 +8,7 @@
  * This prepares owned memory only; no native scoring writer is supplied. */
 int scoring_field_allowed_25661166(uint32_t slot, uint32_t offset, uint32_t size);
 int lap_scoring_plan(const LapGuardFlags *, uint64_t epoch, RestorePlan *);
+/* Require the exact restore policy for all three flags and the optional healthy
+ * failure latch. Never accepts a plan that restores timing eligibility. */
+int lap_scoring_fields_valid(const RestorePlan *, uint32_t slot);
 #endif

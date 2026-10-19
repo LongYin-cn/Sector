@@ -1,6 +1,6 @@
 # Physical reset: current status
 
-**Development desktop: 0.2.12. Native host: v22 for the verified Steam 25661166 /
+**Development desktop: 0.2.17. Native host: v25 for the pinned Steam 25661166 /
 app build 14200 compatibility profile.** Matching the display version alone is
 insufficient: runtime admission also checks the pinned identities and hashes.
 The 0.2.5 impact trial crashed LMU. V19 passed the subsequent ordinary and
@@ -16,6 +16,15 @@ damage checks. See the
 [bodywork implementation and test procedure](BODYWORK_RESTORE.md).
 
 ## Implemented behavior
+
+The v25 scoring change is pending verification. F6 only captures state. On F7,
+a counted attempt becomes countable without a time (flag 1), instead of disabling
+both counting and timing (flag 0). All three scoring caches follow this policy.
+Native no-count states remain unchanged, as do the next-lap penalty, lap number,
+start time and records. Timing eligibility is read at F7, never restored from F6.
+The reported Porsche 963 / Le Mans first-lap failure after saving alone has not
+been reproduced; this change addresses the unconditional F7 scoring mutation.
+See [verification status and the deferred procedure](TEST_RESULTS.md#lap-scoring-0217--v25).
 
 F6 captures a checkpoint; F7 prepares and restores the saved physical state at
 the admitted native callback boundary. Physics/scoring coordination, object

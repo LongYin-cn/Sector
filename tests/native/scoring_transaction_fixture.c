@@ -52,11 +52,11 @@ int main(void) {
     memcpy(memory, original, sizeof(memory));
     REQUIRE(restore_transaction(&plan, &backend, &report) == RESTORE_OK);
     for (size_t p = 0; p < sizeof(memory); p++) {
-        int changed = 0;
+        unsigned char expected = original[p];
         for (size_t j = 0; j < plan.count; j++)
             if (p >= plan.fields[j].field_offset && p < plan.fields[j].field_offset + 4)
-                changed = 1;
-        REQUIRE(memory[p] == (changed ? 0 : original[p]));
+                expected = plan.fields[j].desired[p - plan.fields[j].field_offset];
+        REQUIRE(memory[p] == expected);
     }
     for (unsigned fail = 1; fail <= 3; fail++) {
         memcpy(memory, original, sizeof(memory));

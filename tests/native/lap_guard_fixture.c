@@ -60,13 +60,20 @@ int main(void) {
                         REQUIRE(lap_guard_prepare(&before, &after));
                         REQUIRE(same_flags(&before, &f.flags));
                         REQUIRE(after.next_timed == next && after.off_track == off);
+                        if (c == 0) {
+                            // Native no-count states are preserved byte for byte, including
+                            // their caches. A restore must not invent a timed attempt.
+                            REQUIRE(same_flags(&before, &after));
+                            ++tested;
+                            continue;
+                        }
                         f.flags = after;
                         for (int n = 0; n < 4; n++) {
                             track_limits(&f.flags);
-                            REQUIRE(f.flags.current == 0);
+                            REQUIRE(f.flags.current == 1);
                         }
-                        cross_line(&f, 1.0); /* Physically interrupted attempt cannot count. */
-                        REQUIRE(f.completed_laps == 8 && f.best == 132.75 && f.last == 136.5);
+                        cross_line(&f, 1.0); /* Count the crossing, never the interrupted time. */
+                        REQUIRE(f.completed_laps == 9 && f.best == 132.75 && f.last == 136.5);
                         f.flags.off_track = 0;
                         track_limits(&f.flags);
                         REQUIRE(f.flags.current == (next ? 2 : 1));
@@ -80,6 +87,18 @@ int main(void) {
                         REQUIRE(f.best == 131.0 && f.last == 131.0);
                         ++tested;
                     }
+    // Out lap before the timing line: restoring here must still allow the first
+    // timed lap to start. Saving alone performs no scoring transformation.
+    for (int restore = 0; restore <= 1; ++restore) {
+        Fixture initial = {{0, 0, 0, 1, 0}, 0, 132.75, 136.5};
+        if (restore)
+            REQUIRE(lap_guard_prepare(&initial.flags, &initial.flags));
+        cross_line(&initial, 1.0);
+        track_limits(&initial.flags);
+        REQUIRE(initial.completed_laps == 0 && initial.flags.current == 2);
+        cross_line(&initial, 131.0);
+        REQUIRE(initial.completed_laps == 1 && initial.best == 131.0);
+    }
     /* Regression: touching only current causes the newly valid lap to be lost. */
     Fixture broken = {{2, 2, 2, 1, 0}, 8, 132.75, 136.5};
     broken.flags.current = 0;
@@ -92,7 +111,7 @@ int main(void) {
     REQUIRE(same_flags(&out, &unchanged));
     REQUIRE(!lap_guard_prepare(NULL, &out));
     REQUIRE(!lap_guard_prepare(&unchanged, NULL));
-    printf("PASS %u flag combinations; interrupted attempt excluded; record sentinels preserved; "
+    printf("PASS %u flag combinations; interrupted time excluded; record sentinels preserved; "
            "next valid lap recovers; prior penalty preserved; stale-cache regression detected; "
            "invalid input refused. MODEL ONLY, no live writes.\n",
            tested);

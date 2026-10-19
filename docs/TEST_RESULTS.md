@@ -3,6 +3,46 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Lap scoring: 0.2.17 / v25
+
+No automated tests, live captures or in-game trials were run for this change, at
+the user's request. Updated fixture sources are pending execution. The v25 DLL
+and portable 0.2.17 package compiled successfully. The native build omitted
+`FrameDirectory`, so it compiled fixture binaries without executing them; the
+desktop build ran `npm run release`, with no test or app-launch command.
+Compilation alone does not validate native lap timing or finish-line behavior.
+
+Code inspection found that F7 wrote zero to all three scoring flags, suppressing
+both counting and timing. The replacement policy preserves native no-count states
+and downgrades counted attempts to flag 1, with matching remembered and computed
+caches. All three transaction admission paths validate the complete triplet
+against the same policy, including refusal of mixed caches or revived timing.
+Offsets and the optional failure-latch policy are unchanged. F6 does not call the
+scoring writer. Its reported effect on first-lap timing remains unconfirmed.
+
+The flag meanings are documented by the local LMU SDK's `mCountLapFlag` and the
+count/next-lap branches recorded in `steam-25661166-scoring-research.json`.
+There is no new guessed lap-start offset or asynchronous telemetry gate.
+
+Deferred manual procedure, using the Porsche 963 at Le Mans:
+
+1. Quit Sector and restart LMU to remove the earlier native module, then use the
+   new build in offline Practice without EAC, with a fresh session.
+2. Save before the timing line with F6 only. Cross it without F7 and confirm the
+   clock starts. If it does not, export diagnostics before any further reset;
+   that isolates the save-only report from the changed F7 policy.
+3. In another fresh session, save and restore before the first timing-line
+   crossing, then cross normally. Confirm the first timed lap starts.
+4. With a pre-line checkpoint, start a timed lap, let the clock advance, then
+   press F7. The interrupted attempt must not set a last or best time. Cross the
+   line again and confirm the next attempt starts normally.
+5. Repeat F7 from a checkpoint within a timed lap, including an off-track state.
+   Existing next-lap penalties must remain, and leaving the off-track area must
+   not revive timing on the interrupted attempt.
+
+Results are pending. This source change is not a claim that the save-only case
+has been resolved in LMU.
+
 ## Active Reset launch and EAC status: 0.2.16
 
 The launch button now lives in Active Reset and opens the selected game

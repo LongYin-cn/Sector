@@ -166,7 +166,7 @@ static int self_test() {
     assert(record == 87.4541);
     int32_t flag;
     memcpy(&flag, model.score + 0x160, 4);
-    assert(flag == 0);
+    assert(flag == 1);
     set_position(p);
     model.fail_contact = true;
     synthetic_key(RESET_LOAD, 130);

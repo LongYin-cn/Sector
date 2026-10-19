@@ -40,6 +40,7 @@ int restore_joint_prepare(const RestorePlan *physical, const LapGuardFlags *flag
             return RESTORE_BAD_PLAN;
     const uint32_t offsets[3] = {0x160, 0x27290, 0x27360};
     const int32_t before[3] = {flags->current, flags->remembered, flags->last_computed};
+    const int32_t after[3] = {invalid.current, invalid.remembered, invalid.last_computed};
     out->epoch = physical->epoch;
     out->count = physical->count;
     memcpy(out->fields, physical->fields, physical->count * sizeof(RestoreField));
@@ -50,6 +51,7 @@ int restore_joint_prepare(const RestorePlan *physical, const LapGuardFlags *flag
         field->field_offset = offsets[i];
         field->size = 4;
         memcpy(field->expected, before + i, 4);
+        memcpy(field->desired, after + i, 4);
     }
     return RESTORE_OK;
 }
@@ -63,25 +65,7 @@ int restore_joint_execute(const RestorePlan *plan, const RestoreBackend *physica
     if (!complete(physical) || !complete(scoring) || !plan || !report || plan->count < 4 ||
         plan->count > RESTORE_MAX_FIELDS)
         return RESTORE_BAD_PLAN;
-    unsigned mask = 0;
-    for (size_t i = 0; i < plan->count; i++)
-        if (plan->fields[i].object_slot == RESTORE_SCORING_SLOT) {
-            const RestoreField *f = plan->fields + i;
-            int32_t expected, desired;
-            if (!scoring_field_allowed_25661166(0, f->field_offset, f->size))
-                return RESTORE_BAD_PLAN;
-            const int failure = f->field_offset == 0xd4;
-            unsigned bit = failure                      ? 8
-                           : f->field_offset == 0x160   ? 1
-                           : f->field_offset == 0x27290 ? 2
-                                                        : 4;
-            memcpy(&expected, f->expected, 4);
-            memcpy(&desired, f->desired, 4);
-            if (mask & bit || expected < 0 || expected > (failure ? 9 : 2) || desired)
-                return RESTORE_BAD_PLAN;
-            mask |= bit;
-        }
-    if (mask != 7 && mask != 15)
+    if (!lap_scoring_fields_valid(plan, RESTORE_SCORING_SLOT))
         return RESTORE_BAD_PLAN;
     JointBackend frozen = {*physical, *scoring};
     RestoreBackend backend = {&frozen, context, allowed, read_field, write_field};

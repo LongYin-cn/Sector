@@ -21,19 +21,26 @@ static inline int lap_guard_flags_valid(const LapGuardFlags *s) {
            s->off_track <= 1;
 }
 
-/* Prepare the entire three-field update before an adapter may write anything.
- * Zero excludes the interrupted attempt from both lap counting and lap timing.
- * Zero the cached outputs too: otherwise a following valid lap can inherit a
- * stale cached zero when its current=2 happens to equal last_computed=2.
+/* Restore only: a save must never call this as a scoring mutation.
+ * Native states are 0 (do not count), 1 (count without a time), 2 (count and time).
+ * Preserve a native no-count state, such as the initial out lap. For a counted
+ * attempt, remove timing eligibility without disabling the finish-line count.
+ * Synchronize the caches too, including a temporarily invalid attempt whose
+ * remembered value is still 2. Otherwise leaving an off-track area can revive
+ * the interrupted time, or the next lap can inherit a stale invalid flag.
+ * Keep next_timed unchanged: a reset must neither penalize nor clear a penalty
+ * on the next lap. No lap number, start time, sector time or record is rewound.
  * This function only writes a caller-owned value object, never live game RAM.
  */
 static inline int lap_guard_prepare(const LapGuardFlags *before, LapGuardFlags *after) {
     if (!after || !lap_guard_flags_valid(before))
         return 0;
     *after = *before;
-    after->current = 0;
-    after->remembered = 0;
-    after->last_computed = 0;
+    if (before->current != 0) {
+        after->current = 1;
+        after->remembered = 1;
+        after->last_computed = 1;
+    }
     return 1;
 }
 #endif

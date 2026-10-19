@@ -64,7 +64,7 @@ int main(void) {
     memcpy(prior_car + 8, joint.fields[0].desired, 8);
     const unsigned offsets[3] = {0x160, 0x27290, 0x27360};
     for (unsigned i = 0; i < 3; i++)
-        memset(prior_score + offsets[i], 0, 4);
+        memcpy(prior_score + offsets[i], joint.fields[i + 1].desired, 4);
     assert(!memcmp(car, prior_car, sizeof(car)) && !memcmp(score, prior_score, sizeof(score)));
     for (int failure = 1; failure <= 4; failure++) {
         init();
@@ -85,13 +85,29 @@ int main(void) {
     joint.fields[3].field_offset = 0x2735c;
     assert(restore_joint_execute(&joint, &p, &s, &report) == RESTORE_BAD_PLAN && writes == 0);
     init();
-    joint.fields[3].desired[0] = 1;
+    joint.fields[3].desired[0] = 2;
     assert(restore_joint_execute(&joint, &p, &s, &report) == RESTORE_BAD_PLAN && writes == 0);
+    init();
+    // The old all-zero plan must not silently suppress counted laps again.
+    for (unsigned i = 1; i < 4; ++i)
+        memset(joint.fields[i].desired, 0, 4);
+    assert(restore_joint_execute(&joint, &p, &s, &report) == RESTORE_BAD_PLAN && writes == 0);
+    // Preserve an initial out lap and keep an already untimed lap untimed.
+    for (int32_t current = 0; current <= 1; ++current) {
+        init();
+        LapGuardFlags flags = {current, current, current, 1, 0};
+        for (unsigned i = 0; i < 3; ++i)
+            memcpy(score + offsets[i], &current, 4);
+        memcpy(prior_score, score, sizeof(score));
+        assert(restore_joint_prepare(&physical, &flags, &joint) == RESTORE_OK);
+        assert(restore_joint_execute(&joint, &p, &s, &report) == RESTORE_OK);
+        assert(!memcmp(score, prior_score, sizeof(score)));
+    }
     init();
     joint.count = 3;
     assert(restore_joint_execute(&joint, &p, &s, &report) == RESTORE_BAD_PLAN && writes == 0);
     puts("PASS joint physics/scoring: exact fields and untouched record bytes; four partial-write "
-         "and four context-loss rollbacks; stale flags, old offset, nonzero score and incomplete "
+         "and four context-loss rollbacks; stale flags, old offset, revived timing and incomplete "
          "plan rejected.");
     return 0;
 }

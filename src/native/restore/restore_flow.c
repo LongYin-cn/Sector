@@ -71,29 +71,13 @@ static int restore_compensate_committed(const RestorePlan *p, const RestoreBacke
 static int joint_valid(const RestorePlan *p) {
     if (!p || !p->epoch || p->count < 4 || p->count > RESTORE_MAX_FIELDS)
         return 0;
-    unsigned mask = 0;
     for (size_t i = 0; i < p->count; i++) {
         const RestoreField *f = p->fields + i;
         if (f->object_slot > RESTORE_SCORING_SLOT || f->reserved || !f->size ||
             f->size > RESTORE_FIELD_BYTES)
             return 0;
-        if (f->object_slot == RESTORE_SCORING_SLOT) {
-            int32_t before, after;
-            if (!scoring_field_allowed_25661166(0, f->field_offset, f->size))
-                return 0;
-            const int failure = f->field_offset == 0xd4;
-            unsigned bit = failure                      ? 8
-                           : f->field_offset == 0x160   ? 1
-                           : f->field_offset == 0x27290 ? 2
-                                                        : 4;
-            memcpy(&before, f->expected, 4);
-            memcpy(&after, f->desired, 4);
-            if ((mask & bit) || before < 0 || before > (failure ? 9 : 2) || after)
-                return 0;
-            mask |= bit;
-        }
     }
-    return mask == 7 || mask == 15;
+    return lap_scoring_fields_valid(p, RESTORE_SCORING_SLOT);
 }
 int restore_flow_execute(RestoreFlow *state, RestoreFlowWork *work, const RestorePlan *plan,
                          const RestoreBackend *backend, const RestoreFlowOps *ops,

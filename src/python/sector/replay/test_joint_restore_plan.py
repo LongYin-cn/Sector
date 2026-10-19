@@ -74,7 +74,7 @@ def verify_joint(dll, plan, physical, mem, original, state, bindings):
     assert execute(C.byref(joint), C.byref(physical), C.byref(scoring), C.byref(report)) == 0
     desired = bytearray(score_original)
     for off in (0x160, 0x27290, 0x27360):
-        desired[off : off + 4] = b"\0" * 4
+        desired[off : off + 4] = (1).to_bytes(4, "little")
     assert bytes(score) == bytes(desired)
     for failure in (plan.count + 1, plan.count + 2, plan.count + 3):
         reset()

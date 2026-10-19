@@ -45,6 +45,7 @@ static int prepare(void *, const ResetIdentity *, RestorePlan *p, RestoreBinding
         g.field_offset = offsets[i];
         g.size = 4;
         memcpy(g.expected, score + offsets[i], 4);
+        g.desired[0] = 1;
     }
     return 0;
 }

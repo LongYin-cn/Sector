@@ -121,6 +121,7 @@ static void init(void) {
         f->field_offset = offsets[i];
         f->size = 4;
         memcpy(f->expected, &flag, 4);
+        f->desired[0] = 1;
         memcpy(score + offsets[i], &flag, 4);
     }
     memcpy(old_body, body, sizeof(body));
@@ -175,7 +176,7 @@ int main(void) {
     flow.busy = 1;
     assert(run(&r) == FLOW_BUSY && !entered);
     init();
-    plan.fields[3].desired[0] = 1;
+    plan.fields[3].desired[0] = 2;
     assert(run(&r) == FLOW_BAD_ARGUMENT && !entered && !writes);
     for (int m = 8; m <= 9; m++) {
         init();

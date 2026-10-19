@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import re
 
-HOST_REVISION = 24
+HOST_REVISION = 25
 
 
 def physical_host_identity(name):

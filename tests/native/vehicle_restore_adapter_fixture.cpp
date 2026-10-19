@@ -400,7 +400,7 @@ int main(int argc, char **argv) {
     }
     assert(score[0x164] == 1 && score[0x180] == 0x5a);
     for (unsigned offset : {0x160u, 0x27290u, 0x27360u})
-        assert(get<int32_t>(score + offset) == (fault ? 2 : 0));
+        assert(get<int32_t>(score + offset) == (fault ? 2 : 1));
     if (fault != 2) {
         // Reconstructing the vehicle at identical addresses still ends its lifetime.
         ++context.epoch;

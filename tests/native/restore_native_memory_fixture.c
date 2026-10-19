@@ -111,6 +111,7 @@ int main(void) {
         memcpy(score + offsets[i], &flag, 4);
         memcpy(f->expected, &flag, 4);
         memset(f->desired, 0, 4);
+        f->desired[0] = 1;
     }
     CHECK(restore_joint_native_preflight(&plan, &bindings, (uintptr_t)score, tid, valid, &c) ==
           RESTORE_OK);

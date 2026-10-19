@@ -123,7 +123,7 @@ class HotkeyTests(unittest.TestCase):
         self.assertEqual(self.poll(report=report), {})
         self.assertIn("complete native preflight required", self.keys.notice)
         self.assertTrue(self.keys.saved)
-        for revision in (0, 25):
+        for revision in (0, 26):
             with self.assertRaises(ValueError):
                 expected_restore_fields(revision)
 

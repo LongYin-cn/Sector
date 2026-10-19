@@ -58,8 +58,8 @@ int main(int argc, char **argv) {
     f(object, .125f);
     CHECK(calls == 1 && ipc->observations == 1 && ipc->frame.before.last_computed == 0 &&
           ipc->frame.after.last_computed == 2);
-    CHECK(ipc->frame.prepared == 1 && ipc->frame.proposed.current == 0 &&
-          ipc->frame.proposed.remembered == 0 && ipc->frame.proposed.last_computed == 0);
+    CHECK(ipc->frame.prepared == 1 && ipc->frame.proposed.current == 1 &&
+          ipc->frame.proposed.remembered == 1 && ipc->frame.proposed.last_computed == 1);
     CHECK(ipc->frame.after.current == 2 && ipc->frame.proposed.next_timed == 1 &&
           ipc->frame.lap_after == 8);
     f(foreign_object, .125f);
