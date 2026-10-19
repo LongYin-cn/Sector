@@ -2,7 +2,8 @@
 #include <string.h>
 int scoring_field_allowed_25661166(uint32_t slot, uint32_t offset, uint32_t size) {
     return slot == 0 && size == 4 &&
-           (offset == 0xd4 || offset == 0x160 || offset == 0x27290 || offset == 0x27360);
+           (offset == 0x18 || offset == 0xd4 || offset == 0x160 || offset == 0x27290 ||
+            offset == 0x27360);
 }
 int lap_scoring_plan(const LapGuardFlags *before, uint64_t epoch, RestorePlan *out) {
     LapGuardFlags after;
@@ -38,8 +39,9 @@ int lap_scoring_fields_valid(const RestorePlan *plan, uint32_t slot) {
         if (f->reserved || !scoring_field_allowed_25661166(0, f->field_offset, f->size))
             return 0;
         const int failure = f->field_offset == 0xd4;
+        const int sector = f->field_offset == 0x18;
         const unsigned index = f->field_offset == 0x160 ? 0 : f->field_offset == 0x27290 ? 1 : 2;
-        const unsigned bit = failure ? 8 : 1u << index;
+        const unsigned bit = failure ? 8 : sector ? 16 : 1u << index;
         int32_t expected, value;
         memcpy(&expected, f->expected, 4);
         memcpy(&value, f->desired, 4);
@@ -48,6 +50,9 @@ int lap_scoring_fields_valid(const RestorePlan *plan, uint32_t slot) {
         mask |= bit;
         if (failure) {
             if (value != 0)
+                return 0;
+        } else if (sector) {
+            if (value < 0 || value > 2)
                 return 0;
         } else {
             if (index == 0)
@@ -60,7 +65,6 @@ int lap_scoring_fields_valid(const RestorePlan *plan, uint32_t slot) {
         }
     }
     // Validate the triplet together, not just three independently legal values.
-    return (mask == 7 || mask == 15) && lap_guard_prepare(&before, &after) &&
-           desired[0] == after.current && desired[1] == after.remembered &&
-           desired[2] == after.last_computed;
+    return (mask & 7) == 7 && lap_guard_prepare(&before, &after) && desired[0] == after.current &&
+           desired[1] == after.remembered && desired[2] == after.last_computed;
 }

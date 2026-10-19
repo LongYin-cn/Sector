@@ -3,10 +3,55 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Sector progression: 0.2.18 / v26
+
+On 19 October 2026, the user tested 0.2.17 with the Porsche 963 in offline
+Practice at Sebring. The capture verified the loaded v25 DLL hash and read its
+report mapping without writing commands, along with SDK telemetry and bounded
+native scoring reads. The local evidence is
+`logs/20261019T204454_lap_start_0217/` (not included in Git).
+
+- F6 succeeded before the finish line with zero physical field writes. On the
+  next crossing, the lap index advanced from 1 to 2, `lapStart` changed to
+  166.5203705 and `countLap` became 2. The user confirmed the timer started.
+- The user then pressed F7. The first restore succeeded and changed the current
+  validity flags to 1. Telemetry moved from about +303 m to -242 m relative to the
+  line. The subsequent crossing from negative to positive distance left the lap
+  index at 2 and `lapStart` at 166.5203705. The user confirmed no new timer.
+- These samples are asynchronous. The capture did not include the sector gate
+  at the instant of F6/F7; it does not alone prove the candidate field's behavior.
+
+Static inspection of the retained, hash-pinned Steam 25661166 code identifies
+the missing sector gate. The crossing routine at RVA `0xCEC170` compares
+scoring `+0x18` to 2 at `0xCEC45D` before admitting finish-line event 0. Sector
+events 1 and 2 require prior values 0 and 1 respectively. The native processing
+routine clears the gate at a finish crossing (`0xCE9A86`) and stores the event
+number on intermediate crossings (`0xCEB233`). A restore formerly left this
+field at its post-save value while moving the car into a different sector.
+
+The v26 adapter captures this bounded integer (0..2), publishes it only with a
+successful checkpoint, and restores it in the same typed transaction as the
+pose. The shared whitelist and all three admission paths include this field.
+The timing invalidation policy remains separate: no lap number, start timestamp,
+record or timing eligibility is restored from the checkpoint. Fixture sources
+cover sector restoration, compensation and rejection of malformed/duplicate
+gates; execution and the live v26 trial are pending.
+
+The v26 native DLL and portable 0.2.18 EXE compiled successfully. No fixture
+executables, automated suites or new in-game trial were run for this candidate.
+The 0.2.17 read-only capture completed with 2,610 valid scoring samples.
+
+The next manual check requires restarting LMU to unload v25 and opening 0.2.18.
+Create a new F6 checkpoint before the line, cross it to start timing, then F7 and
+cross again. The interrupted attempt must remain untimed and the new lap must
+start. Checkpoints in each intermediate sector also need qualification. This
+candidate is not yet a verified in-game fix.
+
 ## Lap scoring: 0.2.17 / v25
 
-No automated tests, live captures or in-game trials were run for this change, at
-the user's request. Updated fixture sources are pending execution. The v25 DLL
+Before packaging, no automated tests, live captures or in-game trials were run
+for this change, at the user's request. The later live result is recorded above.
+Updated fixture sources are pending execution. The v25 DLL
 and portable 0.2.17 package compiled successfully. The native build omitted
 `FrameDirectory`, so it compiled fixture binaries without executing them; the
 desktop build ran `npm run release`, with no test or app-launch command.
@@ -40,8 +85,8 @@ Deferred manual procedure, using the Porsche 963 at Le Mans:
    Existing next-lap penalties must remain, and leaving the off-track area must
    not revive timing on the interrupted attempt.
 
-Results are pending. This source change is not a claim that the save-only case
-has been resolved in LMU.
+The Sebring save-only step subsequently passed; the restore/re-crossing step
+failed. The original Le Mans scenario and the other steps remain unverified.
 
 ## Active Reset launch and EAC status: 0.2.16
 

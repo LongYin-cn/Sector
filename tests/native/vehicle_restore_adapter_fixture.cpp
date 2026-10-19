@@ -145,6 +145,7 @@ int main(int argc, char **argv) {
     for (unsigned offset : {0x160u, 0x27290u, 0x27360u})
         put(score + offset, int32_t{2});
     score[0x164] = 1;
+    put(score + 0x18, int32_t{2});
     score[0x180] = 0x5a; // unrelated record byte must survive.
     InitializeCriticalSection(&game_lock);
     InitializeCriticalSection(&control_lock);
@@ -233,6 +234,8 @@ int main(int argc, char **argv) {
                                               &request, original, 77);
     };
     assert(dispatch(1, RESET_SAVE).control_result == CONTROL_OK);
+    assert(get<int32_t>(score + 0x18) == 2); // Save never changes the scoring gate.
+    put(score + 0x18, int32_t{0});           // Native finish-line crossing after the save.
     auto broken_aero = fixture_aero(true);
     write_fixture_aero(broken_aero);
     assert(ops.capture(ops.user, &context.identity) != 0); // damaged replacement
@@ -342,7 +345,7 @@ int main(int argc, char **argv) {
     std::fprintf(stderr, "full adapter result=%d fields=%zu flow=%d cause=%d contacts=%llu\n",
                  result.control_result, runtime->plan.count, runtime->report.result,
                  runtime->report.cause, static_cast<unsigned long long>(calls));
-    assert(runtime->plan.count == 10093 + hinge_count + AERO_FIELD_COUNT);
+    assert(runtime->plan.count == 10094 + hinge_count + AERO_FIELD_COUNT);
     assert(result.control_result == (fault == 2   ? CONTROL_QUARANTINED
                                      : fault != 0 ? CONTROL_RESTORE_RECOVERED
                                                   : CONTROL_OK));
@@ -399,6 +402,7 @@ int main(int argc, char **argv) {
         assert(!denied.forwarded && original_calls == before);
     }
     assert(score[0x164] == 1 && score[0x180] == 0x5a);
+    assert(get<int32_t>(score + 0x18) == (fault ? 0 : 2));
     for (unsigned offset : {0x160u, 0x27290u, 0x27360u})
         assert(get<int32_t>(score + offset) == (fault ? 2 : 1));
     if (fault != 2) {

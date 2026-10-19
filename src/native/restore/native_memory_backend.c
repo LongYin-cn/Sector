@@ -21,7 +21,7 @@ static int allowed(void *user, uint32_t slot, uint32_t offset, uint32_t size) {
     if (slot == RESTORE_OBJECT_COUNT)
         return GetCurrentThreadId() == n->owner_thread && n->scoring >= 0x10000 &&
                n->scoring < UINT64_C(0x800000000000) - 0x27400 && size == 4 &&
-               (offset == 0xd4 || offset == 0x160 || offset == 0x27290 || offset == 0x27360);
+               scoring_field_allowed_25661166(0, offset, size);
     return GetCurrentThreadId() == n->owner_thread &&
            restore_binding_field(&n->bindings, slot, offset, size);
 }

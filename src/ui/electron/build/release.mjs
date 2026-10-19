@@ -78,7 +78,7 @@ for (const name of ["src/python", "assets/sector.ico", "scripts/sector.py"])
 for (const name of [
   "diagnostic-14200.exe",
   "overlay-reader.exe",
-  "lmu-physical-reset-v25-25661166.dll",
+  "lmu-physical-reset-v26-25661166.dll",
 ])
   copy(path.join(root, "bin", name), path.join(runtime, "bin", name));
 fs.mkdirSync(path.join(runtime, "compatibility"), { recursive: true });
@@ -107,13 +107,13 @@ const telemetry = JSON.parse(
 );
 const host = JSON.parse(
   fs.readFileSync(
-    path.join(runtime, "compatibility/steam-25661166-physical-reset-v25.json"),
+    path.join(runtime, "compatibility/steam-25661166-physical-reset-v26.json"),
   ),
 );
 if (
   sha(path.join(runtime, "bin/diagnostic-14200.exe")) !==
     telemetry.diagnostic_sha256.toLowerCase() ||
-  sha(path.join(runtime, "bin/lmu-physical-reset-v25-25661166.dll")) !==
+  sha(path.join(runtime, "bin/lmu-physical-reset-v26-25661166.dll")) !==
     host.dll_sha256.toLowerCase()
 )
   throw new Error("Runtime binary/profile mismatch");
@@ -174,7 +174,7 @@ fs.writeFileSync(
   [
     `Sector ${version}`,
     "EXPERIMENTAL: bugs are expected and further fixes are planned.",
-    "This build changes interrupted-lap scoring. Automated and in-game tests have not been run for this change.",
+    "This build restores checkpoint sector progression with the car. The fix is awaiting in-game verification.",
     "",
     "GETTING STARTED",
     "1. Extract the entire ZIP and open Sector.exe. Keep all files together.",
@@ -189,7 +189,7 @@ fs.writeFileSync(
     "Change keys and sounds in Active Reset. Open settings through Edit > Settings.",
     "Help > Guide reopens the tutorial. Help > Changelog lists version changes.",
     "After a problem, use Help > Export diagnostics > Save diagnostic file and share the JSON file.",
-    "Restart LMU after upgrading so the new v25 reset module can load.",
+    "Restart LMU after upgrading so the new v26 reset module can load.",
     "Closing the window offers background mode or Quit Sector. Quit fully before updating.",
     "No Node.js or Python installation is required. Preferences are retained between updates.",
     "",

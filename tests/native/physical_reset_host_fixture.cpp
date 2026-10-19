@@ -313,13 +313,14 @@ static int run_fixture(int argc, char **argv) {
 #endif
     for (unsigned i = 0; i < source_frame.constraint_count; ++i)
         source_bindings.constraint_kind[i] = source_frame.recipes[i].kind;
-    expected_fields = 10093 + initialize_hinge_axes() + AERO_FIELD_COUNT;
+    expected_fields = 10094 + initialize_hinge_axes() + AERO_FIELD_COUNT;
     write_fixture_aero(fixture_aero(false));
     init();
     for (unsigned i = 0; i < 4; ++i)
         source_bindings.address[96 + i] = reinterpret_cast<uintptr_t>(tire[i]);
     for (unsigned offset : {0x160u, 0x27290u, 0x27360u})
         put(score + offset, int32_t{2});
+    put(score + 0x18, int32_t{2});
     InitializeCriticalSection(&game_lock);
     InitializeCriticalSection(&control_lock);
     InitializeCriticalSection(&gate_lock);
@@ -373,6 +374,7 @@ static int run_fixture(int argc, char **argv) {
                 saved.readable);
     assert(saved.result == CONTROL_OK && saved.saves == 1 && !saved.forward_writes);
     assert(saved.speed >= 80);
+    put(score + 0x18, int32_t{0});
     if (!empty_model)
         host_bodywork.damage();
     for (size_t i = 0; i < source_frame.total_count; ++i)

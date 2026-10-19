@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.2.18",
+    "changes": [
+      "Experimental fix for a timed lap not restarting after restoring a checkpoint before the finish line.",
+      "Captures the native sector progression gate with F6 and restores it with the car on F7. Lap times and records are not rewound.",
+      "Keeps the interrupted attempt untimed while allowing LMU to recognize the next sector or finish-line crossing.",
+      "Restart LMU to load the v26 module and create a new checkpoint. In-game verification of this fix is pending."
+    ]
+  },
+  {
     "version": "0.2.17",
     "changes": [
       "Experimental lap-scoring change, pending automated and in-game verification.",

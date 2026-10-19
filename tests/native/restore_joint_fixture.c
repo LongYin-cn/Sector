@@ -106,6 +106,35 @@ int main(void) {
     init();
     joint.count = 3;
     assert(restore_joint_execute(&joint, &p, &s, &report) == RESTORE_BAD_PLAN && writes == 0);
+    // Sector gate uses the checkpoint's value. It is compensated with physics.
+    for (int fault = 0; fault <= 1; ++fault) {
+        init();
+        int32_t sector = 0, saved_sector = 2;
+        memcpy(score + 0x18, &sector, 4);
+        memcpy(prior_score, score, sizeof(score));
+        RestoreField *gate = joint.fields + joint.count++;
+        memset(gate, 0, sizeof(*gate));
+        gate->object_slot = RESTORE_SCORING_SLOT;
+        gate->field_offset = 0x18;
+        gate->size = 4;
+        memcpy(gate->expected, &sector, 4);
+        memcpy(gate->desired, &saved_sector, 4);
+        fail_at = fault ? 5 : 0;
+        assert(restore_joint_execute(&joint, &p, &s, &report) ==
+               (fault ? RESTORE_WRITE_FAILED : RESTORE_OK));
+        memcpy(&sector, score + 0x18, 4);
+        assert(sector == (fault ? 0 : 2));
+        if (fault)
+            assert(!memcmp(score, prior_score, sizeof(score)) &&
+                   !memcmp(car, prior_car, sizeof(car)));
+        // Invalid sector values and duplicate gates are refused before writes.
+        writes = 0;
+        gate->desired[0] = 3;
+        assert(restore_joint_execute(&joint, &p, &s, &report) == RESTORE_BAD_PLAN && writes == 0);
+        gate->desired[0] = 2;
+        joint.fields[joint.count++] = *gate;
+        assert(restore_joint_execute(&joint, &p, &s, &report) == RESTORE_BAD_PLAN && writes == 0);
+    }
     puts("PASS joint physics/scoring: exact fields and untouched record bytes; four partial-write "
          "and four context-loss rollbacks; stale flags, old offset, revived timing and incomplete "
          "plan rejected.");

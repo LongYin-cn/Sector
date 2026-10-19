@@ -1,6 +1,6 @@
 # Physical reset: current status
 
-**Development desktop: 0.2.17. Native host: v25 for the pinned Steam 25661166 /
+**Development desktop: 0.2.18. Native host: v26 for the pinned Steam 25661166 /
 app build 14200 compatibility profile.** Matching the display version alone is
 insufficient: runtime admission also checks the pinned identities and hashes.
 The 0.2.5 impact trial crashed LMU. V19 passed the subsequent ordinary and
@@ -17,14 +17,19 @@ damage checks. See the
 
 ## Implemented behavior
 
-The v25 scoring change is pending verification. F6 only captures state. On F7,
+The 0.2.17 live trial on the Porsche 963 at Sebring confirmed that F6 alone
+allows the next timed lap to start. F7 restored the car before the line, but
+crossing it again did not restart timing. The 0.2.18 candidate fix adds the
+checkpoint's native sector gate to the physical transaction, including readback
+and rollback. It is awaiting in-game verification. See
+[the evidence and remaining check](TEST_RESULTS.md#sector-progression-0218--v26).
+
+F6 only captures state. On F7,
 a counted attempt becomes countable without a time (flag 1), instead of disabling
 both counting and timing (flag 0). All three scoring caches follow this policy.
 Native no-count states remain unchanged, as do the next-lap penalty, lap number,
 start time and records. Timing eligibility is read at F7, never restored from F6.
-The reported Porsche 963 / Le Mans first-lap failure after saving alone has not
-been reproduced; this change addresses the unconditional F7 scoring mutation.
-See [verification status and the deferred procedure](TEST_RESULTS.md#lap-scoring-0217--v25).
+The original Le Mans case has not been tested separately.
 
 F6 captures a checkpoint; F7 prepares and restores the saved physical state at
 the admitted native callback boundary. Physics/scoring coordination, object

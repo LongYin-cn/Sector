@@ -19,6 +19,7 @@ struct VehicleRestoreAdapter {
     sector_aero::State saved_aero, current_aero;
     RestoreBindings bindings;
     uintptr_t scoring;
+    int32_t saved_sector;
     VehicleCheckpointWorkspace *workspace;
     ContactBatchFlow contacts;
     double saved_angular[4], saved_dt[4], saved_horizon[4];
@@ -184,6 +185,14 @@ static int capture(void *user, const ResetIdentity *identity) {
         vehicle_checkpoint_validate(adapter->workspace, &adapter->current) ||
         !prepare_contacts(adapter) || !owner(adapter, adapter->context.epoch))
         return 1;
+    uintptr_t scoring =
+        vehicle_scoring_25661166(adapter->host.module_base, adapter->context.physics);
+#ifdef LMU_VEHICLE_ADAPTER_FIXTURE
+    scoring = adapter->fixture_scoring;
+#endif
+    int32_t sector;
+    if (!scoring || !field(scoring + 0x18, sector) || sector < 0 || sector > 2)
+        return 1;
     sector_bodywork::Checkpoint next_bodywork;
     if (adapter->bodywork) {
         if (!pin_graphics(adapter))
@@ -216,6 +225,7 @@ static int capture(void *user, const ResetIdentity *identity) {
         adapter->saved_collision_mass = mass;
     }
     adapter->saved = adapter->current;
+    adapter->saved_sector = sector;
     if (adapter->bodywork)
         adapter->saved_bodywork = std::move(next_bodywork);
     adapter->saved_aero = adapter->current_aero;
@@ -304,11 +314,15 @@ static int prepare(void *user, const ResetIdentity *identity, RestorePlan *plan,
     adapter->scoring = adapter->fixture_scoring;
 #endif
     LapGuardFlags flags{};
+    int32_t current_sector;
     if (!adapter->scoring || !field(adapter->scoring + 0x160, flags.current) ||
         !field(adapter->scoring + 0x27290, flags.remembered) ||
         !field(adapter->scoring + 0x27360, flags.last_computed) ||
         !field(adapter->scoring + 0x164, flags.next_timed) ||
-        !field(adapter->scoring + 0x272b8, flags.off_track) || !prepare_contacts(adapter))
+        !field(adapter->scoring + 0x272b8, flags.off_track) ||
+        !field(adapter->scoring + 0x18, current_sector) || current_sector < 0 ||
+        current_sector > 2 || adapter->saved_sector < 0 || adapter->saved_sector > 2 ||
+        !prepare_contacts(adapter))
         return 1;
     for (unsigned i = 0; i < 4; ++i)
         if (std::fabs(adapter->contacts.batch.dt[i] - adapter->saved_dt[i]) > 1e-12 ||
@@ -324,6 +338,20 @@ static int prepare(void *user, const ResetIdentity *identity, RestorePlan *plan,
     }
     *bindings = adapter->bindings;
     *scoring = adapter->scoring;
+    // Score::crossing (CEC170) admits the finish line only after sector 2.
+    // Moving the car back before the line while leaving sector 0 suppresses
+    // the next crossing. Restore the checkpoint's gate with the pose, without
+    // rewinding the lap number, start time, records or timing eligibility.
+    // This field shares preflight, readback and rollback with the physical plan.
+    if (plan->count >= RESTORE_MAX_FIELDS)
+        return 1;
+    auto &sector = plan->fields[plan->count++];
+    sector = {};
+    sector.object_slot = RESTORE_OBJECT_COUNT;
+    sector.field_offset = 0x18;
+    sector.size = sizeof(int32_t);
+    std::memcpy(sector.expected, &current_sector, sector.size);
+    std::memcpy(sector.desired, &adapter->saved_sector, sector.size);
     // Aero coefficients and their dependent caches belong to the same atomic
     // restore as suspension state, including readback and compensation.
     if (plan->count > RESTORE_MAX_FIELDS - AERO_FIELD_COUNT)
