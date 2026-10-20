@@ -8,6 +8,7 @@ const {
   net,
   session,
   dialog,
+  shell,
 } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
@@ -225,6 +226,36 @@ function installBridge() {
     };
   });
   handle("sector:launch-game", () => gameLauncher.launch());
+  handle("sector:report-bug", async () => {
+    try {
+      // Keep external navigation limited to the project's issue composer.
+      await shell.openExternal(
+        "https://github.com/sector-lmu/Sector/issues/new",
+      );
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Could not open GitHub in your browser." };
+    }
+  });
+  handle("sector:installation", () => ({ folder: setup.lmuPath }));
+  handle("sector:installation-update", (folder) => {
+    try {
+      if (!setupReady()) throw new Error("Complete first-launch setup first.");
+      if (quitting) throw new Error("Sector is closing.");
+      const candidate = {
+        lmuPath: setupStore.validateFolder(folder),
+        completed: true,
+      };
+      // Preview must never persist settings outside its isolated profile.
+      setup =
+        preview && !onboardingSmoke
+          ? candidate
+          : setupStore.writeSetup(setupFile, candidate);
+      return { ok: true, folder: setup.lmuPath };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
   handle("sector:reset", (action) =>
     preview || quitting || !setupReady()
       ? { ok: false, error: "Reset is unavailable in this session." }

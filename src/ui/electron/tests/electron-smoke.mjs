@@ -78,6 +78,19 @@ try {
     await page.evaluate(() => typeof window.sector.saveSettings),
     "function",
   );
+  await app.evaluate(({ shell }) => {
+    shell.openExternal = async (url) => {
+      global.sectorReportedUrl = url;
+    };
+  });
+  await page.getByRole("button", { name: "Help", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: "Report a bug", exact: true })
+    .click();
+  assert.equal(
+    await app.evaluate(() => global.sectorReportedUrl),
+    "https://github.com/sector-lmu/Sector/issues/new",
+  );
   await page.getByRole("tab", { name: "Overlay", exact: true }).click();
   await page
     .getByRole("switch", { name: "Enable overlays", exact: true })

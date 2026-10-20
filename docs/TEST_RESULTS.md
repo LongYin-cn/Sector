@@ -3,6 +3,18 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Layout and installation settings: 0.2.22
+
+- All 68 desktop unit tests passed.
+- Electron UI, overlay and Home tests passed, including compact layouts and the
+  Help menu's fixed GitHub issue URL. The browser call was intercepted in tests;
+  no issue was submitted.
+- Installation settings were tested with canceled and invalid folder selections,
+  a valid replacement folder, persistence across restart and preserved onboarding
+  completion. The isolated fixtures never launch LMU.
+- Active Reset, Overlay and the expanded Settings dialog were visually reviewed.
+- The packaged Sector 0.2.22 executable passed the bundled runtime and UI smoke test.
+
 ## Design B refinements: 0.2.21
 
 - All 68 desktop unit tests passed, including Genesis and GMR-001 name matching.

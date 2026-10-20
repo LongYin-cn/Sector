@@ -14,6 +14,10 @@ contextBridge.exposeInMainWorld("sector", {
   initialize: () => ipcRenderer.invoke("sector:initialize"),
   exportDiagnostics: () => ipcRenderer.invoke("sector:diagnostics-export"),
   launchGame: () => ipcRenderer.invoke("sector:launch-game"),
+  reportBug: () => ipcRenderer.invoke("sector:report-bug"),
+  installation: () => ipcRenderer.invoke("sector:installation"),
+  updateInstallation: (folder) =>
+    ipcRenderer.invoke("sector:installation-update", folder),
   reset: (action) => ipcRenderer.invoke("sector:reset", action),
   onGame: (callback) => subscribe("sector:game", callback),
   detectInstallations: () => ipcRenderer.invoke("sector:setup-detect"),

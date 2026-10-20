@@ -26,6 +26,7 @@ import history from "@iconify-icons/solar/history-linear";
 import home from "@iconify-icons/solar/home-2-linear";
 import help from "@iconify-icons/solar/question-circle-linear";
 import pen from "@iconify-icons/solar/pen-linear";
+import bug from "@iconify-icons/solar/bug-linear";
 import "@fontsource/ibm-plex-sans/latin-400.css";
 import "@fontsource/ibm-plex-sans/latin-500.css";
 import "@fontsource/ibm-plex-sans/latin-600.css";
@@ -317,6 +318,19 @@ function App() {
                   >
                     <Glyph icon={save} /> Export diagnostics
                   </Menu.Item>
+                  <Menu.Item
+                    className="help-menu-item"
+                    onClick={async () => {
+                      try {
+                        const result = await api.reportBug();
+                        if (!result.ok) throw new Error(result.error);
+                      } catch (err) {
+                        setError(err.message || "Could not open GitHub.");
+                      }
+                    }}
+                  >
+                    <Glyph icon={bug} /> Report a bug
+                  </Menu.Item>
                 </Menu.Popup>
               </Menu.Positioner>
             </Menu.Portal>
@@ -394,7 +408,7 @@ function App() {
               onNavigate={setTab}
             />
           </Tabs.Panel>
-          <Tabs.Panel value="reset" className="page">
+          <Tabs.Panel value="reset" className="page reset-page">
             <div className="page-heading reset-heading">
               <div>
                 <div className="page-kicker">02 / Practice tools</div>
@@ -495,7 +509,6 @@ function App() {
                   </span>
                   <div className="setting-label">
                     <h3>Save checkpoint</h3>
-                    <p>Stores position, speed and car state</p>
                   </div>
                   <button
                     className="key-button"
@@ -513,7 +526,6 @@ function App() {
                   </span>
                   <div className="setting-label">
                     <h3>Restore checkpoint</h3>
-                    <p>Returns the car to the saved moment</p>
                   </div>
                   <button
                     className="key-button"

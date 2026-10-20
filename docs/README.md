@@ -11,6 +11,9 @@ select the folder containing `Le Mans Ultimate.exe` yourself. You can find it
 through Steam: open LMU's **Manage → Browse local files** option in your Library.
 Use **Choose folder** to open the Windows folder picker. A valid installation
 must be confirmed before continuing; the setup popup cannot be dismissed.
+You can change it later through **Edit → Settings → Le Mans Ultimate →
+Change folder**. Invalid folders and canceled selections leave the current
+installation unchanged.
 
 **Active Reset requires LMU's Offline mode.** To prepare the game:
 

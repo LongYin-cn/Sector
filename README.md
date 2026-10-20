@@ -66,6 +66,10 @@ its **Manage → Browse local files** option and use that folder in Sector.
 You can then choose a short guided tour. Open it again at any time through
 **Help → Guide** in Sector's top menu.
 
+To move Sector to another LMU installation, open **Edit → Settings → Le Mans
+Ultimate** and select **Change folder**. Choose the folder containing
+`Le Mans Ultimate.exe`. Sector validates and remembers the selection.
+
 The **Home** tab brings together your session, checkpoint and overlay layout.
 In **Active Reset**, choose **Open LMU without EAC** to open the game from the
 installation folder you confirmed. If EAC is detected, Sector shows a warning
@@ -239,8 +243,11 @@ Keep the files from each package together; do not copy only the new EXE over an
 older installation. If Active Reset asks you to restart LMU, restart it before
 making a new checkpoint.
 
-### In development: 0.2.21
+### In development: 0.2.22
 
+- More space for Active Reset and the overlay editor.
+- Change the LMU installation folder in Settings.
+- Open a GitHub bug report through **Help → Report a bug**.
 - Light interface with orange accents, updated typography and clearer menus.
 - Live opacity sliders and steering-wheel marker color choices.
 - Genesis manufacturer logo support.
@@ -260,6 +267,8 @@ For a bug report, include your Sector version, LMU version, car and track, the
 exact message and the steps that reproduce it. For a display issue, include a
 screenshot and your monitor setup. Report problems through
 [GitHub Issues](https://github.com/sector-lmu/Sector/issues).
+**Help → Report a bug** opens a new issue in your browser; you review and submit
+the report yourself.
 
 Reproduce the problem, then open **Help → Export diagnostics** and
 choose **Save diagnostic file**. Send the resulting JSON file with your report.

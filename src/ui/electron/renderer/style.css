@@ -232,6 +232,30 @@ input {
   padding: 28px 40px 48px;
   animation: page-enter 180ms var(--ease-out);
 }
+.reset-page,
+.overlay-page {
+  max-width: 1000px;
+}
+@media (min-width: 851px) and (min-height: 740px) {
+  .reset-page .checkpoint-main,
+  .reset-page .checkpoint-side {
+    padding-top: 38px;
+    padding-bottom: 38px;
+  }
+  .reset-page .settings-grid {
+    margin-top: 44px;
+    gap: 40px;
+  }
+  .reset-page .setting-row {
+    min-height: 88px;
+  }
+  .reset-page .sound-previews {
+    margin-top: 24px;
+  }
+  .reset-page .sound-previews button {
+    min-height: 48px;
+  }
+}
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -727,6 +751,52 @@ kbd {
 }
 .preferences {
   margin-top: 20px;
+}
+.settings-modal {
+  width: min(600px, 100%);
+  padding: 32px;
+}
+.installation-settings {
+  margin-top: 28px;
+}
+.installation-setting-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 0 4px;
+}
+.installation-setting-row .setting-label {
+  flex: 1;
+  min-width: 0;
+}
+.installation-setting-row .settings-folder {
+  overflow-wrap: anywhere;
+  margin: 6px 0 0;
+  font:
+    400 12px/1.6 "IBM Plex Mono",
+    monospace;
+  color: var(--muted);
+}
+.change-folder {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.change-folder svg {
+  width: 18px;
+  height: 18px;
+}
+@media (max-width: 600px) {
+  .settings-modal {
+    padding: 24px;
+  }
+  .installation-setting-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
 }
 .audio-section h3 {
   font-size: 14.5px;

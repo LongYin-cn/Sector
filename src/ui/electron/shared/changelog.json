@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.2.22",
+    "changes": [
+      "Gave Active Reset and Overlay more space and removed shortcut subtitles.",
+      "Expanded Settings with a validated LMU folder picker that preserves first-launch completion.",
+      "Added Help > Report a bug to open the GitHub issue composer in your browser."
+    ]
+  },
+  {
     "version": "0.2.21",
     "changes": [
       "Refined Design B colors, typography, sound controls, menus and page alignment.",

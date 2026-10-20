@@ -144,6 +144,49 @@ try {
     (await page.evaluate(() => window.sector.initialize())).onboarding.required,
     false,
   );
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Settings", exact: true }).click();
+  await page.getByText(game, { exact: true }).waitFor();
+  await app.evaluate(({ dialog }) => {
+    dialog.showOpenDialog = async () => ({ canceled: true, filePaths: [] });
+  });
+  await page.getByRole("button", { name: "Change folder" }).click();
+  assert.equal(JSON.parse(fs.readFileSync(setupFile)).lmuPath, game);
+  await app.evaluate(({ dialog }, folder) => {
+    dialog.showOpenDialog = async () => ({
+      canceled: false,
+      filePaths: [folder],
+    });
+  }, fixture);
+  await page.getByRole("button", { name: "Change folder" }).click();
+  await page.getByRole("alert").waitFor();
+  assert.match(await page.getByRole("alert").innerText(), /not found/);
+  assert.equal(JSON.parse(fs.readFileSync(setupFile)).lmuPath, game);
+  const movedGame = path.join(fixture, "LMU moved");
+  fs.mkdirSync(movedGame);
+  fs.copyFileSync(
+    path.join(game, "Le Mans Ultimate.exe"),
+    path.join(movedGame, "Le Mans Ultimate.exe"),
+  );
+  await app.evaluate(({ dialog }, folder) => {
+    dialog.showOpenDialog = async () => ({
+      canceled: false,
+      filePaths: [folder],
+    });
+  }, movedGame);
+  await page.getByRole("button", { name: "Change folder" }).click();
+  await page.getByText(movedGame, { exact: true }).waitFor();
+  assert.deepEqual(JSON.parse(fs.readFileSync(setupFile)), {
+    lmuPath: movedGame,
+    completed: true,
+  });
+  await app.close();
+  page = await launch();
+  assert.equal(await page.getByRole("dialog").count(), 0);
+  assert.equal(
+    (await page.evaluate(() => window.sector.installation())).folder,
+    movedGame,
+  );
   await app.close();
 
   fs.unlinkSync(setupFile);
@@ -196,7 +239,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    "PASS onboarding: detected/manual folder, invalid/canceled picker, guide opt-in/skip, persistent first-run completion and preview isolation" +
+    "PASS onboarding and Settings: detected/manual folder, invalid/canceled picker, changed installation persists across restart, guide and preview isolation" +
       (packaged ? " (packaged EXE)" : ""),
   );
 } finally {
