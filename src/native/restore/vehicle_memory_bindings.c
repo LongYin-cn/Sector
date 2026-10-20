@@ -50,6 +50,8 @@ int restore_binding_field(const RestoreBindings *b, uint32_t slot, uint32_t off,
             return 0;
         uint32_t kind = b->constraint_kind[index], soft, stride, rows, jo, wo;
         if (kind == 1) {
+            if (F(0x80, 16) || F(0x48, 2) || F(0x4e, 1))
+                return 1;
             soft = 0x118;
             stride = 0;
             rows = 1;
@@ -106,7 +108,7 @@ int restore_binding_field(const RestoreBindings *b, uint32_t slot, uint32_t off,
     if (slot < 104)
         return F(0x4b8, 8) || F(0x5d8, 8) || F(0x120, 16) || F(0x5e0, 32) || F(0x630, 8) ||
                F(0x138, 8) || F(0x302, 1) || F(0x308, 32) || F(0x3e0, 1) || F(0x3b8, 8) ||
-               F(0x3c8, 8);
+               F(0x3c8, 8) || F(0x300, 2);
     if (slot == 104) {
         for (unsigned i = 0; i < AERO_FIELD_COUNT; ++i)
             if (F(aero_field_offsets[i], 8))
@@ -118,7 +120,7 @@ int restore_binding_field(const RestoreBindings *b, uint32_t slot, uint32_t off,
                F(0x4ac0, 8) || F(0x4668, 8) || F(0x50, 8) || F(0x4b30, 4) || F(0x4bb8, 4) ||
                F(0x4ba8, 16) || F(0x4ae8, 8) || F(0x48, 8) || F(0x4810, 8) || F(0x4818, 8) ||
                F(0x4820, 2) || F(0x4828, 24) || F(0x24b0, 24) || F(0x2500, 72) || F(0x4bc8, 48) ||
-               F(0x2498, 24) || F(0x2550, 24);
+               F(0x2498, 24) || F(0x2550, 24) || F(0x2648, 8);
     }
     if (slot == 105) {
         if (F(0x1f8, 8) || F(0x250, 8) || F(0x260, 8) || F(0x280, 8) || F(0x208, 56) ||

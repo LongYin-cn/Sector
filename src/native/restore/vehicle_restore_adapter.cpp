@@ -2,6 +2,8 @@
 #include "vehicle_checkpoint.h"
 #include "aerodynamic_state.h"
 #include "tire_puncture_state.h"
+#include "suspension_attachment_state.h"
+#include "detached_component_transaction.h"
 #include "../runtime/native_lock_witness.h"
 #include <cmath>
 #include <cstring>
@@ -37,6 +39,10 @@ struct VehicleRestoreAdapter {
     uint64_t graphics_generation = 0;
     bool bodywork_applied = false;
     sector_bodywork::Report bodywork_report;
+    sector_attachment::SuspensionCheckpoint saved_suspension;
+    std::unique_ptr<sector_attachment::RegistryTransaction> attachment;
+    unsigned detached_mask = 0;
+    bool attachment_applied = false;
 #ifdef LMU_VEHICLE_ADAPTER_FIXTURE
     VehicleFixtureReader reader = vehicle_read_25661166;
     uintptr_t fixture_scoring;
@@ -144,14 +150,16 @@ static void release_graphics(VehicleRestoreAdapter *a) {
     a->graphics_generation = 0;
 }
 
-static bool read_current(VehicleRestoreAdapter *adapter) {
+static bool read_current(VehicleRestoreAdapter *adapter, bool restoring = false) {
     const auto &context = adapter->context;
     if (!owner(adapter, context.epoch))
         return read_failed(adapter, VehicleCaptureCause::owner);
 #ifdef LMU_VEHICLE_ADAPTER_FIXTURE
     const auto reader = adapter->reader;
 #else
-    const auto reader = vehicle_read_25661166;
+    const auto reader = restoring && adapter->host.restore_detached_wheels
+                            ? vehicle_read_detached_25661166
+                            : vehicle_read_25661166;
 #endif
     if (!reader(adapter->host.module_base, context.physics, context.epoch, context.simulation_time,
                 &adapter->current, &adapter->bindings))
@@ -167,8 +175,14 @@ static bool read_current(VehicleRestoreAdapter *adapter) {
             adapter->current_deformed[w] != adapter->current.wheel_phase[w].spin.deformed)
             return read_failed(adapter, VehicleCaptureCause::wheel_deformation);
     }
-    if (!wheel_phase_deformed_valid(adapter->current.wheel_phase, adapter->current_deformation,
-                                    adapter->current.bodies, adapter->current.total_count))
+    adapter->detached_mask = 0;
+    for (unsigned w = 0; w < 4; ++w)
+        if (!adapter->current.wheel_phase[w].spin.attached)
+            adapter->detached_mask |= 1u << w;
+    if ((adapter->detached_mask && (!restoring || !adapter->host.restore_detached_wheels)) ||
+        !wheel_phase_detached_valid(adapter->current.wheel_phase, adapter->current_deformation,
+                                    adapter->current.bodies, adapter->current.total_count,
+                                    adapter->detached_mask))
         return read_failed(adapter, VehicleCaptureCause::wheel_deformation);
     // PureHinge stores its two physical alignment axes separately from the
     // solver row basis at +0xa8/+0x150. Impact repair changes the body-B axis
@@ -217,6 +231,14 @@ static int capture(void *user, const ResetIdentity *identity) {
     }
     if (vehicle_checkpoint_validate(adapter->workspace, &adapter->current))
         return capture_failed(adapter, VehicleCaptureCause::checkpoint);
+    sector_attachment::SuspensionCheckpoint next_suspension;
+    if (adapter->host.restore_detached_wheels) {
+        // An unrecognized suspension retains ordinary attached-wheel reset.
+        // It cannot later authorize a detached restore without this checkpoint.
+        sector_attachment::capture_suspension(
+            adapter->bindings, next_suspension,
+            [](uintptr_t address, auto &value) { return field(address, value); });
+    }
     if (!prepare_contacts(adapter))
         return 1;
     if (!owner(adapter, adapter->context.epoch))
@@ -261,6 +283,7 @@ static int capture(void *user, const ResetIdentity *identity) {
         adapter->saved_collision_mass = mass;
     }
     adapter->saved = adapter->current;
+    adapter->saved_suspension = next_suspension;
     adapter->saved_sector = sector;
     if (adapter->bodywork)
         adapter->saved_bodywork = std::move(next_bodywork);
@@ -347,7 +370,7 @@ static int prepare(void *user, const ResetIdentity *identity, RestorePlan *plan,
     if (!identity || !adapter->occupied || !adapter->saved_puncture ||
         adapter->saved_epoch != adapter->context.epoch ||
         !same_identity(*identity, adapter->saved_identity) ||
-        !same_identity(*identity, adapter->context.identity) || !read_current(adapter) ||
+        !same_identity(*identity, adapter->context.identity) || !read_current(adapter, true) ||
         !sector_aero::same_config(adapter->saved_aero, adapter->current_aero))
         return 1;
     adapter->scoring =
@@ -373,7 +396,7 @@ static int prepare(void *user, const ResetIdentity *identity, RestorePlan *plan,
     RestoreBackend backend{adapter, owner, allowed, read, nullptr};
     if (vehicle_checkpoint_prepare(adapter->workspace, &adapter->saved, &adapter->current,
                                    &adapter->bindings, &backend, &flags, plan,
-                                   adapter->current_deformation) ||
+                                   adapter->current_deformation, adapter->detached_mask) ||
         !owner(adapter, adapter->context.epoch)) {
         plan->count = 0;
         return 1;
@@ -493,6 +516,38 @@ static int prepare(void *user, const ResetIdentity *identity, RestorePlan *plan,
         plan->count = 0;
         return 1;
     }
+    if (adapter->detached_mask) {
+        unsigned planned_mask = 0;
+        if (!adapter->attachment ||
+            !sector_attachment::plan_suspension(
+                adapter->saved_suspension, *bindings, *plan, planned_mask,
+                [](uintptr_t address, auto &value) { return field(address, value); }) ||
+            planned_mask != adapter->detached_mask) {
+            plan->count = 0;
+            return capture_failed(adapter, VehicleCaptureCause::attachment_state);
+        }
+        // HOST_PREPARE must check the collision side too, without applying it.
+        // Re-plan at enter while the same native pins protect the transaction.
+        if (!pin_graphics(adapter)) {
+            plan->count = 0;
+            return capture_failed(adapter, VehicleCaptureCause::attachment_registry);
+        }
+        bool registry_valid = false;
+        try {
+            sector_attachment::RegistryPlanner planner({adapter, graphics_read});
+            std::vector<sector_attachment::RegistryPatch> patches;
+            registry_valid =
+                planner.wheels(adapter->host.module_base, adapter->host.collision_vehicle,
+                               adapter->detached_mask, patches);
+        } catch (const std::bad_alloc &) {
+            registry_valid = false;
+        }
+        release_graphics(adapter);
+        if (!registry_valid || !owner(adapter, adapter->context.epoch)) {
+            plan->count = 0;
+            return capture_failed(adapter, VehicleCaptureCause::attachment_registry);
+        }
+    }
     return 0;
 }
 
@@ -501,6 +556,7 @@ static int enter(void *user, uint64_t epoch) {
     if (adapter->held || !owner(user, epoch))
         return 0;
     adapter->bodywork_applied = false;
+    adapter->attachment_applied = false;
     if (adapter->bodywork) {
         if (!pin_graphics(adapter))
             return 0;
@@ -513,6 +569,20 @@ static int enter(void *user, uint64_t epoch) {
         }
     }
     adapter->held = true;
+    if (adapter->detached_mask &&
+        (!adapter->attachment ||
+         !adapter->attachment->begin(adapter->host.module_base, adapter->host.collision_vehicle,
+                                     adapter->detached_mask))) {
+        if (adapter->bodywork) {
+            if (adapter->bodywork->finish(false) != sector_bodywork::Result::ok) {
+                adapter->quarantined = true;
+                adapter->host.finalization_failed(adapter->host.user);
+            }
+            release_graphics(adapter);
+        }
+        adapter->held = false;
+        return 0;
+    }
     return 1;
 }
 
@@ -520,6 +590,13 @@ static int contacts(void *user, uint64_t epoch, int original) {
     auto *adapter = static_cast<VehicleRestoreAdapter *>(user);
     if (!adapter->held || !owner(user, epoch) || (original != 0 && original != 1))
         return 0;
+    if (adapter->attachment && adapter->attachment->active()) {
+        const bool success =
+            original ? adapter->attachment->rollback() : adapter->attachment->apply();
+        adapter->attachment_applied = !original && success;
+        if (!success)
+            return 0;
+    }
     if (adapter->bodywork) {
         const auto previous = adapter->bodywork_report.result;
         const auto result = original ? adapter->bodywork->rollback() : adapter->bodywork->apply();
@@ -544,6 +621,11 @@ static int contacts(void *user, uint64_t epoch, int original) {
 
 static void leave(void *user, int resumable) {
     auto *a = static_cast<VehicleRestoreAdapter *>(user);
+    if (a->attachment && a->attachment->active() &&
+        !a->attachment->finish(resumable && a->attachment_applied)) {
+        a->quarantined = true;
+        a->host.finalization_failed(a->host.user);
+    }
     if (a->bodywork) {
         const auto previous = a->bodywork_report.result;
         const auto result = a->bodywork->finish(resumable && a->bodywork_applied);
@@ -568,7 +650,8 @@ VehicleRestoreAdapter *vehicle_restore_adapter_create(const VehicleRestoreHost *
         host->native_lock == host->control_lock || !host->owner_thread || !host->pinned ||
         !host->refresh || (bool(host->collision_vehicle) != bool(host->rebuild_collision)) ||
         (bool(host->graphics) != bool(host->graphics_lifetime)) ||
-        (host->graphics && !host->finalization_failed))
+        (host->graphics && !host->finalization_failed) ||
+        (host->restore_detached_wheels && (!host->graphics || !host->collision_vehicle)))
         return nullptr;
     auto *adapter = new (std::nothrow) VehicleRestoreAdapter{};
     if (!adapter)
@@ -580,6 +663,10 @@ VehicleRestoreAdapter *vehicle_restore_adapter_create(const VehicleRestoreHost *
                 std::make_unique<sector_bodywork::Transaction>(sector_bodywork::Backend{
                     adapter, graphics_pinned, graphics_generation, graphics_read, graphics_write,
                     graphics_lock, graphics_unlock});
+            if (host->restore_detached_wheels)
+                adapter->attachment = std::make_unique<sector_attachment::RegistryTransaction>(
+                    sector_attachment::RegistryBackend{adapter, graphics_pinned, graphics_read,
+                                                       graphics_write});
         } catch (const std::bad_alloc &) {
             delete adapter;
             return nullptr;

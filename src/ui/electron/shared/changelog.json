@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.2.23",
+    "changes": [
+      "Experimental v28 reset module adds wheel reattachment for the mapped independent-hub suspension. In-game validation is pending.",
+      "Rebuilds released suspension limits and detached-component registries with readback and recovery after errors.",
+      "Shows separate errors for unsupported suspension attachments and collision registries.",
+      "Immediately blocks reset controls when EAC is detected and keeps the warning visible in Active Reset.",
+      "Includes penalty and wheel-state diagnostics for ongoing investigation. The reported track-limit penalty issue is not yet resolved."
+    ]
+  },
+  {
     "version": "0.2.22",
     "changes": [
       "Gave Active Reset and Overlay more space and removed shortcut subtitles.",

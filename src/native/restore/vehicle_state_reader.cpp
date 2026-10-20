@@ -41,6 +41,8 @@ static uint64_t hash_bytes(uint64_t hash, const void *data, size_t size) {
 struct Reader {
     SnapshotFrame *diagnostic;
     WheelDeformation deformation[4];
+    bool observe_detached = false;
+    unsigned detached_mask = 0;
     bool fail(unsigned line) {
         diagnostic->binding_status = line;
         return false;
@@ -114,9 +116,7 @@ struct Reader {
             if (!read_field(p + 0x20d8, rear) || !read_field(wheel + 0x301, flags) ||
                 !read_field(wheel + 0x308, deformation[w]))
                 return fail(__LINE__);
-            // A bent, attached wheel has a different spin axis, not a new identity.
-            // Detachment also changes the active constraint set and is not admitted.
-            if (flags[0])
+            if (flags[0] > 1 || (flags[0] && !observe_detached))
                 return fail(91001 + w);
             if (flags[1] > 1)
                 return fail(91010 + w);
@@ -133,7 +133,9 @@ struct Reader {
             if (hub_matches != 1)
                 return fail(__LINE__);
             phase.wheel_index = (uint32_t)links.wheels[w];
-            phase.spin.attached = 1;
+            phase.spin.attached = !flags[0];
+            if (flags[0])
+                detached_mask |= 1u << w;
             phase.spin.deformed = flags[1];
             if (!read_field(wheel + 0x120, phase.spin.angle) ||
                 !read_field(wheel + 0x128, phase.spin.angular_rate))
@@ -556,7 +558,8 @@ struct Reader {
             return fail(__LINE__);
         if (!tread_history_valid(&f.tread_history))
             return fail(__LINE__);
-        if (!wheel_phase_deformed_valid(f.wheel_phase, deformation, f.bodies, f.total_count))
+        if (!wheel_phase_detached_valid(f.wheel_phase, deformation, f.bodies, f.total_count,
+                                        detached_mask))
             return fail(__LINE__);
         if (!brake_state_valid(f.brake_state))
             return fail(__LINE__);
@@ -567,9 +570,9 @@ struct Reader {
 };
 } // namespace
 
-bool vehicle_read_25661166(uintptr_t module_base, uintptr_t physics, uint64_t epoch,
-                           double simulation_time, SnapshotFrame *frame,
-                           RestoreBindings *bindings) {
+static bool read_vehicle_state(uintptr_t module_base, uintptr_t physics, uint64_t epoch,
+                               double simulation_time, SnapshotFrame *frame,
+                               RestoreBindings *bindings, bool observe_detached) {
     if (!frame || !bindings)
         return false;
     *bindings = {};
@@ -577,6 +580,7 @@ bool vehicle_read_25661166(uintptr_t module_base, uintptr_t physics, uint64_t ep
     if (!module_base || !physics || !epoch || !std::isfinite(simulation_time))
         return false;
     Reader reader{};
+    reader.observe_detached = observe_detached;
     reader.module_base = module_base;
     reader.diagnostic = frame;
     frame->simulation_time = simulation_time;
@@ -599,6 +603,17 @@ bool vehicle_read_25661166(uintptr_t module_base, uintptr_t physics, uint64_t ep
     for (size_t i = 0; i < frame->constraint_count; ++i)
         bindings->constraint_kind[i] = frame->recipes[i].kind;
     return true;
+}
+
+bool vehicle_read_25661166(uintptr_t module_base, uintptr_t physics, uint64_t epoch,
+                           double simulation_time, SnapshotFrame *frame,
+                           RestoreBindings *bindings) {
+    return read_vehicle_state(module_base, physics, epoch, simulation_time, frame, bindings, false);
+}
+bool vehicle_read_detached_25661166(uintptr_t module_base, uintptr_t physics, uint64_t epoch,
+                                    double simulation_time, SnapshotFrame *frame,
+                                    RestoreBindings *bindings) {
+    return read_vehicle_state(module_base, physics, epoch, simulation_time, frame, bindings, true);
 }
 
 uintptr_t vehicle_scoring_25661166(uintptr_t module_base, uintptr_t physics_pointer) {

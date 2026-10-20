@@ -2,7 +2,8 @@
 #define LMU_WHEEL_RESTORE_CORE_H
 #include "rigid_restore_core.h"
 
-/* Owned values for the attached, undeformed branch only. No native pointers.
+/* Owned values without native pointers. Saved checkpoints must be attached;
+ * explicit observation validators also handle deformation and detachment.
  * Parent identity and suspension constraints must be resolved by the adapter.
  */
 typedef struct WheelSavedSpin {
@@ -32,6 +33,11 @@ RigidPrepareResult wheel_prepare_deformed_spin(const WheelSavedSpin[4], const Wh
                                                const RigidMassProperties[4], WheelPreparedSpin[4]);
 RigidPrepareResult wheel_validate_deformed_state(const WheelSavedSpin[4], const WheelDeformation[4],
                                                  const RigidSavedBody[4], const RigidSavedBody[4]);
+/* Observation only. Detached bodies must still be finite rigid states, but
+ * no longer share the hub's spin transform. This does not authorize repair. */
+RigidPrepareResult wheel_validate_detached_state(const WheelSavedSpin[4], const WheelDeformation[4],
+                                                 const RigidSavedBody[4], const RigidSavedBody[4],
+                                                 unsigned detached_mask);
 
 /* Prepare all FOUR wheel bindings, publishing nothing on any failure.
  * Rebuild rotation, omega, L and world inertia from saved parent and spin.

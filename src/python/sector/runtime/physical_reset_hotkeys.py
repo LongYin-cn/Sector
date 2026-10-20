@@ -50,10 +50,15 @@ def rejection_reason(report):
         93012: "Save rejected: the collision state is invalid.",
         93013: "Save rejected: the tire model or puncture tables could not be validated.",
         93014: "Save rejected: a tire is punctured. Repair it before saving a checkpoint.",
+        93015: "Restore rejected: detached suspension does not match the saved attachment state.",
+        93016: "Restore rejected: detached component registries could not be validated.",
     }
     if cause in capture_reasons:
+        reason = capture_reasons[cause]
+        if report.get("action") in (2, 3):
+            reason = reason.replace("Save rejected:", "Restore rejected:", 1)
         return (
-            f"{capture_reasons[cause]} Code {cause}. "
+            f"{reason} Code {cause}. "
             "Use Help > Export diagnostics to share the log."
         )
     if cause in (91001, 91002, 91003, 91004):

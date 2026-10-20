@@ -1,6 +1,13 @@
+from contextlib import nullcontext
+import io
+import json
 import struct
+import sys
+from types import SimpleNamespace
 import unittest
+from unittest.mock import Mock, patch
 
+from sector.research import capture_reset_incident as incident
 from sector.research.capture_reset_incident import sample
 
 
@@ -76,6 +83,60 @@ class IncidentCaptureTests(unittest.TestCase):
     def test_short_reads_rejected(self):
         with self.assertRaisesRegex(ValueError, "Incomplete"):
             sample(lambda address, size: b"", self.base)
+
+    def test_context_timeout_skips_reads_until_context_is_verified_again(self):
+        output = io.StringIO()
+        kernel = SimpleNamespace(OpenProcess=Mock(return_value=1), CloseHandle=Mock())
+        fetch = Mock(
+            side_effect=[
+                TimeoutError("UI endpoint stalled"),
+                {
+                    "state": {
+                        "appBuild": 14200,
+                        "settingMode": "SETTING_GRANDPRIX",
+                        "gameSession": "PRACTICE1",
+                    }
+                },
+            ]
+        )
+        dependencies = {
+            "sector.observers.run_physics_observer": SimpleNamespace(
+                k=kernel,
+                modules=Mock(return_value=[{"name": "Le Mans Ultimate.exe", "base": self.base}]),
+                read_process=Mock(),
+            ),
+            "sector.telemetry.capture_preparation_steam25661166": SimpleNamespace(
+                verify_telemetry=Mock()
+            ),
+            "sector.telemetry.capture_context": SimpleNamespace(get_json=fetch),
+        }
+
+        def observed(*args):
+            self.assertEqual(fetch.call_count, 2)
+            return {"verified": True}
+
+        with (
+            patch.dict(sys.modules, dependencies),
+            patch.object(
+                sys,
+                "argv",
+                ["capture", "--pid", "123", "--output", "unused.jsonl", "--seconds", "1"],
+            ),
+            patch.object(incident.Path, "mkdir"),
+            patch.object(incident.Path, "open", return_value=nullcontext(output)),
+            patch.object(incident.time, "monotonic", side_effect=[0, 0, 0, 0.2, 0.2, 0.2, 0.2, 2]),
+            patch.object(incident.time, "sleep"),
+            patch.object(incident, "sample", side_effect=observed) as reader,
+            patch("builtins.print"),
+        ):
+            incident.main()
+        rows = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["context_unavailable"], "UI endpoint stalled")
+        self.assertNotIn("sample", rows[0])
+        self.assertEqual(rows[1]["sample"], {"verified": True})
+        reader.assert_called_once()
+        kernel.CloseHandle.assert_called_once_with(1)
 
 
 if __name__ == "__main__":

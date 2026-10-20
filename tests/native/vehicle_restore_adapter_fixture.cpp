@@ -7,6 +7,9 @@
 #include <memory>
 #include <cstdlib>
 #include "bodywork_fixture_model.h"
+#include <array>
+#include <vector>
+#include <limits>
 
 static SnapshotFrame source_frame;
 static RestoreBindings source_bindings;
@@ -29,7 +32,7 @@ static bool pinned = true;
 static DWORD read_delay_ms;
 static int original_calls;
 static int fault;
-static unsigned char collision_vehicle[0x18000];
+static unsigned char collision_vehicle[0x18c00];
 static unsigned collision_refreshes;
 static int rebuild_fixture_collision(void *, uintptr_t vehicle) {
     assert(vehicle == reinterpret_cast<uintptr_t>(collision_vehicle));
@@ -127,8 +130,97 @@ static void write_fixture_aero(const sector_aero::State &state) {
         put(physics + sector_aero::config_offsets[i], state.config[i]);
 }
 
+struct AttachmentFixture {
+    std::array<unsigned char, 0x1000> registry{};
+    std::array<unsigned char, 160> nodes{};
+    std::array<uintptr_t, 32> supports{};
+    struct Backup {
+        uintptr_t constraint;
+        double parameters[6];
+    };
+    std::array<Backup, 64> backups{};
+    std::array<uintptr_t, 2> inactive{};
+    std::vector<unsigned> bars;
+    uintptr_t module() {
+        return reinterpret_cast<uintptr_t>(registry.data()) - 0x3b8aa00;
+    }
+    void setup(VehicleRestoreHost &host) {
+        host.module_base = module();
+        fixture_world = host.module_base + 0x1aa4090;
+        host.restore_detached_wheels = true;
+        size_t support_count = 0;
+        for (unsigned i = 0; i < source_frame.root_count; ++i) {
+            bool hub = false;
+            for (unsigned w = 0; w < 4; ++w)
+                hub |= source_frame.wheel_phase[w].hub_index == i;
+            if (!hub)
+                supports[support_count++] = source_bindings.address[i];
+        }
+        auto *physics = reinterpret_cast<unsigned char *>(source_bindings.address[104]);
+        put(physics + 0x2440, reinterpret_cast<uintptr_t>(supports.data()));
+        put(physics + 0x2448, reinterpret_cast<uintptr_t>(supports.data() + support_count));
+        put(physics + 0x2450, reinterpret_cast<uintptr_t>(supports.data() + support_count));
+        for (unsigned w = 0; w < 4; ++w) {
+            auto *wheel = reinterpret_cast<unsigned char *>(source_bindings.address[100 + w]);
+            put(wheel + 0x1d8, source_bindings.address[source_frame.wheel_phase[w].hub_index]);
+        }
+        for (unsigned i = 0; i < source_frame.constraint_count; ++i) {
+            const auto &recipe = source_frame.recipes[i];
+            if (recipe.kind != CONSTRAINT_BAR)
+                continue;
+            auto *bar = reinterpret_cast<unsigned char *>(source_bindings.address[32 + i]);
+            const std::array<uintptr_t, 2> pair{source_bindings.address[recipe.body_indices[0]],
+                                                source_bindings.address[recipe.body_indices[1]]};
+            put(bar + 0xa0, pair);
+            put(bar + 0x80, std::array<double, 2>{.5 + i * .001, .5 + i * .001});
+            put(bar + 0x48, uint16_t(1));
+            put(bar + 0x4e, uint8_t(3));
+            const auto hub = source_bindings.address[source_frame.wheel_phase[1].hub_index];
+            for (size_t j = 0; j < support_count; ++j)
+                if ((pair[0] == hub && pair[1] == supports[j]) ||
+                    (pair[1] == hub && pair[0] == supports[j]))
+                    bars.push_back(i);
+        }
+        assert(!bars.empty());
+        put(registry.data() + 0x80, reinterpret_cast<uintptr_t>(nodes.data()));
+        for (unsigned i = 0; i < 4; ++i)
+            put(nodes.data() + i * 40, int32_t(-1));
+        std::memset(collision_vehicle + 0x186e0, 0xff, 18 * 4);
+    }
+    void detach() {
+        source_frame.wheel_phase[1].spin.attached = 0;
+        put(reinterpret_cast<void *>(source_bindings.address[101] + 0x300), uint16_t(0x101));
+        for (size_t j = 0; j < bars.size(); ++j) {
+            const unsigned i = bars[j];
+            auto *bar = reinterpret_cast<unsigned char *>(source_bindings.address[32 + i]);
+            backups[j] = {reinterpret_cast<uintptr_t>(bar),
+                          {.5 + i * .001, 0, 0, .5 + i * .001, 0, 0}};
+            const double inf = std::numeric_limits<double>::infinity();
+            put(bar + 0x80, std::array<double, 2>{-inf, inf});
+            put(bar + 0x48, uint16_t(0));
+            put(bar + 0x4e, uint8_t(0));
+        }
+        auto *physics = reinterpret_cast<unsigned char *>(source_bindings.address[104]);
+        put(physics + 0x2640, reinterpret_cast<uintptr_t>(backups.data()));
+        put(physics + 0x2648, reinterpret_cast<uintptr_t>(backups.data() + bars.size()));
+        put(physics + 0x2650, reinterpret_cast<uintptr_t>(backups.data() + backups.size()));
+        collision_vehicle[0x18b41] = 1;
+        inactive[0] = reinterpret_cast<uintptr_t>(nodes.data() + 40);
+        // Tail inactive list, matching the live detached capture.
+        put(registry.data() + 0xaf4, int32_t(1));
+        put(registry.data() + 0xaf8, reinterpret_cast<uintptr_t>(inactive.data()));
+    }
+    void check(bool restored) {
+        assert(collision_vehicle[0x18b41] == (restored ? 0 : 1));
+        assert(get<int32_t>(registry.data() + 0xaf4) == (restored ? 0 : 1));
+        assert(get<uint16_t>(reinterpret_cast<void *>(source_bindings.address[101] + 0x300)) ==
+               (restored ? 0 : 0x101));
+    }
+};
+
 int main(int argc, char **argv) {
-    assert(argc == 4);
+    assert(argc == 4 || argc == 5);
+    const bool detached = argc == 5;
     check_selected_puncture_nodes();
     fault = std::atoi(argv[3]);
     assert(fault >= 0 && fault <= 3);
@@ -177,6 +269,9 @@ int main(int argc, char **argv) {
     host.finalization_failed = [](void *user) {
         simulation_fence_quarantine(static_cast<SimulationFence *>(user));
     };
+    auto attachment = std::make_unique<AttachmentFixture>();
+    if (detached)
+        attachment->setup(host);
     source_bindings.address[RESTORE_COLLISION_EXPORT_SLOT] = host.collision_vehicle + 0x159e8;
     put(collision_vehicle + 0x15a50, float{1250});
     put(collision_vehicle + 0x15a24, float{80});
@@ -202,9 +297,9 @@ int main(int argc, char **argv) {
     double current_angular = 2.5;
     auto samples = [&] {
         for (unsigned i = 0; i < 4; ++i)
-            context.contacts[i] = {tires[i],         .001,       .003,
-                                   current_angular,  0x12345678, GetCurrentThreadId(),
-                                   GetTickCount64(), 42};
+            context.contacts[i] = {
+                tires[i],         .001, .003, current_angular, fixture_world, GetCurrentThreadId(),
+                GetTickCount64(), 42};
     };
     samples();
     assert(!vehicle_restore_adapter_bind(adapter, &context)); // no native lock
@@ -354,6 +449,8 @@ int main(int argc, char **argv) {
         put(wheel + 0x302, static_cast<unsigned char>(spin[w].deformed));
         put(wheel + 0x308, deformation[w]);
     }
+    if (detached)
+        attachment->detach();
     put(score + 0xd4, uint32_t{4});
     put(collision_vehicle + 0x15a50, float{1240});
     put(collision_vehicle + 0x15a24, float{-100});
@@ -386,14 +483,17 @@ int main(int argc, char **argv) {
     std::fprintf(stderr, "full adapter result=%d fields=%zu flow=%d cause=%d contacts=%llu\n",
                  result.control_result, runtime->plan.count, runtime->report.result,
                  runtime->report.cause, static_cast<unsigned long long>(calls));
-    assert(runtime->plan.count ==
-           10094 + hinge_count + AERO_FIELD_COUNT + TirePunctureFixtureModel::added_fields);
+    assert(runtime->plan.count == 10094 + hinge_count + AERO_FIELD_COUNT +
+                                      TirePunctureFixtureModel::added_fields +
+                                      (detached ? attachment->bars.size() * 3 + 2 : 0));
     assert(result.control_result == (fault == 2   ? CONTROL_QUARANTINED
                                      : fault != 0 ? CONTROL_RESTORE_RECOVERED
                                                   : CONTROL_OK));
     assert(result.forwarded == (fault != 2));
     assert(runtime->control.loads == (fault == 0 ? 1 : 0));
     if (fault != 2) {
+        if (detached)
+            attachment->check(fault == 0);
         assert(bodywork_model.restored() == (fault == 0));
         if (fault)
             assert(bodywork_model.vertices[27] == static_cast<unsigned char>(27 ^ 0xff));

@@ -1,4 +1,5 @@
 import unittest
+from sector.runtime.resident_identity import HOST_REVISION
 from sector.runtime.physical_reset_hotkeys import (
     HotkeyCommands,
     expected_restore_fields,
@@ -17,6 +18,7 @@ class HotkeyTests(unittest.TestCase):
             (93008, "checkpoint"), (93009, "contact samples"),
             (93010, "contact geometry"), (93011, "lap sector"), (93012, "collision state"),
             (93013, "tire model"), (93014, "punctured"),
+            (93015, "attachment state"), (93016, "component registries"),
         ):
             with self.subTest(code=code):
                 message = rejection_reason({"result": 4, "cause": code})
@@ -24,6 +26,7 @@ class HotkeyTests(unittest.TestCase):
                 self.assertIn(str(code), message)
                 self.assertIn("Export diagnostics", message)
         self.assertIsNone(rejection_reason({"result": 4, "cause": 0}))
+        self.assertTrue(rejection_reason({"action": 2, "cause": 93009}).startswith("Restore"))
 
     def setUp(self):
         self.keys = HotkeyCommands(10085)
@@ -140,7 +143,7 @@ class HotkeyTests(unittest.TestCase):
         self.assertEqual(self.poll(report=report), {})
         self.assertIn("complete native preflight required", self.keys.notice)
         self.assertTrue(self.keys.saved)
-        for revision in (0, 28):
+        for revision in (0, HOST_REVISION + 1):
             with self.assertRaises(ValueError):
                 expected_restore_fields(revision)
 

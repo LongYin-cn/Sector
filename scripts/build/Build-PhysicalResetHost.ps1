@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$ZigPath,
     [string]$FrameDirectory,
-    [ValidateRange(1, 99)][int]$Revision = 27
+    [ValidateRange(1, 99)][int]$Revision = 28
 )
 
 $ErrorActionPreference = 'Stop'

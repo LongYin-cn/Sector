@@ -13,12 +13,17 @@ typedef struct WheelPhaseBank {
 int wheel_phase_valid(const WheelPhase[4], const RigidSavedBody *, size_t);
 int wheel_phase_deformed_valid(const WheelPhase[4], const WheelDeformation[4],
                                const RigidSavedBody *, size_t);
+int wheel_phase_detached_valid(const WheelPhase[4], const WheelDeformation[4],
+                               const RigidSavedBody *, size_t, unsigned);
 int wheel_phase_save(WheelPhaseBank *, const PartialCheckpoint *, const WheelPhase[4]);
 int wheel_phase_prepare(const WheelPhaseBank *, const PartialCheckpoint *, const WheelPhase[4],
                         const RigidSavedBody *, size_t, WheelPhase[4]);
 int wheel_phase_prepare_deformed(const WheelPhaseBank *, const PartialCheckpoint *,
                                  const WheelPhase[4], const WheelDeformation[4],
                                  const RigidSavedBody *, size_t, WheelPhase[4]);
+int wheel_phase_prepare_detached(const WheelPhaseBank *, const PartialCheckpoint *,
+                                 const WheelPhase[4], const WheelDeformation[4],
+                                 const RigidSavedBody *, size_t, WheelPhase[4], unsigned);
 int wheel_phase_plan(const WheelPhaseBank *, const PartialCheckpoint *, const RestoreBackend *,
                      RestorePlan *, RestorePlan *);
 #endif

@@ -7,5 +7,9 @@
 // is scratch storage and must not be published unless this returns true.
 bool vehicle_read_25661166(uintptr_t module_base, uintptr_t physics, uint64_t epoch,
                            double simulation_time, SnapshotFrame *, RestoreBindings *);
+// Observation for the attachment-aware restore adapter. This does not admit
+// detached checkpoints or authorize writes to suspension/collision registries.
+bool vehicle_read_detached_25661166(uintptr_t module_base, uintptr_t physics, uint64_t epoch,
+                                    double simulation_time, SnapshotFrame *, RestoreBindings *);
 uintptr_t vehicle_scoring_25661166(uintptr_t module_base, uintptr_t physics);
 #endif

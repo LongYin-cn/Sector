@@ -46,5 +46,7 @@ if ($FrameDirectory) {
     foreach ($faultCase in 0..3) {
         & $fixture (Join-Path $FrameDirectory 'saved.frame') (Join-Path $FrameDirectory 'current.frame') $faultCase
         if ($LASTEXITCODE -ne 0) { throw "Vehicle adapter fixture failed: $faultCase" }
+        & $fixture (Join-Path $FrameDirectory 'saved.frame') (Join-Path $FrameDirectory 'current.frame') $faultCase 'detached'
+        if ($LASTEXITCODE -ne 0) { throw "Detached vehicle adapter fixture failed: $faultCase" }
     }
 }

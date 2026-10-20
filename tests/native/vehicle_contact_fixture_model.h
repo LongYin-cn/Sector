@@ -16,6 +16,7 @@ static uintptr_t active[4][8];
 static uint32_t bits[4];
 static uint64_t calls;
 static int stationary = 1, abi_errors = 0;
+static uintptr_t fixture_world = 0x12345678;
 template <class T> static void put(void *p, const T &value) {
     memcpy(p, &value, sizeof(value));
 }
@@ -39,7 +40,7 @@ extern "C" __declspec(dllexport) __declspec(noinline) void WINAPI FixtureRefresh
                                                                                  void *world,
                                                                                  double angular) {
     ++calls;
-    if (dt != .001 || horizon != .003 || world != (void *)0x12345678 || angular != 2.5) {
+    if (dt != .001 || horizon != .003 || world != (void *)fixture_world || angular != 2.5) {
         ++abi_errors;
         return;
     }

@@ -113,7 +113,8 @@ LMU rebuild your car can invalidate the checkpoint.
 Save while the car is healthy. After an impact has ended, restore that checkpoint
 to recover the supported physical and bodywork state. Visible front bodywork
 repair has been verified on the Mercedes-AMG LMGT3. Damage restoration is still
-experimental: other cars and impact types need further testing. Puncture repair is experimental and awaits in-game verification.
+experimental: other cars and impact types need further testing. Puncture repair
+has been verified on the Peugeot 9X8; other models still need testing.
 Detached parts are not supported.
 
 If a save or restore is refused, read the message in Sector. Repair the car or
@@ -243,7 +244,14 @@ Keep the files from each package together; do not copy only the new EXE over an
 older installation. If Active Reset asks you to restart LMU, restart it before
 making a new checkpoint.
 
-### In development: 0.2.22
+### In development: 0.2.23 (experimental)
+
+- Experimental wheel reattachment for the mapped independent-hub suspension.
+  Live validation is pending; unsupported suspension layouts remain blocked.
+- Separate diagnostic messages for suspension and detached-component failures.
+- Immediate EAC warning and disabled reset controls when protection is detected.
+- Additional diagnostics for penalty reports. The track-limit issue is still
+  under investigation.
 
 - More space for Active Reset and the overlay editor.
 - Change the LMU installation folder in Settings.

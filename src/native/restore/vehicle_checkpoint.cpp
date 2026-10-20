@@ -24,6 +24,7 @@ struct VehicleCheckpointWorkspace {
     WheelPhaseBank phase_bank;
     WheelPhase phase_prepared[4];
     const WheelDeformation *current_deformation;
+    unsigned detached_mask = 0;
     TreadHistoryGrid tread_prepared;
     ThermalHistoryBank thermal_bank;
     ThermalGrid thermal_prepared;
@@ -129,9 +130,10 @@ struct VehicleCheckpointWorkspace {
                     &f.thermal_grid, &f.tread_history, &thermal_prepared, &tread_prepared))
                 status = CHECKPOINT_INVALID_STATE;
             if (!status &&
-                !wheel_phase_prepare_deformed(
+                !wheel_phase_prepare_detached(
                     &phase_bank, &checkpoint_bank.prior.state.state.vehicle.mechanical.base.saved,
-                    f.wheel_phase, current_deformation, f.bodies, f.total_count, phase_prepared))
+                    f.wheel_phase, current_deformation, f.bodies, f.total_count, phase_prepared,
+                    detached_mask))
                 status = CHECKPOINT_INVALID_STATE;
             if (!status &&
                 !brake_state_prepare(
@@ -188,7 +190,7 @@ struct VehicleCheckpointWorkspace {
                 frozen_bindings.constraint_kind[i] = f.recipes[i].kind;
             f.plan_status =
                 vehicle_restore_plan(&checkpoint_bank, &checkpoint_prepared, planning_epoch,
-                                      &planning_backend, &plan_workspace, &native_plan);
+                                     &planning_backend, &plan_workspace, &native_plan);
             if (!f.plan_status) {
                 plan_workspace = native_plan;
                 f.plan_status = native_cache_plan(
@@ -282,7 +284,8 @@ int vehicle_checkpoint_validate(VehicleCheckpointWorkspace *work, const Snapshot
 int vehicle_checkpoint_prepare(VehicleCheckpointWorkspace *work, const SnapshotFrame *saved,
                                const SnapshotFrame *current, const RestoreBindings *bindings,
                                const RestoreBackend *backend, const LapGuardFlags *flags,
-                               RestorePlan *output, const WheelDeformation *current_deformation) {
+                               RestorePlan *output, const WheelDeformation *current_deformation,
+                               unsigned detached_mask) {
     if (output)
         output->count = 0;
     if (!work || !output || !bindings || !backend || !backend->context || !backend->allowed ||
@@ -292,10 +295,11 @@ int vehicle_checkpoint_prepare(VehicleCheckpointWorkspace *work, const SnapshotF
         saved->constraint_count != current->constraint_count ||
         bindings->body_count != current->total_count ||
         bindings->constraint_count != current->constraint_count ||
-        bindings->engine_channels != current->integration.channel_count)
+        bindings->engine_channels != current->integration.channel_count || detached_mask > 15)
         return RESTORE_BAD_PLAN;
     reset(work);
     work->current_deformation = current_deformation;
+    work->detached_mask = detached_mask;
     work->bank_epoch = bindings->epoch;
     work->planning_backend = *backend;
     work->planning_backend.write = nullptr;

@@ -1,7 +1,7 @@
 #include "checkpoint_wheel_phase.h"
 #include <string.h>
 static int valid(const WheelPhase p[4], const WheelDeformation deformation[4],
-                 const RigidSavedBody *bodies, size_t n) {
+                 const RigidSavedBody *bodies, size_t n, unsigned mask) {
     if (!p || !bodies || !n || n > 32)
         return 0;
     WheelSavedSpin spin[4];
@@ -17,16 +17,22 @@ static int valid(const WheelPhase p[4], const WheelDeformation deformation[4],
         hubs[w] = bodies[p[w].hub_index];
         wheels[w] = bodies[p[w].wheel_index];
     }
-    return (deformation ? wheel_validate_deformed_state(spin, deformation, hubs, wheels)
+    if (mask && !deformation)
+        return 0;
+    return (deformation ? wheel_validate_detached_state(spin, deformation, hubs, wheels, mask)
                         : wheel_prepare_consistent_checkpoint(spin, hubs, wheels, prepared)) ==
            RIGID_PREPARE_OK;
 }
 int wheel_phase_valid(const WheelPhase p[4], const RigidSavedBody *bodies, size_t n) {
-    return valid(p, NULL, bodies, n);
+    return valid(p, NULL, bodies, n, 0);
 }
 int wheel_phase_deformed_valid(const WheelPhase p[4], const WheelDeformation deformation[4],
                                const RigidSavedBody *bodies, size_t n) {
-    return deformation && valid(p, deformation, bodies, n);
+    return deformation && valid(p, deformation, bodies, n, 0);
+}
+int wheel_phase_detached_valid(const WheelPhase p[4], const WheelDeformation deformation[4],
+                               const RigidSavedBody *bodies, size_t n, unsigned mask) {
+    return deformation && valid(p, deformation, bodies, n, mask);
 }
 int wheel_phase_save(WheelPhaseBank *b, const PartialCheckpoint *s, const WheelPhase p[4]) {
     if (!b || !s || !s->sequence || !wheel_phase_valid(p, s->bodies, s->body_count))
@@ -42,9 +48,15 @@ int wheel_phase_prepare(const WheelPhaseBank *b, const PartialCheckpoint *s, con
 int wheel_phase_prepare_deformed(const WheelPhaseBank *b, const PartialCheckpoint *s,
                                  const WheelPhase p[4], const WheelDeformation deformation[4],
                                  const RigidSavedBody *current, size_t n, WheelPhase out[4]) {
+    return wheel_phase_prepare_detached(b, s, p, deformation, current, n, out, 0);
+}
+int wheel_phase_prepare_detached(const WheelPhaseBank *b, const PartialCheckpoint *s,
+                                 const WheelPhase p[4], const WheelDeformation deformation[4],
+                                 const RigidSavedBody *current, size_t n, WheelPhase out[4],
+                                 unsigned mask) {
     if (!b || !s || !out || !b->sequence || b->sequence != s->sequence ||
         !wheel_phase_valid(b->phase, s->bodies, s->body_count) ||
-        !valid(p, deformation, current, n))
+        !valid(p, deformation, current, n, mask))
         return 0;
     for (int w = 0; w < 4; w++)
         if (b->phase[w].hub_index != p[w].hub_index || b->phase[w].wheel_index != p[w].wheel_index)

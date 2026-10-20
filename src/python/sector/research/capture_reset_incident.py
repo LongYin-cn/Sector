@@ -131,8 +131,24 @@ def main():
             while time.monotonic() < deadline:
                 started = time.monotonic()
                 if started >= next_context:
-                    next_context = started + 1
-                    state = get_json("/navigation/state")["state"]
+                    try:
+                        state = get_json("/navigation/state")["state"]
+                    except (OSError, ValueError, KeyError) as error:
+                        # A reset can temporarily stall the local UI endpoint.
+                        # Skip memory sampling until context can be verified again.
+                        output.write(
+                            json.dumps(
+                                {
+                                    "utc": datetime.now(timezone.utc).isoformat(),
+                                    "writes": 0,
+                                    "context_unavailable": str(error),
+                                }
+                            )
+                            + "\n"
+                        )
+                        output.flush()
+                        time.sleep(0.2)
+                        continue
                     if (
                         state.get("appBuild") != 14200
                         or state.get("settingMode") != "SETTING_GRANDPRIX"
@@ -141,6 +157,7 @@ def main():
                         or any("easyanti" in m["name"].lower() for m in modules(args.pid))
                     ):
                         raise ValueError("Offline Practice context lost; capture stopped")
+                    next_context = started + 1
                 row = {"utc": datetime.now(timezone.utc).isoformat(), "writes": 0}
                 try:
                     row["sample"] = sample(

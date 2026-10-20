@@ -211,6 +211,8 @@ static bool read_vehicle(uintptr_t module, uintptr_t physics, uint64_t epoch, do
     auto reader = reinterpret_cast<VehicleFixtureReader>(
         GetProcAddress(reinterpret_cast<HMODULE>(base), "FixtureHostRead"));
     return reader && reader(module, physics, epoch, time, frame, bindings);
+#elif LMU_RESET_HOST_REVISION >= 28
+    return vehicle_read_detached_25661166(module, physics, epoch, time, frame, bindings);
 #else
     return vehicle_read_25661166(module, physics, epoch, time, frame, bindings);
 #endif
@@ -492,6 +494,9 @@ static void WINAPI boundary(uint64_t input) {
                     report.result = ops.prepare(ops.user, &context.identity, &runtime->plan,
                                                 &runtime->bindings, &runtime->scoring);
                     report.fields = runtime->plan.count;
+                    if (report.result)
+                        report.cause = static_cast<uint64_t>(
+                            vehicle_restore_adapter_capture_cause(adapter));
                     if (!report.result) {
                         report.result = restore_joint_native_preflight(
                             &runtime->plan, &runtime->bindings, runtime->scoring, physics_thread,
@@ -523,6 +528,10 @@ static void WINAPI boundary(uint64_t input) {
                         report.flow_result = runtime->report.result;
                         report.cause = runtime->report.cause;
                         if (action == HOST_SAVE && result.control_result == CONTROL_SAVE_FAILED)
+                            report.cause = static_cast<uint64_t>(
+                                vehicle_restore_adapter_capture_cause(adapter));
+                        if (action == HOST_RESTORE && result.control_result == CONTROL_REJECTED &&
+                            !report.cause)
                             report.cause = static_cast<uint64_t>(
                                 vehicle_restore_adapter_capture_cause(adapter));
                         const auto contact_report = vehicle_restore_adapter_contact_report(adapter);
@@ -761,6 +770,9 @@ static DWORD WINAPI worker(void *) {
         runtime->control.checkpoint_valid = 0;
         InterlockedExchange(&fatal, 1);
     };
+#endif
+#if LMU_RESET_HOST_REVISION >= 28
+    host.restore_detached_wheels = true;
 #endif
     adapter = vehicle_restore_adapter_create(&host);
 #ifdef LMU_RESET_HOST_FIXTURE

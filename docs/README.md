@@ -53,7 +53,8 @@ when needed.
 Save with a healthy car and wait for **Checkpoint saved**. After an impact,
 wait until the collision ends before restoring. Damage repair is experimental;
 front bodywork repair has been verified on the Mercedes-AMG LMGT3, but other
-cars and impact types need more testing. Puncture repair is experimental and awaits in-game verification.
+cars and impact types need more testing. Puncture repair has been verified on the
+Peugeot 9X8; other models still need testing.
 Detached parts are not supported. Checkpoints do not persist across game restarts.
 
 ### Choose your shortcuts

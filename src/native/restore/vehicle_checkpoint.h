@@ -15,5 +15,6 @@ int vehicle_checkpoint_prepare(VehicleCheckpointWorkspace *, const SnapshotFrame
                                const SnapshotFrame *current, const RestoreBindings *,
                                const RestoreBackend *read_backend, const LapGuardFlags *,
                                RestorePlan *output,
-                               const WheelDeformation *current_deformation = nullptr);
+                               const WheelDeformation *current_deformation = nullptr,
+                               unsigned detached_mask = 0);
 #endif

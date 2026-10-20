@@ -56,6 +56,16 @@ int main(void) {
                sizeof(bent[i].momentum_world));
     }
     CHECK(wheel_validate_deformed_state(spin, deformation, hubs, bent) == RIGID_PREPARE_OK);
+    spin[0].attached = 0;
+    bent[0].momentum_world[0] += 1;
+    CHECK(wheel_validate_detached_state(spin, deformation, hubs, bent, 1) == RIGID_PREPARE_OK);
+    CHECK(wheel_validate_deformed_state(spin, deformation, hubs, bent) != RIGID_PREPARE_OK);
+    CHECK(wheel_validate_detached_state(spin, deformation, hubs, bent, 2) != RIGID_PREPARE_OK);
+    bent[0].mass.inverse_mass = -1;
+    CHECK(wheel_validate_detached_state(spin, deformation, hubs, bent, 1) != RIGID_PREPARE_OK);
+    bent[0].mass = mass[0];
+    bent[0].momentum_world[0] -= 1;
+    spin[0].attached = 1;
     CHECK(wheel_prepare_consistent_checkpoint(spin, hubs, bent, out) != RIGID_PREPARE_OK);
     deformation[0].rotation[2] += .01;
     CHECK(wheel_validate_deformed_state(spin, deformation, hubs, bent) != RIGID_PREPARE_OK);

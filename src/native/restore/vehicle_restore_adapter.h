@@ -39,6 +39,9 @@ struct VehicleRestoreHost {
     GraphicsLifetime *graphics_lifetime = nullptr;
     // Must quarantine the host fence if graphics finalization cannot complete.
     void (*finalization_failed)(void *) = nullptr;
+    // Explicit opt-in by a host that owns both simulation locks and graphics
+    // lifetime while changing detached component registries.
+    bool restore_detached_wheels = false;
 };
 
 struct VehicleRestoreAdapter;
@@ -59,6 +62,8 @@ enum class VehicleCaptureCause : uint64_t {
     collision_state = 93012,
     puncture_state = 93013,
     punctured_checkpoint = 93014,
+    attachment_state = 93015,
+    attachment_registry = 93016,
 };
 VehicleRestoreAdapter *vehicle_restore_adapter_create(const VehicleRestoreHost *);
 void vehicle_restore_adapter_destroy(VehicleRestoreAdapter *);

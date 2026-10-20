@@ -79,7 +79,7 @@ for (const name of ["src/python", "assets/sector.ico", "scripts/sector.py"])
 for (const name of [
   "diagnostic-14200.exe",
   "overlay-reader.exe",
-  "lmu-physical-reset-v27-25661166.dll",
+  "lmu-physical-reset-v28-25661166.dll",
 ])
   copy(path.join(root, "bin", name), path.join(runtime, "bin", name));
 fs.mkdirSync(path.join(runtime, "compatibility"), { recursive: true });
@@ -108,13 +108,13 @@ const telemetry = JSON.parse(
 );
 const host = JSON.parse(
   fs.readFileSync(
-    path.join(runtime, "compatibility/steam-25661166-physical-reset-v27.json"),
+    path.join(runtime, "compatibility/steam-25661166-physical-reset-v28.json"),
   ),
 );
 if (
   sha(path.join(runtime, "bin/diagnostic-14200.exe")) !==
     telemetry.diagnostic_sha256.toLowerCase() ||
-  sha(path.join(runtime, "bin/lmu-physical-reset-v27-25661166.dll")) !==
+  sha(path.join(runtime, "bin/lmu-physical-reset-v28-25661166.dll")) !==
     host.dll_sha256.toLowerCase()
 )
   throw new Error("Runtime binary/profile mismatch");
@@ -175,7 +175,7 @@ fs.writeFileSync(
   [
     `Sector ${version}`,
     "EXPERIMENTAL: bugs are expected and further fixes are planned.",
-    "Includes fixes for slow checkpoint capture and tire puncture restoration. In-game verification is pending.",
+    "Includes an experimental wheel reattachment implementation. In-game validation is pending.",
     "",
     "GETTING STARTED",
     "1. Extract the entire ZIP and open Sector.exe. Keep all files together.",
@@ -190,11 +190,12 @@ fs.writeFileSync(
     "Change keys and sounds in Active Reset. Open settings through Edit > Settings.",
     "Help > Guide reopens the tutorial. Help > Changelog lists version changes.",
     "After a problem, use Help > Export diagnostics > Save diagnostic file and share the JSON file.",
-    "Restart LMU after upgrading so the new v27 reset module can load.",
+    "Restart LMU after upgrading so the new v28 reset module can load. Save a fresh checkpoint with a healthy car.",
     "Closing the window offers background mode or Quit Sector. Quit fully before updating.",
     "No Node.js or Python installation is required. Preferences are retained between updates.",
     "",
-    "Damage and puncture repair are experimental. Detached parts are not supported.",
+    "Damage repair is experimental. Wheel reattachment supports the mapped independent-hub suspension only.",
+    "Other detached parts and suspension layouts remain unsupported. Track-limit penalties after reset are still under investigation.",
     "Save a healthy car and wait until an impact ends before restoring.",
     "Checkpoint availability depends on the current car, session and supported LMU version.",
     "",

@@ -9,6 +9,7 @@ from contextlib import ExitStack
 import ctypes as C
 
 from sector.runtime.resident_identity import (
+    HOST_REVISION,
     physical_host_identity,
     resident_profile,
     verify_stopped_resident,
@@ -53,13 +54,13 @@ class ResidentIdentityTests(unittest.TestCase):
 
     def test_current_build_and_new_revisions(self):
         self.assertEqual(self.resolve(self.install()), self.profile)
-        for revision in (9, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27):
+        for revision in (9, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28):
             name = self.name.replace("v17", f"v{revision}")
             identity = physical_host_identity(name)
             self.assertEqual(identity[2], f"LMU_PhysicalReset_{name}_")
             self.assertEqual(identity[3], 0x4C4D555253543030 + revision)
         for name in (
-            self.name.replace("v17", "v28"),
+            self.name.replace("v17", f"v{HOST_REVISION + 1}"),
             self.name.replace("v17", "v0"),
             self.name.replace("a" * 32, "bad"),
         ):

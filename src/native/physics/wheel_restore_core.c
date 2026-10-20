@@ -110,24 +110,35 @@ RigidPrepareResult wheel_prepare_deformed_spin(const WheelSavedSpin saved[4],
     return prepare_spin(saved, deformation, hubs, mass, out);
 }
 
-RigidPrepareResult wheel_validate_deformed_state(const WheelSavedSpin spin[4],
+RigidPrepareResult wheel_validate_detached_state(const WheelSavedSpin spin[4],
                                                  const WheelDeformation deformation[4],
                                                  const RigidSavedBody hubs[4],
-                                                 const RigidSavedBody wheels[4]) {
-    if (!spin || !deformation || !hubs || !wheels)
+                                                 const RigidSavedBody wheels[4],
+                                                 unsigned detached_mask) {
+    if (!spin || !deformation || !hubs || !wheels || detached_mask > 15)
         return RIGID_PREPARE_BAD_ARGUMENT;
     RigidMassProperties mass[4];
     RigidPreparedBody observed[4];
     WheelPreparedSpin prepared[4];
-    for (int i = 0; i < 4; ++i)
+    WheelSavedSpin reference[4];
+    for (int i = 0; i < 4; ++i) {
+        if (spin[i].attached != ((detached_mask & (1u << i)) ? 0u : 1u))
+            return RIGID_PREPARE_BAD_ARGUMENT;
+        reference[i] = spin[i];
+        /* Calculate the hub reference to validate its finite inputs. Only
+         * attached wheels must match it; detached wheels move independently. */
+        reference[i].attached = 1;
         mass[i] = wheels[i].mass;
+    }
     RigidPrepareResult result = rigid_prepare_restore(wheels, mass, 4, observed);
     if (result != RIGID_PREPARE_OK)
         return result;
-    result = wheel_prepare_deformed_spin(spin, deformation, hubs, mass, prepared);
+    result = wheel_prepare_deformed_spin(reference, deformation, hubs, mass, prepared);
     if (result != RIGID_PREPARE_OK)
         return result;
     for (int i = 0; i < 4; ++i) {
+        if (detached_mask & (1u << i))
+            continue;
         for (int j = 0; j < 9; ++j)
             if (fabs(prepared[i].orientation[j] - wheels[i].orientation[j]) > 1e-8)
                 return RIGID_PREPARE_INVALID_ROTATION;
@@ -137,6 +148,13 @@ RigidPrepareResult wheel_validate_deformed_state(const WheelSavedSpin spin[4],
                 return RIGID_PREPARE_INVALID_VALUE;
     }
     return RIGID_PREPARE_OK;
+}
+
+RigidPrepareResult wheel_validate_deformed_state(const WheelSavedSpin spin[4],
+                                                 const WheelDeformation deformation[4],
+                                                 const RigidSavedBody hubs[4],
+                                                 const RigidSavedBody wheels[4]) {
+    return wheel_validate_detached_state(spin, deformation, hubs, wheels, 0);
 }
 
 RigidPrepareResult wheel_prepare_consistent_checkpoint(const WheelSavedSpin saved[4],
