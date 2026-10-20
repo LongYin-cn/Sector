@@ -2,7 +2,7 @@
 
 Research only: no DLL, native calls, physics writes or input. Each output is an
 asynchronous observation, never a checkpoint or a reconstructed contact set.
-Offsets are derived from the 14200 routines documented in CONTACT_REBUILD.md.
+Offsets are derived from the captured 14200 native contact routines.
 """
 
 import argparse

@@ -38,7 +38,7 @@ scripts/
   dev/            Formatting, source resolution and research helpers
   sector.py       Python package launcher
 tools/rea/         Offline REA JavaScript analysis
-docs/archive/      Historical experiments and build-specific contracts
+docs/              User, source, release and verification guides
 ```
 
 ## Commands
@@ -78,7 +78,8 @@ needed at obsolete flat source paths.
 Historical observer classes and wire layouts remain because replay tools import
 them. Their versioned field offsets are part of recorded-data decoding, not
 permission to load an old module against a newer game. Earlier logs can retain
-old filenames; historical reports are indexed in [the archive](archive/README.md).
+old filenames. Historical research notes and incident reports are retained
+locally under ignored `work/local-docs/`, not in the public documentation.
 
 ## Generated and local files
 

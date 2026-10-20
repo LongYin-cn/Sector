@@ -1,9 +1,10 @@
 # Building a Windows release
 
-The current development build is **0.2.16**. The published experimental release
-is **0.2.15**. A portable package starts with
+Read the development version from `src/ui/electron/package.json`; published
+packages are listed on [GitHub Releases](https://github.com/sector-lmu/Sector/releases).
+A portable package starts with
 `Sector.exe`; keep its adjacent DLLs and resources together. It bundles Electron,
-CPython 3.13.12, the telemetry reader/diagnostic and revision 24 reset host.
+CPython 3.13.12, the telemetry reader/diagnostic and the current reset host.
 The package is unsigned and does not require installed Node.js or Python.
 
 ## Prerequisites
@@ -47,7 +48,7 @@ does not replace the pinned compatibility checks.
    npm run test:release
    ```
 
-The output is `releases/Sector-0.2.16-win-x64/`. The builder refuses an existing
+The output is `releases/Sector-<version>-win-x64/`. The builder refuses an existing
 destination; preserve or deliberately remove a previous output before rebuilding.
 Generated releases are ignored by Git. Building or committing a version does not
 publish a GitHub release or promote `prod`.
@@ -60,9 +61,9 @@ publish a GitHub release or promote `prod`.
    move or overwrite a package that is currently running.
 3. Check that the package contains no logs, captures, caches or local installation
    paths. Include its complete runtime, notices and quick-start instructions.
-4. ZIP the complete `Sector-0.2.16-win-x64` folder and generate `SHA256SUMS.txt`.
+4. ZIP the complete `Sector-<version>-win-x64` folder and generate `SHA256SUMS.txt`.
    Reopen the archive and verify its contents before uploading.
-5. For an experimental release, push `dev` and tag the tested commit `v0.2.16`.
+5. For an experimental release, push `dev` and tag the tested commit `v<version>`.
    Leave `prod` unchanged. A stable promotion requires explicit approval to
    merge `dev` into `prod`; never force-update published tags.
 6. Create the GitHub prerelease with notes, the Windows ZIP and checksum file.
@@ -70,9 +71,9 @@ publish a GitHub release or promote `prod`.
    Verify its published assets and target commit. Binaries belong in release
    assets, not Git history.
 
-Keep evidence precise: the 0.2.12 display/pause/F7 changes passed automated
-checks, while their live-game visibility check remains pending. Earlier live
-bodywork validation does not establish that every model or impact is supported.
+Keep evidence precise: automated fixtures do not establish live-game behavior.
+Record the tested car, circuit and scenario; one successful repair does not
+establish that every model or impact is supported.
 
 ## Package contents and validation
 
@@ -104,7 +105,7 @@ of modules that might still be loaded.
 Preferences remain in `%LOCALAPPDATA%/LMUActiveReset/`: `settings.json`,
 `overlays.json` and `onboarding.json`. Installation selection and onboarding
 completion survive a runtime upgrade. First-run detection and manual selection
-are described in the [desktop guide](DESKTOP_GUI.md).
+are described in the [user guide](README.md).
 
 ## Branch policy
 
