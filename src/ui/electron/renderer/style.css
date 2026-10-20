@@ -227,8 +227,8 @@ input {
   border-radius: 6px;
 }
 .page {
-  max-width: 1000px;
-  margin: 0 auto;
+  max-width: 900px;
+  margin: 0;
   padding: 28px 40px 48px;
   animation: page-enter 180ms var(--ease-out);
 }
@@ -258,6 +258,15 @@ h1 {
   line-height: 1;
   font-weight: 600;
   letter-spacing: -0.04em;
+}
+.page-kicker {
+  font:
+    500 11.5px "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
 }
 .eyebrow {
   font:
@@ -421,12 +430,14 @@ kbd {
   display: none;
 }
 .setting-label h3 {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 14.5px;
+  font-weight: 600;
 }
-.setting-label p {
+.setting-row .setting-label p {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 12.5px;
+  margin: 2px 0 0;
+  line-height: 1.5;
 }
 .key-button {
   display: flex;
@@ -482,8 +493,9 @@ kbd {
   background: white;
 }
 .sound-previews {
-  display: flex;
-  gap: 9px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin-top: 16px;
 }
 .sound-previews button {
@@ -491,16 +503,18 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 9px;
   border: 1px solid var(--line-strong);
   background: var(--surface);
-  padding: 10px 8px;
+  height: 44px;
+  padding: 0 18px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
 }
 .sound-previews svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 .error-banner {
   margin: 20px 40px;
@@ -527,6 +541,10 @@ kbd {
 .sound-previews button:hover:not(:disabled),
 .text-button:hover:not(:disabled) {
   background: var(--line);
+}
+.sound-previews button:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--ink);
 }
 @media (max-width: 1100px) {
   .app-header {
@@ -619,7 +637,7 @@ kbd {
 }
 .modal h2 {
   font-size: 28px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.7px;
 }
 .modal p {
@@ -642,8 +660,8 @@ kbd {
   border-radius: 7px;
 }
 .primary {
-  background: var(--accent);
-  color: #fff;
+  background: var(--ink);
+  color: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -657,7 +675,8 @@ kbd {
   margin-left: auto;
 }
 .secondary {
-  background: var(--surface-alt);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
 }
 .text-button {
   background: transparent;
@@ -709,17 +728,23 @@ kbd {
 .preferences {
   margin-top: 20px;
 }
-.preferences h3,
 .audio-section h3 {
-  font-size: 12px;
+  font-size: 14.5px;
   font-weight: 600;
 }
 .preferences .motion-setting {
-  border-top: 1px solid var(--line);
+  border-top: 0;
 }
 .settings-done {
   width: 100%;
   margin-top: 16px;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+  font-size: 14px;
+}
+.settings-done:hover:not(:disabled) {
+  background: #34373d;
 }
 .modal {
   max-height: calc(100dvh - 48px);
@@ -928,15 +953,15 @@ textarea {
 
 .titlebar {
   justify-content: space-between;
-  padding-left: 8px;
+  padding-left: 10px;
 }
 .help-menu-trigger {
   -webkit-app-region: no-drag;
-  height: 26px;
-  padding: 0 12px;
-  border-radius: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
   background: transparent;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   letter-spacing: normal;
 }
@@ -949,28 +974,39 @@ textarea {
 .help-menu-trigger:hover,
 .help-menu-trigger[data-popup-open] {
   background: var(--surface-alt);
+  color: var(--ink);
 }
 .help-menu-positioner {
   z-index: 110;
   -webkit-app-region: no-drag;
 }
 .help-menu-popup {
-  min-width: 180px;
-  padding: 5px;
-  border: 1px solid var(--line-strong);
-  border-radius: 7px;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
   background: var(--surface);
-  box-shadow: 0 8px 24px #16181c29;
+  box-shadow: 0 14px 34px #16181c2e;
   outline: none;
+  transform-origin: var(--transform-origin);
+  transition:
+    transform 180ms var(--ease-out),
+    opacity 180ms var(--ease-out);
+}
+.help-menu-popup[data-starting-style],
+.help-menu-popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.95);
 }
 .help-menu-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
-  border-radius: 4px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 6px;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 13.5px;
   cursor: pointer;
   outline: none;
 }
@@ -1026,19 +1062,23 @@ textarea {
 }
 .preference-category {
   margin: 22px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ink);
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
+  font:
+    500 11px "IBM Plex Mono",
+    monospace;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .display-settings {
-  border-top: 1px solid var(--line);
+  border-top: 0;
   margin-top: 18px;
 }
 .preference-label {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
   margin-bottom: 10px;
 }
 .display-select {
@@ -1052,7 +1092,9 @@ textarea {
   border-radius: 8px;
   background: var(--surface);
   color: var(--ink);
-  font-size: 12px;
+  font:
+    500 14px "IBM Plex Mono",
+    monospace;
   text-align: left;
   transition:
     background 160ms ease,

@@ -25,6 +25,7 @@ import { ResetLog, useResetLog } from "./reset-log.jsx";
 import history from "@iconify-icons/solar/history-linear";
 import home from "@iconify-icons/solar/home-2-linear";
 import help from "@iconify-icons/solar/question-circle-linear";
+import pen from "@iconify-icons/solar/pen-linear";
 import "@fontsource/ibm-plex-sans/latin-400.css";
 import "@fontsource/ibm-plex-sans/latin-500.css";
 import "@fontsource/ibm-plex-sans/latin-600.css";
@@ -34,7 +35,7 @@ import "@fontsource/ibm-plex-mono/latin-500.css";
 import "@fontsource/ibm-plex-mono/latin-600.css";
 import "@fontsource/barlow-condensed/latin-500.css";
 import "@fontsource/barlow-condensed/latin-600.css";
-import logo from "@assets/sector-logo.png";
+import logo from "@assets/sector-logo-orange.png";
 import { keyFromEvent, keyLabel } from "./keys.js";
 import { statusView } from "./status.js";
 import "./style.css";
@@ -379,10 +380,6 @@ function App() {
             </Tabs.Tab>
             <Tabs.Indicator className="tab-indicator" />
           </Tabs.List>
-          <div className={`sidebar-status ${view.tone}`} role="status">
-            <span className="dot" />
-            {gameDetected ? "LMU running" : "LMU not running"}
-          </div>
         </header>
         <main className="scroll-area">
           <Tabs.Panel value="home" className="page home-page">
@@ -400,6 +397,7 @@ function App() {
           <Tabs.Panel value="reset" className="page">
             <div className="page-heading reset-heading">
               <div>
+                <div className="page-kicker">02 / Practice tools</div>
                 <h1>Active Reset</h1>
               </div>
               <ResetLaunch
@@ -489,7 +487,6 @@ function App() {
                 aria-labelledby="shortcuts-title"
               >
                 <div className="section-heading">
-                  <Glyph icon={keyboard} />
                   <h2 id="shortcuts-title">Keyboard shortcuts</h2>
                 </div>
                 <div className="setting-row">
@@ -498,6 +495,7 @@ function App() {
                   </span>
                   <div className="setting-label">
                     <h3>Save checkpoint</h3>
+                    <p>Stores position, speed and car state</p>
                   </div>
                   <button
                     className="key-button"
@@ -506,7 +504,7 @@ function App() {
                     onClick={() => openCapture("save_key")}
                   >
                     <kbd>{key("save_key")}</kbd>
-                    <Glyph icon={arrow} />
+                    <Glyph icon={pen} />
                   </button>
                 </div>
                 <div className="setting-row">
@@ -515,6 +513,7 @@ function App() {
                   </span>
                   <div className="setting-label">
                     <h3>Restore checkpoint</h3>
+                    <p>Returns the car to the saved moment</p>
                   </div>
                   <button
                     className="key-button"
@@ -523,7 +522,7 @@ function App() {
                     onClick={() => openCapture("restore_key")}
                   >
                     <kbd>{key("restore_key")}</kbd>
-                    <Glyph icon={arrow} />
+                    <Glyph icon={pen} />
                   </button>
                 </div>
               </section>
@@ -536,11 +535,6 @@ function App() {
             </div>
           </Tabs.Panel>
           <Tabs.Panel value="overlay" className="page overlay-page">
-            <div className="page-heading">
-              <div>
-                <h1>Overlay</h1>
-              </div>
-            </div>
             <OverlayEditor />
           </Tabs.Panel>
           {error && (
@@ -604,25 +598,33 @@ function App() {
           <Dialog.Backdrop className="modal-backdrop" />
           <Dialog.Viewport className="modal-viewport">
             <Dialog.Popup
-              className={`modal${shownModal === "changelog" ? " changelog-modal" : ""}`}
+              className={`modal${shownModal === "changelog" ? " changelog-modal" : shownModal === "settings" ? " settings-modal" : ""}`}
               ref={modalRef}
               initialFocus={modalRef}
             >
-              <div className="modal-icon">
-                <Glyph
-                  icon={
-                    shownModal === "diagnostics"
-                      ? save
-                      : shownModal === "changelog"
-                        ? history
-                        : shownModal === "settings"
-                          ? gear
-                          : shownModal === "close"
-                            ? monitor
-                            : keyboard
-                  }
-                />
-              </div>
+              {["settings", "changelog"].includes(shownModal) ? (
+                <div className="page-kicker">
+                  {shownModal === "settings"
+                    ? "Edit / Settings"
+                    : "Help / Changelog"}
+                </div>
+              ) : (
+                <div className="modal-icon">
+                  <Glyph
+                    icon={
+                      shownModal === "diagnostics"
+                        ? save
+                        : shownModal === "changelog"
+                          ? history
+                          : shownModal === "settings"
+                            ? gear
+                            : shownModal === "close"
+                              ? monitor
+                              : keyboard
+                    }
+                  />
+                </div>
+              )}
               <Dialog.Title>
                 {shownModal === "diagnostics"
                   ? "Export diagnostics"

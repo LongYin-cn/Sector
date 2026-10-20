@@ -139,6 +139,9 @@ test("class badges and model-only vehicle names resolve to their logos", () => {
     ["720S GT3 Evo", "MCL"],
     ["911 GT3 R", "POR"],
     ["296 GT3", "FER"],
+    ["Genesis GMR-001", "GEN"],
+    ["GMR001", "GEN"],
+    ["Genesis_GMR_001_17.veh", "GEN"],
   ])
     assert.equal(model.make(name), code);
 });

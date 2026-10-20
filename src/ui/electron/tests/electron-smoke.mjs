@@ -83,6 +83,12 @@ try {
     .getByRole("switch", { name: "Enable overlays", exact: true })
     .waitFor();
   await settle();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Edit layout", exact: true })
+      .evaluate((node) => getComputedStyle(node).backgroundColor),
+    "rgb(22, 24, 28)",
+  );
   await page.screenshot({ path: path.join(output, "overlay.png") });
   await page.getByRole("tab", { name: "Active Reset", exact: true }).click();
   await page
@@ -128,7 +134,7 @@ try {
   );
   assert.equal(
     await page
-      .getByRole("button", { name: "Play save sound", exact: true })
+      .getByRole("button", { name: "Save sound", exact: true })
       .isDisabled(),
     true,
   );

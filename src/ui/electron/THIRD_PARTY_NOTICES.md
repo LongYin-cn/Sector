@@ -32,6 +32,12 @@ SVG viewports; the unused original reference sheet is kept locally outside Git.
 Manufacturer names and marks belong to their respective owners; inclusion does not imply affiliation
 or endorsement, and Sector's MIT license grants no rights to those marks.
 
+The Genesis wing emblem is bundled separately as `renderer/overlays/logos/genesis.svg`,
+from the [official Genesis website](https://www.genesis.com/worldwide/en/main.html).
+The [original SVG asset](https://cms-static.genesis.com/oneweb/20261014070815/assets/logo_footer-BybBGRkJ.svg)
+was retrieved on 20 October 2026 and is retained without modification. The
+Genesis name and emblem belong to their respective owner.
+
 ## Software dependencies
 
 - Electron retains its `LICENSE` and `LICENSES.chromium.html` in the portable distribution.

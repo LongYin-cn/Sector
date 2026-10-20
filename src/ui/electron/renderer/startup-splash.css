@@ -4,7 +4,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: #101319;
+  background: var(--bg);
   z-index: 1000;
   transition: opacity 400ms var(--ease-out);
 }
@@ -17,9 +17,10 @@
   align-items: center;
   gap: 22px;
   padding: 30px 38px 30px 30px;
-  border-radius: 24px;
+  border-radius: 12px;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink);
+  box-shadow: 0 14px 34px #16181c14;
   opacity: 0;
   transform: scale(0.94);
   animation: startup-card-in 600ms var(--ease-out) 100ms forwards;
@@ -48,7 +49,7 @@
      so every line finishes at the same moment the animation ends. */
 .word-stroke {
   fill: none;
-  stroke: #f1f4fa;
+  stroke: var(--ink);
   stroke-width: 2.8; /* half of it is masked away, leaving 1.4 outside the letters */
   stroke-linejoin: round;
   stroke-dasharray: 1 1;
@@ -58,7 +59,7 @@
     startup-stroke-out 500ms ease 2900ms forwards;
 }
 .word-fill {
-  fill: #f1f4fa;
+  fill: var(--ink);
   opacity: 0;
   animation: startup-fade-in 600ms var(--ease-out) 2750ms forwards;
 }

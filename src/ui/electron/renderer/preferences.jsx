@@ -8,7 +8,10 @@ export function Preferences({ settings, pending, updateSettings }) {
     <div className="preferences">
       <h3 className="preference-category">Appearance</h3>
       <div className="setting-row motion-setting">
-        <h3 id="motion-label">Reduce motion</h3>
+        <div className="setting-label">
+          <h3 id="motion-label">Reduce motion</h3>
+          <p>Fades instead of moving panels</p>
+        </div>
         <button
           role="switch"
           aria-labelledby="motion-label"
@@ -61,14 +64,14 @@ export function AudioFeedback({ settings, pending, updateSettings, sound }) {
           onClick={() => sound("save")}
         >
           <Icon icon={play} aria-hidden="true" />
-          Play save sound
+          Save sound
         </button>
         <button
           disabled={!settings?.sound || pending}
           onClick={() => sound("restore")}
         >
           <Icon icon={play} aria-hidden="true" />
-          Play restore sound
+          Restore sound
         </button>
       </div>
     </section>

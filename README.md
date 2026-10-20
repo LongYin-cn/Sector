@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/sector-logo.png" width="112" height="112" alt="Sector logo">
+  <img src="assets/sector-logo-orange.png" width="112" height="112" alt="Sector logo">
 </p>
 
 <h1 align="center">Sector</h1>
@@ -16,18 +16,17 @@
 
 **Practice your driving and keep useful race information in view.**
 
-**Experimental build: [Sector 0.2.15](https://github.com/sector-lmu/Sector/releases/tag/v0.2.15).**
-This pre-release may contain bugs and will receive further fixes.
-It fixes the empty-bodywork save refusal and includes regression coverage for
-fuel consumption and tyre wear enabled or disabled. The reported failure has
-also been confirmed resolved on the affected PC.
+**Active Reset is experimental.** Check the
+[Releases page](https://github.com/sector-lmu/Sector/releases) for downloadable
+builds and their known limitations. The `dev` branch can include changes that
+have not yet been published as a download.
 
 Sector is a Windows app for **Le Mans Ultimate**. Save a point on track and return
 to it to practice a corner or section again. Add customizable widgets over the
 game to see standings, lap times, pedal inputs and more.
 
 <p align="center">
-  <a href="https://github.com/sector-lmu/Sector/releases/tag/v0.2.12"><strong>Download Sector 0.2.12 for Windows</strong></a>
+  <a href="https://github.com/sector-lmu/Sector/releases"><strong>Download Sector for Windows</strong></a>
   &nbsp;&nbsp;&nbsp;
   <a href="docs/README.md">User guide</a>
   &nbsp;&nbsp;&nbsp;
@@ -128,7 +127,8 @@ on your keyboard. Choose keys that are not already assigned to an action in LMU.
 Release both keys before using them in the game.
 
 Confirmation sounds tell you when a save or restore succeeds, or when a request
-is rejected. You can preview or mute them on the same page.
+is rejected. Enable **Confirmation sounds** on the same page and use
+**Save sound** or **Restore sound** to listen to a preview.
 
 <details>
 <summary>View Active Reset settings</summary>
@@ -142,7 +142,7 @@ is rejected. You can preview or mute them on the same page.
 Overlays are small widgets displayed over the game. Choose the information you
 want to keep in view:
 
-In 0.2.13, overlays use LMU's public telemetry interface independently of Active
+Overlays use LMU's public telemetry interface independently of Active
 Reset, including online sessions with EAC enabled. Launch LMU normally through
 Steam and enable your widgets. Active Reset remains unavailable online. This
 new connection path has passed local tests; live online verification is pending.
@@ -179,6 +179,12 @@ finished. Once locked, mouse clicks pass through to the game.
 Each widget has its own options. You can change size and transparency, hide
 columns or logos, and remove elements such as the clutch input. To choose a
 monitor, open **Edit → Settings → Overlay**.
+
+Select a widget in the list to adjust its **X**, **Y** and **Size** values.
+Drag the **Opacity** slider to see transparency change immediately. In
+**Inputs**, enable the steering wheel to choose a **Wheel marker** color and
+adjust its rotation range. Manufacturer logos include Genesis and recognize
+the GMR-001 when that name is supplied by the game.
 
 Tyres shows all four wheels and lets you choose which readings to display and
 set the temperature color ranges.
@@ -224,7 +230,7 @@ or launch `Sector.exe` again.
 ## Update Sector
 
 1. Close the running version with **Quit Sector**, rather than leaving it in the background.
-2. Download the new Windows ZIP from [Releases](https://github.com/sector-lmu/Sector/releases/latest).
+2. Download the new Windows ZIP from [Releases](https://github.com/sector-lmu/Sector/releases).
 3. Extract it into a new folder and launch its `Sector.exe`.
 4. Update your desktop shortcut if it still points to the old version.
 
@@ -233,15 +239,17 @@ Keep the files from each package together; do not copy only the new EXE over an
 older installation. If Active Reset asks you to restart LMU, restart it before
 making a new checkpoint.
 
-### In 0.2.12
+### In development: 0.2.21
 
-- Widgets follow the selected monitor's refresh rate, including fractional rates.
-- Pausing LMU hides widgets more quickly.
-- F7 no longer clears the overlay frame while resetting lap and tyre histories.
+- Light interface with orange accents, updated typography and clearer menus.
+- Live opacity sliders and steering-wheel marker color choices.
+- Genesis manufacturer logo support.
+- Orange Sector logo and a more readable startup animation. The animation
+  plays on a fresh app launch, not when returning from the background.
 
 Open **Help → Changelog** for the complete in-app version history. The
-[release notes](https://github.com/sector-lmu/Sector/releases/tag/v0.2.12)
-include the download and current limitations.
+[release notes](https://github.com/sector-lmu/Sector/releases)
+list published downloads and their current limitations.
 
 ## Need help?
 
@@ -253,7 +261,7 @@ exact message and the steps that reproduce it. For a display issue, include a
 screenshot and your monitor setup. Report problems through
 [GitHub Issues](https://github.com/sector-lmu/Sector/issues).
 
-In 0.2.14, reproduce the problem, then open **Help → Export diagnostics** and
+Reproduce the problem, then open **Help → Export diagnostics** and
 choose **Save diagnostic file**. Send the resulting JSON file with your report.
 It contains recent text logs, reset error details, app/graphics versions and
 available car/track context. Windows user-directory names are masked. Nothing

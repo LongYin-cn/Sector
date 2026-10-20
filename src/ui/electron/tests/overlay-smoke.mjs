@@ -39,6 +39,12 @@ try {
     .uncheck();
   assert.equal(await page.locator(".input-wheel").isVisible(), false);
   assert.equal(await page.getByLabel("Accent", { exact: true }).count(), 0);
+  assert.equal(
+    await page
+      .getByRole("group", { name: "Wheel marker", exact: true })
+      .count(),
+    0,
+  );
   await page
     .getByRole("checkbox", { name: "Steering wheel", exact: true })
     .check();
@@ -46,7 +52,6 @@ try {
     ["X", "100"],
     ["Y", "180"],
     ["Size", "125"],
-    ["Opacity", "55"],
   ]) {
     await page.getByRole("spinbutton", { name, exact: true }).fill(value);
     if (name === "Size") {
@@ -64,6 +69,11 @@ try {
     }
     await page.getByRole("spinbutton", { name, exact: true }).press("Tab");
   }
+  const opacity = page.getByRole("slider", { name: "Opacity", exact: true });
+  await opacity.fill("55");
+  await page
+    .getByRole("button", { name: "Blue wheel marker", exact: true })
+    .click();
   await page.waitForFunction(
     async () =>
       (await window.sector.initializeOverlays()).config.widgets.inputs
@@ -75,6 +85,26 @@ try {
   assert.equal(settings.config.widgets.inputs.x, 100);
   assert.equal(settings.config.widgets.inputs.scale, 1.25);
   assert.equal(settings.config.widgets.inputs.showClutch, false);
+  assert.equal(settings.config.widgets.inputs.accent, "#4C8DFF");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Blue wheel marker" })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  // Several rapid keyboard edits must persist the latest value, without a
+  // delayed acknowledgement moving the range thumb back.
+  await opacity.focus();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowLeft");
+  await page.waitForFunction(
+    async () =>
+      (await window.sector.initializeOverlays()).config.widgets.inputs
+        .opacity === 0.56,
+  );
+  assert.equal(await opacity.inputValue(), "56");
+  await opacity.fill("55");
   for (const name of [
     "Leaderboard",
     "Relative",
@@ -580,9 +610,12 @@ try {
             player: c === 0 && i === 9,
             name: c === 0 && i === 9 ? "Hyper Player" : `${cls} ${i}`,
             vehicle: `Team #${i + 1}`,
-            model: ["Ferrari 499P", "Oreca 07", "Ligier JS P325", "720S GT3"][
-              c
-            ],
+            model: [
+              "Genesis GMR-001",
+              "Oreca 07",
+              "Ligier JS P325",
+              "720S GT3",
+            ][c],
             laps: 5,
             lapsBehind: 0,
             behind: i,
@@ -602,7 +635,7 @@ try {
     assert.equal(await logo.locator("path").count(), 1);
     assert.equal(await logo.locator("text").textContent(), badge);
   }
-  for (const brand of ["ORE", "LIG", "MCL"])
+  for (const brand of ["GEN", "ORE", "LIG", "MCL"])
     assert.ok(
       (await page
         .locator(`.widget-leaderboard svg[aria-label="${brand}"] image`)

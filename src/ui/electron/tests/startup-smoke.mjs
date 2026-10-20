@@ -38,6 +38,13 @@ try {
   assert.equal(await page.locator(".word-stroke").count(), 8);
   assert.equal(
     await page
+      .locator(".word-stroke")
+      .first()
+      .evaluate((el) => getComputedStyle(el).stroke),
+    "rgb(22, 24, 28)",
+  );
+  assert.equal(
+    await page
       .locator(".splash-logo")
       .evaluate((el) => el.complete && el.naturalWidth > 0),
     true,

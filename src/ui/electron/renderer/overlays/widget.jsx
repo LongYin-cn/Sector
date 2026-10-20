@@ -1,5 +1,6 @@
 import React from "react";
 import logoSheet from "./logos-transparent.png";
+import genesisLogo from "./logos/genesis.svg";
 import layout from "../../shared/overlay-layout.cjs";
 import "./fonts.css";
 import "./widgets.css";
@@ -107,6 +108,18 @@ export function Logo({ code, badge = false }) {
         </text>
       </svg>
     ) : null;
+  if (code === "GEN")
+    return (
+      <svg
+        className="manufacturer-logo"
+        role="img"
+        aria-label="GEN"
+        viewBox="0 0 126 26"
+        style={{ width: 32, height: 22 }}
+      >
+        <image href={genesisLogo} width="126" height="26" />
+      </svg>
+    );
   const index = makes.indexOf(code);
   if (index < 0) return null;
   const x = 45 + (index % 6) * 150,

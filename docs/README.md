@@ -54,7 +54,8 @@ Click a shortcut on the Active Reset page, then press the key you want to assign
 Press **Escape** to cancel. Use a different key for each action and avoid keys
 already used by LMU. Release the keys before returning to the game.
 
-Confirmation sounds can be previewed or muted on the same page.
+Use **Save sound** and **Restore sound** to preview the confirmations. The
+**Confirmation sounds** switch enables or mutes them.
 
 ## Arrange your overlays
 
@@ -64,6 +65,8 @@ Confirmation sounds can be previewed or muted on the same page.
 4. Select **Lock layout** when you are happy with the arrangement. **Escape** also locks it.
 
 Select a widget in Sector to change its size, transparency and available options.
+Drag **Opacity** to adjust transparency live. For Inputs, turn on the steering
+wheel to show **Wheel marker** color choices and the **Rotation** control.
 Column and section switches let you remove information you do not need. For
 example, hide the clutch in Inputs or remove manufacturer logos from standings.
 The widget adjusts to the remaining content.

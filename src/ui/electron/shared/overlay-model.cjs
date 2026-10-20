@@ -30,6 +30,7 @@ const classCode = (name) =>
           : String(name || dash).slice(0, 8);
 const colors = { HY: "#E5322F", P2: "#2D9CDB", P3: "#F28C28", GT3: "#1FA34A" };
 const manufacturers = [
+  ["GEN", "genesis|\\bgmr[ -]?001\\b"],
   ["BMW", "bmw"],
   ["MER", "mercedes|amg"],
   ["FOR", "ford|mustang"],

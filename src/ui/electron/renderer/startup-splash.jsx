@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import logo from "@assets/sector-logo.png";
+import logo from "@assets/sector-logo-orange.png";
 import { StartupWord } from "./startup-word.jsx";
 import "./startup-splash.css";
 

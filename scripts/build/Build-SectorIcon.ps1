@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 $assets = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'assets'
-$source = [Windows.Media.Imaging.BitmapImage]::new([uri](Join-Path $assets 'sector-logo.png'))
+$source = [Windows.Media.Imaging.BitmapImage]::new([uri](Join-Path $assets 'sector-logo-orange.png'))
 $frames = foreach ($size in @(16, 24, 32, 48, 64, 128, 256)) {
     $visual = [Windows.Media.DrawingVisual]::new()
     [Windows.Media.RenderOptions]::SetBitmapScalingMode($visual, [Windows.Media.BitmapScalingMode]::HighQuality)

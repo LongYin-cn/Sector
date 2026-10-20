@@ -3,6 +3,23 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Design B refinements: 0.2.21
+
+- All 68 desktop unit tests passed, including Genesis and GMR-001 name matching.
+- Electron UI, all ten overlay widgets and Home preview checks passed. Overlay
+  coverage includes live opacity changes, rapid slider input persistence and
+  steering wheel marker selection.
+- Genesis, Oreca, Ligier and McLaren logos rendered in the leaderboard preview.
+- Startup and onboarding checks passed, including reduced motion, skipping the
+  animation, returning from the background and installation-folder selection.
+- The startup lettering and Edit layout button have contrast regression checks.
+  Home, Active Reset, Overlay, Settings and the splash were visually reviewed.
+- The portable Sector 0.2.21 executable passed its packaged smoke test, including
+  bundled Python imports, app version and overlay rendering.
+
+These are isolated preview tests. Native reset remains v27; this UI update adds
+no live-game evidence about puncture repair or lap timing.
+
 ## Design B desktop: 0.2.20
 
 The interface now adapts the supplied Design B reference. Native reset remains

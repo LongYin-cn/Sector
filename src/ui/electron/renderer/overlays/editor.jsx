@@ -3,11 +3,14 @@ import layout from "../../shared/overlay-layout.cjs";
 import { Widget } from "./widget.jsx";
 import { sampleValues } from "./sample-values.js";
 import model from "../../shared/overlay-model.cjs";
-import { Icon } from "@iconify/react";
-import lock from "@iconify-icons/solar/lock-keyhole-linear";
-import move from "@iconify-icons/solar/move-square-linear";
 import "./editor.css";
 const api = window.sector;
+const wheelMarkers = [
+  ["#FFD23F", "Yellow"],
+  ["#FF8A3D", "Orange"],
+  ["#4C8DFF", "Blue"],
+  ["#FFFFFF", "White"],
+];
 function NumberField({
   label,
   value,
@@ -25,7 +28,10 @@ function NumberField({
   }, [value]);
   return (
     <label className="overlay-field">
-      <span>{label}</span>
+      <span>
+        {label}
+        {suffix && ` / ${suffix}`}
+      </span>
       <div>
         <input
           aria-label={label}
@@ -61,7 +67,6 @@ function NumberField({
             if (e.key === "Enter") e.currentTarget.blur();
           }}
         />
-        {suffix && <span>{suffix}</span>}
       </div>
     </label>
   );
@@ -72,12 +77,21 @@ export function OverlayEditor() {
     [error, setError] = useState("");
   const [width, setWidth] = useState(600);
   const stage = useRef(null);
+  const currentState = useRef(null);
+  const queuedConfig = useRef(null);
+  const saving = useRef(false);
+  currentState.current = state;
   useEffect(() => {
     let received = false,
       live = true;
     const off = api.onOverlays((value) => {
       received = true;
-      if (live) setState(value);
+      if (live)
+        setState((current) =>
+          saving.current && current
+            ? { ...value, config: current.config }
+            : value,
+        );
     });
     api
       .initializeOverlays()
@@ -99,16 +113,32 @@ export function OverlayEditor() {
     return () => observer.disconnect();
   }, [Boolean(state)]);
   async function save(config) {
-    const previous = state.config;
     setState((current) => ({ ...current, config }));
+    currentState.current = { ...currentState.current, config };
+    queuedConfig.current = config;
+    if (saving.current) return;
+    saving.current = true;
+    // Serialize/coalesce live slider changes. An older acknowledgement must
+    // never move the thumb back or overwrite a more recent widget edit.
     try {
-      const result = await api.saveOverlays(config);
-      if (!result.ok) throw new Error(result.error);
-      setState(result);
+      while (queuedConfig.current) {
+        const candidate = queuedConfig.current;
+        queuedConfig.current = null;
+        const result = await api.saveOverlays(candidate);
+        if (!result.ok) throw new Error(result.error);
+        if (!queuedConfig.current) setState(result);
+      }
       setError("");
     } catch (e) {
-      setState((current) => ({ ...current, config: previous }));
+      queuedConfig.current = null;
       setError(e.message);
+      try {
+        setState(await api.initializeOverlays());
+      } catch {
+        /* Retain the error for retry. */
+      }
+    } finally {
+      saving.current = false;
     }
   }
   async function edit() {
@@ -121,11 +151,16 @@ export function OverlayEditor() {
   if (!state) return error ? <p role="alert">{error}</p> : null;
   const { config, definitions, frame } = state,
     setting = config.widgets[selected];
-  const update = (patch) =>
-    save({
-      ...config,
-      widgets: { ...config.widgets, [selected]: { ...setting, ...patch } },
+  const update = (patch) => {
+    const latest = currentState.current.config;
+    return save({
+      ...latest,
+      widgets: {
+        ...latest.widgets,
+        [selected]: { ...latest.widgets[selected], ...patch },
+      },
     });
+  };
 
   const values = frame?.connected
     ? model.valuesFor(selected, frame, setting)
@@ -134,40 +169,51 @@ export function OverlayEditor() {
   const scale = Math.min(setting.scale, (width - 32) / def.width);
   return (
     <div className="overlay-editor" data-tour="overlay-editor">
-      <div className="overlay-toolbar">
-        <button
-          role="switch"
-          aria-label="Enable overlays"
-          aria-checked={config.enabled}
-          className="switch"
-          onClick={() => save({ ...config, enabled: !config.enabled })}
-        >
-          <span />
-        </button>
-        <span>Overlays</span>
-        <button
-          className="secondary layout-toggle"
-          aria-pressed={state.editing}
-          onClick={edit}
-        >
-          <Icon icon={state.editing ? lock : move} />
-          {state.editing ? "Lock layout" : "Edit layout"}
-        </button>
+      <div className="page-heading overlay-heading">
+        <div>
+          <div className="page-kicker">03 / Widgets</div>
+          <h1>Overlay</h1>
+        </div>
+        <div className="overlay-toolbar">
+          <span className="overlay-enabled-control">
+            <span>Overlays</span>
+            <button
+              role="switch"
+              aria-label="Enable overlays"
+              aria-checked={config.enabled}
+              className="switch"
+              onClick={() => save({ ...config, enabled: !config.enabled })}
+            >
+              <span />
+            </button>
+          </span>
+          <button
+            className="secondary layout-toggle"
+            aria-pressed={state.editing}
+            onClick={edit}
+          >
+            {state.editing ? "Lock layout" : "Edit layout"}
+          </button>
+        </div>
       </div>
       <div className="overlay-workspace">
         <div className="widget-list" role="group" aria-label="Widgets">
           <header className="widget-list-heading">
             <span>Widget</span>
-            <span>On</span>
+            <span>Show</span>
           </header>
           {Object.entries(definitions).map(([id, d]) => (
             <div key={id} className={id === selected ? "selected" : ""}>
               <button
                 className="widget-choice"
+                aria-label={d.name}
                 aria-pressed={id === selected}
                 onClick={() => setSelected(id)}
               >
                 {d.name}
+                <small>
+                  {d.width}×{d.height}
+                </small>
               </button>
               <input
                 type="checkbox"
@@ -275,28 +321,55 @@ export function OverlayEditor() {
               onCommit={(scale) => update({ scale: scale / 100 })}
               suffix="%"
             />
-            <NumberField
-              label="Opacity"
-              value={Math.round(setting.opacity * 100)}
-              min={0}
-              max={100}
-              step={5}
-              onCommit={(opacity) => update({ opacity: opacity / 100 })}
-              suffix="%"
-            />
-            {((selected === "inputs" && setting.showWheel) ||
-              (selected === "session-summary" &&
-                layout.visible(setting, "position"))) && (
-              <label className="overlay-field">
-                <span>Accent</span>
-                <input
-                  type="color"
-                  aria-label="Accent"
-                  value={setting.accent}
-                  onChange={(e) => update({ accent: e.target.value })}
-                />
-              </label>
+            <label className="overlay-field opacity-field">
+              <span>Opacity / {Math.round(setting.opacity * 100)}%</span>
+              <input
+                type="range"
+                aria-label="Opacity"
+                aria-valuetext={`${Math.round(setting.opacity * 100)}%`}
+                min="0"
+                max="100"
+                step="1"
+                value={Math.round(setting.opacity * 100)}
+                onChange={(e) =>
+                  update({ opacity: e.target.valueAsNumber / 100 })
+                }
+              />
+            </label>
+            {selected === "inputs" && setting.showWheel && (
+              <div className="overlay-field">
+                <span id="wheel-marker-label">Wheel marker</span>
+                <div
+                  className="wheel-swatches"
+                  role="group"
+                  aria-labelledby="wheel-marker-label"
+                >
+                  {wheelMarkers.map(([color, label]) => (
+                    <button
+                      key={color}
+                      type="button"
+                      aria-label={`${label} wheel marker`}
+                      aria-pressed={setting.accent.toUpperCase() === color}
+                      title={label}
+                      style={{ backgroundColor: color }}
+                      onClick={() => update({ accent: color })}
+                    />
+                  ))}
+                </div>
+              </div>
             )}
+            {selected === "session-summary" &&
+              layout.visible(setting, "position") && (
+                <label className="overlay-field">
+                  <span>Accent</span>
+                  <input
+                    type="color"
+                    aria-label="Accent"
+                    value={setting.accent}
+                    onChange={(e) => update({ accent: e.target.value })}
+                  />
+                </label>
+              )}
             {["leaderboard", "relative", "laps"].includes(selected) && (
               <NumberField
                 label="Rows"
@@ -308,7 +381,7 @@ export function OverlayEditor() {
             )}
             {selected === "inputs" && (
               <NumberField
-                label="Steering rotation"
+                label="Rotation"
                 value={setting.lockDeg}
                 min={90}
                 max={540}

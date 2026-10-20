@@ -143,7 +143,10 @@ export function Home({
   return (
     <div className="home-content">
       <div className="home-heading">
-        <h1>Home</h1>
+        <div>
+          <div className="page-kicker">01 / Overview</div>
+          <h1>Home</h1>
+        </div>
       </div>
 
       <section className="home-session" aria-label="Session overview">

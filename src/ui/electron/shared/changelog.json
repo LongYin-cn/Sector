@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.2.21",
+    "changes": [
+      "Refined Design B colors, typography, sound controls, menus and page alignment.",
+      "Added a live opacity slider and wheel marker color swatches to the overlay editor.",
+      "Added the Genesis manufacturer logo and recognition of GMR-001 vehicle names.",
+      "Updated the orange Sector logo, Windows icon, startup animation and illustrated user documentation.",
+      "Native reset remains v27. Live puncture and lap-timing verification is still pending."
+    ]
+  },
+  {
     "version": "0.2.20",
     "changes": [
       "Redesigned the desktop from Design B with a light palette, orange accents, IBM Plex fonts and sidebar navigation.",
