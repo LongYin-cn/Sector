@@ -1,6 +1,6 @@
 {
   "name": "sector-desktop",
-  "version": "0.2.19",
+  "version": "0.2.20",
   "private": true,
   "license": "MIT",
   "description": "Sector desktop companion for Le Mans Ultimate",
@@ -24,7 +24,8 @@
   "dependencies": {
     "@base-ui/react": "1.9.0",
     "@fontsource/barlow-condensed": "^5.2.6",
-    "@fontsource/manrope": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@iconify-icons/solar": "2.0.4",
     "@iconify/react": "^6.0.2",
     "react": "19.3.1",

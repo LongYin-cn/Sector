@@ -156,6 +156,10 @@ export function OverlayEditor() {
       </div>
       <div className="overlay-workspace">
         <div className="widget-list" role="group" aria-label="Widgets">
+          <header className="widget-list-heading">
+            <span>Widget</span>
+            <span>On</span>
+          </header>
           {Object.entries(definitions).map(([id, d]) => (
             <div key={id} className={id === selected ? "selected" : ""}>
               <button
@@ -187,7 +191,10 @@ export function OverlayEditor() {
         </div>
         <div className="widget-inspector">
           <div className="widget-stage" ref={stage}>
-            {frame?.connected && <span className="stage-mode">Live</span>}
+            <span className="stage-mode">
+              {definitions[selected].name}
+              {frame?.connected ? " / Live" : ""}
+            </span>
             <div
               style={{ width: def.width * scale, height: def.height * scale }}
             >

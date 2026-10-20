@@ -33,7 +33,7 @@ export function GuidedTour({ saveKey, restoreKey, onTabChange, onFinish }) {
     {
       target: "connection",
       title: "Know when you’re connected",
-      text: "Open offline Practice without EAC and enter driving. Sector connects automatically. This bar shows connection status and the latest result.",
+      text: "Open offline Practice without EAC and enter driving. Sector connects automatically. Expand this bar to review status events, filter errors or export diagnostics.",
       side: "top",
     },
     {

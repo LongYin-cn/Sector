@@ -31,6 +31,26 @@ try {
   await page.waitForFunction(
     () => !document.querySelector(".key-button").disabled,
   );
+  await page.getByRole("tab", { name: "Active Reset", exact: true }).focus();
+  await page.keyboard.press("ArrowDown");
+  assert.equal(
+    await page
+      .getByRole("tab", { name: "Overlay", exact: true })
+      .evaluate((node) => node === document.activeElement),
+    true,
+  );
+  await page.keyboard.press("Enter");
+  assert.equal(
+    await page
+      .getByRole("tab", { name: "Overlay", exact: true })
+      .getAttribute("aria-selected"),
+    "true",
+  );
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Enter");
+  await page
+    .getByRole("button", { name: "Change save shortcut, F6", exact: true })
+    .waitFor();
   await page.evaluate(() => document.fonts.ready);
   await app.evaluate(() => global.sectorTest.window().showInactive());
   const settle = () =>
@@ -50,7 +70,8 @@ try {
     .boundingBox();
   assert.ok(Math.abs(resetTab.width - overlayTab.width) < 1);
   assert.equal(resetTab.height, overlayTab.height);
-  assert.ok(overlayTab.x - (resetTab.x + resetTab.width) >= 5);
+  assert.equal(resetTab.x, overlayTab.x);
+  assert.ok(overlayTab.y - (resetTab.y + resetTab.height) >= 4);
   await page.screenshot({ path: path.join(output, "active-reset.png") });
   assert.equal(await page.evaluate(() => typeof window.require), "undefined");
   assert.equal(
@@ -61,6 +82,7 @@ try {
   await page
     .getByRole("switch", { name: "Enable overlays", exact: true })
     .waitFor();
+  await settle();
   await page.screenshot({ path: path.join(output, "overlay.png") });
   await page.getByRole("tab", { name: "Active Reset", exact: true }).click();
   await page
@@ -302,7 +324,10 @@ try {
       message: "Checkpoint applied.",
     }),
   );
-  await page.getByText("Checkpoint applied.", { exact: true }).waitFor();
+  await page
+    .locator(".log-message")
+    .filter({ hasText: "Checkpoint applied." })
+    .waitFor();
   assert.equal(
     await page.locator(".checkpoint-title").innerText(),
     "Checkpoint ready",
@@ -315,7 +340,56 @@ try {
       message: "Vehicle changed. Waiting for driving.",
     }),
   );
-  await page.getByText("Vehicle changed. Waiting for driving.").waitFor();
+  await page
+    .locator(".log-message")
+    .filter({ hasText: "Vehicle changed. Waiting for driving." })
+    .waitFor();
+  await page.locator(".reset-log-summary").click();
+  await page.getByRole("button", { name: /Errors & warnings/ }).click();
+  await page.getByText("No errors or warnings.", { exact: true }).waitFor();
+  await app.evaluate(() =>
+    global.sectorTest.publish({
+      phase: "error",
+      checkpoint: false,
+      message: "Test connection error",
+    }),
+  );
+  await page
+    .getByLabel("Recent status events")
+    .getByText("Test connection error", { exact: true })
+    .waitFor();
+  await app.evaluate(() =>
+    global.sectorTest.publish({
+      phase: "active",
+      checkpoint: false,
+      last_event: "rejected",
+      reset_action: 0,
+      report_id: 12,
+      message: "Test save rejected",
+    }),
+  );
+  await page
+    .getByLabel("Recent status events")
+    .getByText("Test save rejected", { exact: true })
+    .waitFor();
+  assert.equal(
+    await page.locator(".log-level").getAttribute("data-level"),
+    "WARN",
+  );
+  await page.getByRole("tab", { name: "Home", exact: true }).click();
+  await page.getByRole("tab", { name: "Active Reset", exact: true }).click();
+  await page.locator(".reset-log-summary").click();
+  await page
+    .getByLabel("Recent status events")
+    .getByText("Test connection error", { exact: true })
+    .waitFor();
+  await page
+    .getByRole("button", { name: "Export diagnostics", exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: "Export diagnostics", exact: true })
+    .waitFor();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   assert.equal(
     await page.locator(".checkpoint-title").innerText(),
     "No checkpoint",

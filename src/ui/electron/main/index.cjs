@@ -387,11 +387,11 @@ if (!app.requestSingleInstanceLock()) {
       session.defaultSession.setPermissionCheckHandler(() => false);
       window = new BrowserWindow({
         title: "Sector",
-        width: 1000,
-        height: 720,
+        width: 1200,
+        height: 880,
         minWidth: 620,
         minHeight: 560,
-        backgroundColor: "#101319",
+        backgroundColor: "#f3f0e8",
         frame: false,
         show: false,
         icon: path.join(root, "assets/sector.ico"),

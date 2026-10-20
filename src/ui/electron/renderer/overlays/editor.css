@@ -2,8 +2,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
-  font-size: 12px;
+  margin-bottom: 22px;
+  font-size: 14px;
 }
 .overlay-toolbar .switch {
   margin-left: 0;
@@ -16,223 +16,243 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
 }
 .overlay-workspace {
   display: grid;
-  grid-template-columns: 152px minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
 }
 .widget-list {
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.widget-list-heading {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-strong);
+  font:
+    500 10.5px "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .widget-list > div {
+  position: relative;
   display: flex;
   align-items: center;
-  padding-right: 10px;
-  border-radius: 7px;
+  padding-right: 12px;
+  border-bottom: 1px solid var(--line);
+  transition: background-color 150ms ease;
 }
-.widget-list > div.selected {
-  background: #22314a;
+.widget-list > div:last-child {
+  border-bottom: 0;
+}
+.widget-list > div.selected,
+.widget-list > div:hover {
+  background: white;
+}
+.widget-list > div.selected::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--accent);
 }
 .widget-choice {
   flex: 1;
+  min-width: 0;
+  min-height: 44px;
   text-align: left;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
   background: transparent;
-  font-size: 12px;
-  padding: 14px 12px;
-  border-radius: 7px;
+  color: var(--muted);
 }
+.selected .widget-choice {
+  color: var(--ink);
+  font-weight: 600;
+}
+.widget-inspector {
+  min-width: 0;
+}
+/* Game widgets retain their own dark palette inside the light editor. */
 .widget-stage {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 210px;
-  padding: 36px 16px 22px;
-  border: 1px solid #ffffff12;
+  min-height: 240px;
+  padding: 38px 16px 24px;
+  border: 1px solid var(--ink);
   border-radius: 12px;
-  background-color: #20262e;
-  background-image: conic-gradient(
-    #252c35 25%,
-    transparent 0 50%,
-    #252c35 0 75%,
-    transparent 0
-  );
-  background-size: 20px 20px;
+  background: #14161b radial-gradient(#ffffff12 1px, transparent 1px);
+  background-size: 16px 16px;
   overflow: hidden;
+  color: #e6e2d8;
+  color-scheme: dark;
 }
 .stage-mode {
   position: absolute;
-  right: 12px;
+  left: 12px;
   top: 10px;
-  color: #8493aa;
-  font-size: 10px;
+  color: #a7adb8;
+  font:
+    500 10.5px "IBM Plex Mono",
+    monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 .overlay-controls {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 22px;
+  gap: 14px;
+  margin-top: 18px;
 }
 .overlay-field {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  font-size: 11px;
-  color: #9ba8bc;
+  gap: 6px;
+  color: var(--muted);
+  font:
+    500 11px "IBM Plex Mono",
+    monospace;
+}
+.overlay-field > span {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 .overlay-field > div {
   display: flex;
   align-items: center;
-  gap: 6px;
-  border: 1px solid #ffffff16;
-  background: #1b2432;
+  gap: 4px;
   padding-right: 10px;
-  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: white;
 }
 .overlay-field input {
   width: 100%;
   min-width: 0;
-  padding: 10px;
-  font:
-    12px Manrope,
-    sans-serif;
-  color: #e3eafb;
-  background: #1b2432;
+  height: 44px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 8px;
+  font:
+    500 14px "IBM Plex Mono",
+    monospace;
+  background: white;
+  color: var(--ink);
 }
 .overlay-field input[type="color"] {
-  height: 37px;
-  padding: 4px;
+  padding: 6px;
   cursor: pointer;
+  border: 1px solid var(--line-strong);
 }
 .overlay-parts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 20px;
+  gap: 8px;
+  margin-top: 14px;
+}
+.overlay-parts:empty {
+  display: none;
 }
 .overlay-parts label {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 11px;
-  color: #c2ccdd;
+  gap: 8px;
+  padding: 10px 12px;
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
 }
-.overlay-error {
-  color: #ffc1b3;
-  font-size: 12px;
-  margin-top: 18px;
-}
-@media (max-width: 850px) {
-  .overlay-workspace {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  .widget-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 3px;
-  }
-  .widget-choice {
-    padding: 10px;
-  }
-  .overlay-toolbar {
-    flex-wrap: wrap;
-  }
-  .overlay-controls {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.widget-list > div:hover {
-  background: #2c3b52;
-}
-.widget-list > div:hover .widget-choice {
-  background: transparent;
+.overlay-parts label:hover {
+  background: white;
+  border-color: var(--ink);
 }
 .overlay-editor input[type="checkbox"] {
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   flex: none;
-  border: 1px solid #64748b;
-  border-radius: 4px;
-  background: #111a27;
   display: grid;
   place-content: center;
   margin: 0;
-  transition:
-    background 140ms ease,
-    border-color 140ms ease;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: background-color 150ms ease;
 }
 .overlay-editor input[type="checkbox"]:checked {
-  background: #4f83de;
-  border-color: #6797e7;
+  background: var(--ink);
 }
 .overlay-editor input[type="checkbox"]::after {
   content: "";
-  width: 12px;
-  height: 12px;
-  background: #fff;
+  width: 14px;
+  height: 14px;
+  background: white;
   clip-path: polygon(12% 44%, 39% 70%, 87% 18%, 100% 31%, 40% 94%, 0 57%);
   opacity: 0;
   transform: scale(0.6);
   transition:
-    opacity 130ms ease,
-    transform 160ms var(--ease-out);
+    opacity 150ms ease,
+    transform 200ms var(--ease-out);
 }
 .overlay-editor input[type="checkbox"]:checked::after {
   opacity: 1;
-  transform: scale(1);
+  transform: none;
 }
 .overlay-parts input[type="checkbox"] {
   order: 2;
   margin-left: auto;
 }
-
-.overlay-parts {
-  gap: 8px;
-  margin: 16px 0;
+.overlay-error {
+  color: #b42318;
+  font-size: 13px;
+  margin-top: 18px;
 }
-.overlay-parts label {
-  padding: 12px 14px;
-  min-height: 44px;
-  border: 1px solid #ffffff10;
-  border-radius: 8px;
-  background: #171f2b;
-  cursor: pointer;
-  font-size: 12px;
+@media (max-width: 1100px) {
+  .overlay-workspace {
+    grid-template-columns: 170px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .overlay-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-.overlay-parts label:has(:checked) {
-  border-color: #ffffff1c;
-  background: #1d293a;
-}
-.overlay-parts label:hover {
-  background: #293a51;
-  border-color: #6f91c7;
-}
-
-.overlay-parts:empty {
-  display: none;
-}
-.overlay-parts label {
-  transition:
-    background 160ms ease,
-    border-color 160ms ease;
-}
-.overlay-parts label:focus-within {
-  outline: 2px solid #82acff;
-  outline-offset: 2px;
-}
-html[data-reduce-motion="true"] .overlay-editor input[type="checkbox"]::after {
-  transition: none !important;
-}
-@media (prefers-reduced-motion: reduce) {
-  .overlay-editor input[type="checkbox"]::after {
-    transition: none !important;
+@media (max-width: 850px) {
+  .overlay-workspace {
+    grid-template-columns: 1fr;
+  }
+  .widget-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .widget-list-heading {
+    grid-column: 1 / -1;
+  }
+  .widget-list > div {
+    border-bottom: 1px solid var(--line);
+  }
+  .overlay-toolbar {
+    flex-wrap: wrap;
   }
 }

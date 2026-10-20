@@ -3,6 +3,28 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## Design B desktop: 0.2.20
+
+The interface now adapts the supplied Design B reference. Native reset remains
+v27; this release does not add evidence about the pending live-game puncture or
+lap-timing checks.
+
+- All 68 desktop unit tests passed.
+- Electron UI tests passed for sidebar mouse/keyboard navigation, key capture,
+  confirmation sounds, checkpoint acknowledgements, status-log filters and
+  export access, background/reopen, quit, guided tour and reduced motion.
+- All ten overlay widgets passed preview tests, including settings, logos,
+  column toggles, drag/resize, locking and foreground visibility.
+- Home actions, onboarding, cold-start animation and diagnostic export passed
+  their isolated preview tests.
+- Home, Active Reset, Overlay and Settings were visually reviewed. Compact
+  640 x 600 layouts were checked alongside the 1200 x 880 desktop window.
+- The portable Sector 0.2.20 executable passed its packaged smoke test,
+  including bundled Python imports and overlay rendering.
+
+These checks use isolated preview profiles and simulated session data. They do
+not operate LMU or claim a new live-game validation.
+
 ## Checkpoint capture and punctures: 0.2.19 / v27
 
 The exported 0.2.18 diagnostics contain 16 failed F6 commands with result 4,

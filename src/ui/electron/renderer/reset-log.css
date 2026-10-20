@@ -1,0 +1,101 @@
+.reset-log {
+  margin-top: 16px;
+  border: 1px solid #16181c;
+  border-radius: 10px;
+  background: #16181c;
+  color: #e6e2d8;
+  overflow: hidden;
+  font:
+    400 12px "IBM Plex Mono",
+    monospace;
+}
+.reset-log-summary {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: transparent;
+  text-align: left;
+}
+.reset-log-summary time,
+.reset-log-lines time {
+  color: #aaa69b;
+}
+.reset-log-summary svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 200ms ease;
+}
+.log-message {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.log-level {
+  min-width: 52px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: #ffffff14;
+  font-size: 11px;
+  text-align: center;
+}
+.log-level[data-level="OK"] {
+  background: #4ade801f;
+  color: #7ee2a2;
+}
+.log-level[data-level="ERROR"],
+.reset-log-lines [data-level="ERROR"] {
+  color: #ff9b8a;
+}
+.log-level[data-level="WARN"],
+.reset-log-lines [data-level="WARN"] {
+  color: #fbcb52;
+}
+.reset-log-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  border-block: 1px solid #ffffff14;
+}
+.reset-log-tools > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.reset-log-tools button {
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid #ffffff30;
+  border-radius: 6px;
+  font-size: 11px;
+}
+.reset-log-tools button[aria-pressed="true"],
+.reset-log button:hover {
+  background: #ffffff14;
+}
+.reset-log-lines {
+  list-style: none;
+  margin: 0;
+  padding: 8px 14px;
+  max-height: 210px;
+  overflow: auto;
+  user-select: text;
+}
+.reset-log-lines li {
+  display: grid;
+  grid-template-columns: 64px 48px minmax(0, 1fr);
+  gap: 8px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.reset-log-lines .log-empty {
+  display: block;
+  color: #aaa69b;
+  padding: 8px 0;
+}

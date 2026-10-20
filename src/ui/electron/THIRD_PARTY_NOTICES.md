@@ -10,7 +10,7 @@ retain dependency notices alongside the application.
 | Asset | Attribution and license |
 | --- | --- |
 | Solar Linear icons | **480 Design**, [original set](https://www.figma.com/community/file/1166831539721848736), distributed through Iconify under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
-| Manrope | Copyright 2019 The Manrope Project Authors, [project](https://github.com/sharanda/manrope), SIL Open Font License 1.1 |
+| IBM Plex Sans and IBM Plex Mono | IBM Corp., [project](https://github.com/IBM/plex), SIL Open Font License 1.1 |
 | Barlow Condensed | Copyright 2017 The Barlow Project Authors, [project](https://github.com/jpt/barlow), SIL Open Font License 1.1 |
 | Barlow Semi Condensed and JetBrains Mono | Font files supplied with the overlay design; their original notices are retained in `renderer/overlays/fonts/LICENSE.txt` |
 
@@ -21,6 +21,8 @@ packaging. No remote page runtime is required.
 
 The Sector logo is an original generated asset. Its provenance is documented in
 the repository's [asset guide](https://github.com/sector-lmu/Sector/blob/dev/assets/README.md).
+The desktop layout adapts the user-supplied `sector-design-b.html`. Its demo
+state is replaced by Sector's session, checkpoint and overlay services.
 
 ## Overlay designs and manufacturer marks
 

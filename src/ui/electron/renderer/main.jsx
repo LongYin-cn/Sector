@@ -21,13 +21,17 @@ import { Home } from "./home.jsx";
 import { ResetLaunch } from "./reset-launch.jsx";
 import { StartupSplash } from "./startup-splash.jsx";
 import { Changelog } from "./changelog.jsx";
+import { ResetLog, useResetLog } from "./reset-log.jsx";
 import history from "@iconify-icons/solar/history-linear";
 import home from "@iconify-icons/solar/home-2-linear";
 import help from "@iconify-icons/solar/question-circle-linear";
-import "@fontsource/manrope/latin-400.css";
-import "@fontsource/manrope/latin-500.css";
-import "@fontsource/manrope/latin-600.css";
-import "@fontsource/manrope/latin-700.css";
+import "@fontsource/ibm-plex-sans/latin-400.css";
+import "@fontsource/ibm-plex-sans/latin-500.css";
+import "@fontsource/ibm-plex-sans/latin-600.css";
+import "@fontsource/ibm-plex-sans/latin-700.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-500.css";
+import "@fontsource/ibm-plex-mono/latin-600.css";
 import "@fontsource/barlow-condensed/latin-500.css";
 import "@fontsource/barlow-condensed/latin-600.css";
 import logo from "@assets/sector-logo.png";
@@ -73,6 +77,9 @@ function App() {
   const audio = useRef(null);
   const view = statusView(status);
   const eacBlocked = status.blocked_reason === "eac" || game.eac === true;
+  const gameDetected =
+    game.running || ["active", "paused"].includes(status.phase);
+  const resetLog = useResetLog(status);
 
   useEffect(() => {
     document.documentElement.dataset.reduceMotion = String(
@@ -340,10 +347,19 @@ function App() {
           </button>
         </div>
       </div>
-      <Tabs.Root value={tab} onValueChange={setTab} className="app-shell">
+      <Tabs.Root
+        value={tab}
+        onValueChange={setTab}
+        orientation="vertical"
+        className="app-shell"
+      >
         <header className="app-header">
           <div className="brand">
-            <img src={logo} alt="" />
+            <span
+              className="brand-mark"
+              style={{ maskImage: `url(${logo})` }}
+              aria-hidden="true"
+            />
             <span>
               sector<span className="brand-period">.</span>
             </span>
@@ -363,6 +379,10 @@ function App() {
             </Tabs.Tab>
             <Tabs.Indicator className="tab-indicator" />
           </Tabs.List>
+          <div className={`sidebar-status ${view.tone}`} role="status">
+            <span className="dot" />
+            {gameDetected ? "LMU running" : "LMU not running"}
+          </div>
         </header>
         <main className="scroll-area">
           <Tabs.Panel value="home" className="page home-page">
@@ -380,9 +400,7 @@ function App() {
           <Tabs.Panel value="reset" className="page">
             <div className="page-heading reset-heading">
               <div>
-                <h1>
-                  Active Reset<span className="accent">.</span>
-                </h1>
+                <h1>Active Reset</h1>
               </div>
               <ResetLaunch
                 game={game}
@@ -434,13 +452,36 @@ function App() {
                     </>
                   )}
                 </p>
-                <div className="sector-lines" aria-hidden="true">
-                  <i />
-                  <i />
-                  <i />
-                </div>
               </div>
+              <aside className="checkpoint-side" aria-label="Reset readiness">
+                <ol className="readiness-steps">
+                  {[
+                    ["LMU detected", gameDetected],
+                    [
+                      "Driving offline",
+                      status.phase === "active" && !eacBlocked,
+                    ],
+                    ["Checkpoint saved", view.saved],
+                  ].map(([label, done], index) => (
+                    <li key={label} data-done={Boolean(done)}>
+                      <span>{done ? <Glyph icon={check} /> : index + 1}</span>
+                      {label}
+                    </li>
+                  ))}
+                </ol>
+                <div className="checkpoint-count">
+                  <span className="eyebrow">Checkpoint restores</span>
+                  <strong>{view.count}</strong>
+                </div>
+              </aside>
             </section>
+            <ResetLog
+              entries={resetLog}
+              onExport={() => {
+                setExportState("");
+                setModal("diagnostics");
+              }}
+            />
             <div className="settings-grid">
               <section
                 data-tour="shortcuts"
@@ -497,9 +538,7 @@ function App() {
           <Tabs.Panel value="overlay" className="page overlay-page">
             <div className="page-heading">
               <div>
-                <h1>
-                  Overlay<span className="accent">.</span>
-                </h1>
+                <h1>Overlay</h1>
               </div>
             </div>
             <OverlayEditor />
@@ -524,19 +563,6 @@ function App() {
             </div>
           )}
         </main>
-        {tab === "reset" && (
-          <div
-            data-tour="connection"
-            className={`statusbar ${view.tone}`}
-            role="status"
-          >
-            <span className="connection">
-              <span className="dot" />
-              {view.title}
-            </span>
-            <span className="status-detail">{view.message}</span>
-          </div>
-        )}
       </Tabs.Root>
       {onboarding?.required && (
         <Onboarding

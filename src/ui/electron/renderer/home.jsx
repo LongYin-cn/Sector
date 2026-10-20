@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import check from "@iconify-icons/solar/check-circle-linear";
+import arrow from "@iconify-icons/solar/arrow-right-linear";
 import layout from "../shared/overlay-layout.cjs";
 import model from "../shared/overlay-model.cjs";
 import "./home.css";
@@ -18,6 +19,8 @@ function LayoutPreview({ state }) {
   return (
     <div
       className="home-layout"
+      data-off={!config.enabled}
+      data-edit={state.editing}
       role="img"
       aria-label="Current overlay layout"
       style={{
@@ -52,6 +55,9 @@ function LayoutPreview({ state }) {
             />
           );
         })}
+      <small className="home-layout-caption">
+        {display.label || (display.primary ? "Primary display" : "Display")}
+      </small>
     </div>
   );
 }
@@ -137,9 +143,7 @@ export function Home({
   return (
     <div className="home-content">
       <div className="home-heading">
-        <h1>
-          Home<span className="accent">.</span>
-        </h1>
+        <h1>Home</h1>
       </div>
 
       <section className="home-session" aria-label="Session overview">
@@ -219,6 +223,7 @@ export function Home({
             onClick={() => onNavigate("reset")}
           >
             Open Active Reset
+            <Icon icon={arrow} aria-hidden="true" />
           </button>
         </section>
 

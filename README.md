@@ -116,6 +116,11 @@ Detached parts are not supported.
 If a save or restore is refused, read the message in Sector. Repair the car or
 start a fresh Practice if it cannot accept a healthy checkpoint.
 
+Expand the **reset log** below the checkpoint card to review recent status
+messages. Use **Errors & warnings** to narrow the list, or **Export diagnostics**
+to save a report for support. The on-screen list covers the current app run;
+the diagnostic export also includes recent saved logs.
+
 ### Change the keys and sounds
 
 Open **Active Reset**, click the key you want to change and press its replacement

@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.2.20",
+    "changes": [
+      "Redesigned the desktop from Design B with a light palette, orange accents, IBM Plex fonts and sidebar navigation.",
+      "Updated Home, the checkpoint card, overlay editor, settings and dialogs while keeping the existing reset and telemetry controls.",
+      "Added a reset activity log with status history, error filters and access to diagnostic exports.",
+      "Fonts are bundled for offline use. Native reset remains v27, with the same experimental limitations."
+    ]
+  },
+  {
     "version": "0.2.19",
     "changes": [
       "Experimental restoration of punctured tires, including saved pressure, model flags, lookup tables and tread-node caches. Detached wheels remain unsupported.",
