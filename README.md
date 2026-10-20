@@ -244,7 +244,12 @@ Keep the files from each package together; do not copy only the new EXE over an
 older installation. If Active Reset asks you to restart LMU, restart it before
 making a new checkpoint.
 
-### In development: 0.2.23 (experimental)
+### Sector 1.0.0
+
+Download the [Windows portable package](https://github.com/sector-lmu/Sector/releases/tag/v1.0.0).
+Version 1.0.0 brings the current desktop and overlay features to `prod`.
+Active Reset and damage repair remain experimental. Restart LMU after upgrading
+and save a fresh checkpoint with a healthy car.
 
 - Experimental wheel reattachment for the mapped independent-hub suspension.
   Live validation is pending; unsupported suspension layouts remain blocked.
@@ -252,7 +257,6 @@ making a new checkpoint.
 - Immediate EAC warning and disabled reset controls when protection is detected.
 - Additional diagnostics for penalty reports. The track-limit issue is still
   under investigation.
-
 - More space for Active Reset and the overlay editor.
 - Change the LMU installation folder in Settings.
 - Open a GitHub bug report through **Help → Report a bug**.
@@ -261,6 +265,10 @@ making a new checkpoint.
 - Genesis manufacturer logo support.
 - Orange Sector logo and a more readable startup animation. The animation
   plays on a fresh app launch, not when returning from the background.
+
+Wheel reattachment, lap timing after F7 and online overlays still need live
+verification. See the [verification notes](docs/TEST_RESULTS.md) for the tested
+scenarios and current limits.
 
 Open **Help → Changelog** for the complete in-app version history. The
 [release notes](https://github.com/sector-lmu/Sector/releases)

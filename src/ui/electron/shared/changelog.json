@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.0.0",
+    "changes": [
+      "Published the Windows portable app on prod with the updated interface, customizable overlays and Active Reset controls.",
+      "Includes installation-folder selection, configurable shortcuts and sounds, diagnostic export and in-app help.",
+      "Blocks checkpoint actions immediately when EAC is detected. Active Reset requires offline Practice without EAC.",
+      "Uses the v28 reset module with experimental wheel reattachment for mapped independent-hub suspension. Live reattachment validation is pending.",
+      "Track-limit penalties after reset remain under investigation. Finish-line timing after F7 and online overlays still need live verification.",
+      "Restart LMU after upgrading and save a new checkpoint with a healthy car."
+    ]
+  },
+  {
     "version": "0.2.23",
     "changes": [
       "Experimental v28 reset module adds wheel reattachment for the mapped independent-hub suspension. In-game validation is pending.",

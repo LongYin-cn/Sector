@@ -63,11 +63,13 @@ publish a GitHub release or promote `prod`.
    paths. Include its complete runtime, notices and quick-start instructions.
 4. ZIP the complete `Sector-<version>-win-x64` folder and generate `SHA256SUMS.txt`.
    Reopen the archive and verify its contents before uploading.
-5. For an experimental release, push `dev` and tag the tested commit `v<version>`.
-   Leave `prod` unchanged. A stable promotion requires explicit approval to
-   merge `dev` into `prod`; never force-update published tags.
-6. Create the GitHub prerelease with notes, the Windows ZIP and checksum file.
-   Do not mark an experimental build as the latest stable release.
+5. Push `dev`. For a prerelease, tag its tested commit `v<version>` and leave
+   `prod` unchanged. When a production promotion is explicitly approved, merge
+   `dev` into `prod`, push it and tag the promoted commit. Never force-update
+   published tags.
+6. Create the GitHub release with notes, the Windows ZIP and checksum file.
+   Mark development candidates as prereleases. A production release must still
+   identify experimental features and pending live checks in its notes.
    Verify its published assets and target commit. Binaries belong in release
    assets, not Git history.
 

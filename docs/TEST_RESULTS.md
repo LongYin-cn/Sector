@@ -4,6 +4,15 @@ This page records the current verification scope. Release notes and published
 packages are on [GitHub Releases](https://github.com/sector-lmu/Sector/releases).
 Detailed research notes and raw captures are retained locally, outside Git.
 
+## Version 1.0.0
+
+The Windows 1.0.0 package passed its executable smoke test on 20 October 2026:
+version metadata, isolated startup, bundled Python imports, Home, changelog and
+overlay previews. No reset listener was started and no live reset was performed.
+It retains the tested v28 binaries from 0.2.23; the promotion changes version
+metadata and documentation, not native physics behavior. The pending live checks
+listed below remain open in 1.0.0.
+
 ## Desktop and overlays
 
 The current development changes passed 68 desktop unit tests and the Home UI
@@ -28,12 +37,12 @@ including penalty, finish-status and flag codes. Five read-only incident-reader
 tests cover bounded vectors, short reads, changing vehicle ownership and a
 temporary UI-endpoint timeout. After a timeout, memory sampling waits until the
 offline context is verified again.
-These diagnostic additions are source changes, not a newly published package.
+These diagnostic additions are included in the 1.0.0 package.
 
 ## Active Reset
 
-Sector 0.2.22 uses native host v27. The experimental 0.2.23 candidate uses v28;
-both are tied to the pinned Steam 25661166 / app build 14200 profile.
+Sector 1.0.0 retains the v28 native host from the 0.2.23 candidate. Sector 0.2.22
+used v27. Both hosts are tied to the pinned Steam 25661166 / app build 14200 profile.
 Compatibility checks validate native identities, not just a displayed version
 number. Native fixtures operate on owned memory and cannot establish live
 physics stability.
@@ -81,7 +90,7 @@ still required. No successful live reattachment is claimed.
 
 The following remain open:
 
-- Wheel reattachment in v28 needs live validation; released v27 packages still
+- Wheel reattachment in v28 needs live validation; older v27 packages still
   reject detached assemblies. Other suspension branches remain unsupported.
 - Track-limit penalties reported after F7 are under investigation.
 - Puncture restoration on other cars and different damage combinations needs

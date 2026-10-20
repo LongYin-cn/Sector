@@ -174,7 +174,7 @@ fs.writeFileSync(
   path.join(output, "README.txt"),
   [
     `Sector ${version}`,
-    "EXPERIMENTAL: bugs are expected and further fixes are planned.",
+    "Active Reset and damage repair are experimental: bugs are expected and further fixes are planned.",
     "Includes an experimental wheel reattachment implementation. In-game validation is pending.",
     "",
     "GETTING STARTED",
