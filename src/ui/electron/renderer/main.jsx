@@ -424,12 +424,15 @@ function App() {
               <section className="reset-blocked" role="alert">
                 <Glyph icon={close} />
                 <div>
-                  <h2>Active Reset is disabled while EAC is detected</h2>
+                  <h2>Active Reset unavailable: Easy Anti-Cheat is active</h2>
                   <p>
-                    Save/Restore and their shortcuts ({key("save_key")} /{" "}
-                    {key("restore_key")}) are blocked. Close LMU, then use Open
-                    LMU without EAC and enter Offline Practice. Overlays remain
-                    available.
+                    LMU was detected with EAC active. Save, Restore and their
+                    shortcuts ({key("save_key")} / {key("restore_key")}) are
+                    disabled.
+                  </p>
+                  <p>
+                    Close LMU, choose <strong>Open LMU without EAC</strong>,
+                    then enter Offline Practice. Overlays remain available.
                   </p>
                 </div>
               </section>

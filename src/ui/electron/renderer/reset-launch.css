@@ -31,25 +31,30 @@
 .reset-blocked {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  border: 1px solid #e8ad6355;
-  border-radius: 14px;
-  padding: 18px 20px;
-  margin-bottom: 20px;
-  background: #e8ad6310;
-  color: #894614;
+  gap: 16px;
+  border: 2px solid #b42318;
+  border-left-width: 6px;
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  background: #fff0ed;
+  color: #821b15;
 }
 .reset-blocked > svg {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
 }
 .reset-blocked h2 {
-  font-size: 15px;
-  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 10px;
 }
 .reset-blocked p {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   margin: 0;
+}
+.reset-blocked p + p {
+  margin-top: 8px;
 }

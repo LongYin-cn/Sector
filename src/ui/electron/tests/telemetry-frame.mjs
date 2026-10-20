@@ -21,6 +21,11 @@ const raw = JSON.parse(
 );
 assert.equal(raw.player.wheels.length, 4);
 assert.equal(raw.paused, false);
+assert.equal(raw.gamePhase, 5);
+assert.equal(raw.yellowFlagState, -1);
+assert.equal(raw.cars[0].penalties, 2);
+assert.equal(raw.cars[0].finishStatus, 3);
+assert.equal(raw.cars[0].flag, 6);
 assert.deepEqual(raw.player.wheels[0].temperatures, [98, 93, 88]);
 assert.equal(raw.player.wheels[0].radius, 0.31);
 assert.equal(raw.player.wheels[0].wear, 0.71);

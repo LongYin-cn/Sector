@@ -122,8 +122,11 @@ The change follows measured damaged/repaired values and native repair analysis.
 V20 does not repair the visible bodywork mesh; v21 adds the separately locked
 graphics transaction described above.
 
-Detachment remains unsupported: native `EEB800` also changes the active
-constraint set. Merely clearing its flag would leave a broken suspension.
+Detachment remains unsupported: native `EEB800` also changes constraint
+parameters through a per-vehicle backup vector, as well as body and tire state.
+Merely clearing its flag would leave a broken suspension. The
+[attachment and scoring investigation](WHEEL_ATTACHMENT_AND_SCORING.md)
+records the confirmed native path and the remaining capture work.
 V18 reports the detached corner explicitly and preserves the existing
 checkpoint. Version 0.2.19 adds experimental puncture restoration, pending a live test.
 Missing-assembly reconstruction remains unsupported.

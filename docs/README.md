@@ -24,6 +24,11 @@ installation unchanged.
 Sector can remain open while you load the session; it connects automatically
 when the game is ready.
 
+If LMU is detected with EAC active, Active Reset immediately displays a red
+warning and disables checkpoint actions and shortcuts. Close LMU and use
+**Open LMU without EAC** on Active Reset, then enter offline Practice to use
+checkpoints. Overlay controls remain available while EAC is active.
+
 For overlays, use **windowed or borderless mode** in LMU's display settings.
 From 0.2.13, the overlay reader connects to the public SDK independently of
 Active Reset. You can launch LMU normally with EAC for online overlays; you do

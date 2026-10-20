@@ -68,15 +68,11 @@ try {
     .getByRole("button", { name: "Change save shortcut, G", exact: true })
     .waitFor();
   await app.evaluate(() =>
-    global.sectorTest.publish({
-      phase: "blocked",
-      blocked_reason: "eac",
-      checkpoint: false,
-    }),
+    global.sectorTest.observeGame([{ pid: 123, eac: true }]),
   );
   await page
     .getByRole("heading", {
-      name: "Active Reset is disabled while EAC is detected",
+      name: "Active Reset unavailable: Easy Anti-Cheat is active",
     })
     .waitFor();
   await page.screenshot({ path: path.join(output, "reset-eac-blocked.png") });
@@ -108,6 +104,7 @@ try {
   await app.evaluate(() => {
     // Reset only the isolated preview fixture; real admission clears on discovery.
     global.sectorTest.clearProtection();
+    global.sectorTest.observeGame([]);
   });
   await page.getByRole("tab", { name: "Home", exact: true }).click();
   await page

@@ -130,6 +130,10 @@ let overlays;
 // Keep this in the main process so hiding, restoring or reloading cannot replay it.
 let launchAnimationPending = true;
 gameLauncher.on("state", (state) => {
+  // Both overlay and reset discovery reach this path, including LMU's menu.
+  // Block commands before notifying the renderer, without waiting for admission
+  // or for the reset worker's next discovery cycle.
+  if (state.eac && !runtime.eacBlocked) runtime.blockEac();
   if (window && !window.isDestroyed())
     window.webContents.send("sector:game", state);
 });
@@ -471,14 +475,27 @@ if (!app.requestSingleInstanceLock()) {
         if (!window.isDestroyed())
           window.webContents.send("sector:status", state);
       });
-      overlays.telemetry.on("frame", (frame) =>
+      overlays.telemetry.on("frame", (frame) => {
         diagnostics.record("session", {
           status: overlays.telemetry.status,
           track: frame?.track,
           car: frame?.player?.model,
           session: frame?.session,
-        }),
-      );
+        });
+        const player = frame?.cars?.find((car) => car.player);
+        diagnostics.record("scoring", {
+          gamePhase: frame?.gamePhase,
+          yellowFlagState: frame?.yellowFlagState,
+          playerId: player?.id,
+          penalties: player?.penalties,
+          finishStatus: player?.finishStatus,
+          flag: player?.flag,
+          countLap: player?.countLap,
+          trackLimits: frame?.player?.limits,
+          lapInvalidated: frame?.player?.invalid,
+          restoreCount: runtime.state.restore_count,
+        });
+      });
       window.webContents.on("render-process-gone", (_event, details) =>
         diagnostics.record("renderer-exit", details),
       );
@@ -519,6 +536,7 @@ if (!app.requestSingleInstanceLock()) {
           show: showWindow,
           window: () => window,
           hasListener: () => Boolean(runtime.child || runtime.timer),
+          observeGame: (games) => gameLauncher.observe(games),
           overlays: () => overlays,
         };
     })

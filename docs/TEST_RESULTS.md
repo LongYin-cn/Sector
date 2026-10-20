@@ -3,6 +3,21 @@
 This page separates automated checks from live-game observations. Historical
 counts and build-specific experiments are preserved in the [research archive](archive/README.md).
 
+## EAC detection and incident diagnostics: development
+
+- All 68 desktop unit tests passed.
+- The Home test observes an EAC-protected game through the launcher event,
+  checks the prominent Active Reset warning and disabled checkpoint buttons,
+  and verifies that overlay controls remain usable. The warning was visually reviewed.
+- The rebuilt SDK reader passed its self-test and serialization test, including
+  game phase, yellow-flag state, outstanding penalties, finish status and player flag.
+- Four Python incident-capture tests passed for detached-state observation,
+  bounded vectors, short reads and changing player ownership.
+
+These checks do not launch LMU. No wheel reattachment or penalty fix is claimed;
+the [investigation and capture procedure](WHEEL_ATTACHMENT_AND_SCORING.md)
+records the missing live evidence. Native reset remains v27.
+
 ## Layout and installation settings: 0.2.22
 
 - All 68 desktop unit tests passed.

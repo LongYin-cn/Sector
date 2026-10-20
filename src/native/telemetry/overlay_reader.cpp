@@ -304,6 +304,8 @@ static std::string serialize(const Frame &f, bool foreground) {
         number(o, value);
     };
     n("et", s.mCurrentET);
+    n("gamePhase", s.mGamePhase);
+    n("yellowFlagState", s.mYellowFlagState);
     n("end", s.mEndET);
     n("remaining", s.mSessionTimeRemaining);
     n("length", s.mLapDist);
@@ -408,6 +410,11 @@ static std::string serialize(const Frame &f, bool foreground) {
         n("pitStops", v.mNumPitstops);
         n("qualification", v.mQualification);
         n("countLap", v.mCountLapFlag);
+        // Keep native codes intact: an invalid lap, disqualification and
+        // session flag are different incidents, even if the UI uses red.
+        n("penalties", v.mNumPenalties);
+        n("finishStatus", v.mFinishStatus);
+        n("flag", v.mFlag);
         const auto &r = f.resources[i];
         o << ",\"liveProgress\":";
         if (!r.live)
@@ -505,6 +512,11 @@ int main(int argc, char **argv) {
         strcpy(match.cars[0].mVehicleName, "Team #6");
         strcpy(match.cars[0].mVehFilename, "Porsche_963_6.veh");
         match.scoring.mInRealtime = true;
+        match.scoring.mGamePhase = 5;
+        match.scoring.mYellowFlagState = -1;
+        match.cars[0].mNumPenalties = 2;
+        match.cars[0].mFinishStatus = 3;
+        match.cars[0].mFlag = 6;
         strcpy(match.telemetry.mFrontTireCompoundName, "Soft");
         data->telemetry.telemInfo[0] = match.telemetry;
         data->telemetry.telemInfo[0].mVirtualEnergy = 0.42f;
