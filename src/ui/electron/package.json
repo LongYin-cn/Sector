@@ -15,6 +15,8 @@
     "test:onboarding": "node tests/onboarding-smoke.mjs",
     "test:telemetry": "node tests/telemetry-frame.mjs",
     "format": "prettier --write build main renderer shared tests *.json *.js *.html",
+    "i18n": "node ../../../tools/i18n/merge-locales.mjs",
+    "i18n:check": "node ../../../tools/i18n/check-keys.mjs",
     "format:check": "prettier --check build main renderer shared tests *.json *.js *.html",
     "release": "npm run build && node build/release.mjs",
     "test:release": "node tests/release-smoke.mjs",

@@ -1,0 +1,34 @@
+{
+  "en": {
+    "preferences.appearance": "Appearance",
+    "preferences.reduceMotion": "Reduce motion",
+    "preferences.reduceMotionHint": "Fades instead of moving panels",
+    "preferences.lmu": "Le Mans Ultimate",
+    "preferences.gameFolder": "Game folder",
+    "preferences.noFolder": "No folder selected",
+    "preferences.changeFolder": "Change folder",
+    "preferences.audio": "Audio feedback",
+    "preferences.audioToggle": "Confirmation sounds",
+    "preferences.saveSound": "Save sound",
+    "preferences.restoreSound": "Restore sound",
+    "preferences.languageGroup": "Language and region",
+    "error.folderRead": "Could not read the LMU folder.",
+    "error.folderChange": "Could not change the LMU folder."
+  },
+  "zh-CN": {
+    "preferences.appearance": "外观",
+    "preferences.reduceMotion": "减少动效",
+    "preferences.reduceMotionHint": "面板改用淡入淡出，不再移动",
+    "preferences.lmu": "Le Mans Ultimate",
+    "preferences.gameFolder": "游戏目录",
+    "preferences.noFolder": "尚未选择目录",
+    "preferences.changeFolder": "更改目录",
+    "preferences.audio": "音频反馈",
+    "preferences.audioToggle": "确认音效",
+    "preferences.saveSound": "保存音效",
+    "preferences.restoreSound": "回点音效",
+    "preferences.languageGroup": "语言与地区",
+    "error.folderRead": "无法读取 LMU 目录。",
+    "error.folderChange": "无法更改 LMU 目录。"
+  }
+}

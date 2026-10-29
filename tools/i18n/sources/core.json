@@ -1,0 +1,28 @@
+{
+  "en": {
+    "missing.key": "Missing translation",
+    "app.name": "Sector",
+    "language.en": "English",
+    "language.zh-CN": "简体中文",
+    "preferences.language": "Language",
+    "preferences.language.hint": "Applies to Sector and to every overlay widget.",
+    "error.settingsUnreadable": "Settings could not be read. Restore defaults to repair them.",
+    "error.initialize": "Sector could not initialize. Close and reopen the app.",
+    "common.close": "Close",
+    "common.cancel": "Cancel",
+    "common.done": "Done"
+  },
+  "zh-CN": {
+    "missing.key": "缺少翻译",
+    "app.name": "Sector",
+    "language.en": "English",
+    "language.zh-CN": "简体中文",
+    "preferences.language": "语言",
+    "preferences.language.hint": "同时作用于 Sector 主界面与全部叠加层小组件。",
+    "error.settingsUnreadable": "设置文件无法读取，可用“恢复默认”修复。",
+    "error.initialize": "Sector 初始化失败，请关闭后重新打开。",
+    "common.close": "关闭",
+    "common.cancel": "取消",
+    "common.done": "完成"
+  }
+}
