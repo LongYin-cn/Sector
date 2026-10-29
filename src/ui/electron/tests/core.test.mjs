@@ -63,6 +63,7 @@ test("migrates existing BOM preferences and atomically persists canonical keys",
     restore_key: "F7",
     sound: false,
     reduce_motion: false,
+    language: "zh-CN",
   });
   writeSettings(file, {
     save_key: "NumPad3",

@@ -4,8 +4,11 @@ import { Icon } from "@iconify/react";
 import monitor from "@iconify-icons/solar/monitor-linear";
 import down from "@iconify-icons/solar/alt-arrow-down-linear";
 import check from "@iconify-icons/solar/check-read-linear";
+import { useT, useErrorMessage } from "../i18n.jsx";
 
 export function DisplaySettings() {
+  const t = useT();
+  const errorMessage = useErrorMessage();
   const [state, setState] = useState(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -47,7 +50,7 @@ export function DisplaySettings() {
     }
   }
   const items = [
-    { value: "primary", label: "Primary display" },
+    { value: "primary", label: t("overlay.primaryDisplay") },
     ...(state?.displays || []).map((d) => ({
       value: String(d.id),
       label: d.label,
@@ -64,10 +67,10 @@ export function DisplaySettings() {
       aria-labelledby="overlay-settings-title"
     >
       <h3 id="overlay-settings-title" className="preference-category">
-        Overlay
+        {t("overlay.title")}
       </h3>
       <span id="overlay-display-label" className="preference-label">
-        Display
+        {t("overlay.display")}
       </span>
       <Select.Root
         items={items}
@@ -112,7 +115,7 @@ export function DisplaySettings() {
       </Select.Root>
       {error && (
         <p role="alert" className="modal-error">
-          {error}
+          {errorMessage(error)}
         </p>
       )}
     </section>

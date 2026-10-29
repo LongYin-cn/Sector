@@ -1,10 +1,32 @@
+const {
+  createT,
+  normalizeLocale,
+  DEFAULT_LOCALE,
+  forcedLocale,
+} = require("./i18n.cjs");
+/**
+ * The compound keys are codes; the game reports them as English words
+ * (`Soft`, `Medium`, `Hard`, `Wet`) and the matcher must keep reading those raw
+ * values. Only the display name is translated.
+ */
 const compounds = {
-  S: ["Soft", "#F2F4F6"],
-  M: ["Medium", "#F5C518"],
-  H: ["Hard", "#E5322F"],
-  W: ["Wet", "#2D9CDB"],
+  S: ["compound.soft", "#F2F4F6"],
+  M: ["compound.medium", "#F5C518"],
+  H: ["compound.hard", "#E5322F"],
+  W: ["compound.wet", "#2D9CDB"],
 };
-function compound(name) {
+/** Shared by the main process and the renderer, which has no `process.argv`. */
+function resolveLocale(locale) {
+  if (typeof locale === "string" && locale) return normalizeLocale(locale);
+  try {
+    if (typeof process !== "undefined")
+      return forcedLocale(process.argv) ?? DEFAULT_LOCALE;
+  } catch {
+    /* Renderer without a process object: use the shipped default. */
+  }
+  return DEFAULT_LOCALE;
+}
+function compound(name, locale) {
   const code = /soft/i.test(name || "")
     ? "S"
     : /medium/i.test(name || "")
@@ -14,14 +36,17 @@ function compound(name) {
         : /wet|rain/i.test(name || "")
           ? "W"
           : "-";
+  const t = createT(resolveLocale(locale));
   return {
     code,
-    name: compounds[code]?.[0] || "Unavailable",
+    name: compounds[code] ? t(compounds[code][0]) : t("compound.unavailable"),
     color: compounds[code]?.[1] || "#677383",
   };
 }
-function resourceValues(resources) {
-  const tyres = [0, 1, 2, 3].map((i) => compound(resources?.compounds?.[i]));
+function resourceValues(resources, locale) {
+  const tyres = [0, 1, 2, 3].map((i) =>
+    compound(resources?.compounds?.[i], locale),
+  );
   const mixed = tyres.some((t) => t.code !== tyres[0].code);
   const energy = resources?.energy;
   const hasEnergy = Number.isFinite(energy) && energy >= 0 && energy <= 1;

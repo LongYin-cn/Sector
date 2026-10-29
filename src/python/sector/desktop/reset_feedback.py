@@ -6,6 +6,7 @@ from pathlib import Path
 import struct
 import wave
 from sector.runtime.physical_reset_hotkeys import rejection_reason
+from sector.runtime.resident_identity import user_message
 
 TONES = {
     "save": ((660, 0.09), (880, 0.13)),
@@ -38,14 +39,25 @@ def write_sounds(directory):
 
 
 def report_feedback(row):
+    """Sound event plus the English sentence and key the desktop publishes."""
     if row["result"] != 0:
-        return "rejected", rejection_reason(row) or (
-            f"Command rejected (result {row['result']}, cause {row['cause']})."
+        reason = rejection_reason(row) or user_message(
+            "python.reject.command",
+            f"Command rejected (result {row['result']}, cause {row['cause']}).",
+            result=row["result"],
+            cause=row["cause"],
         )
+        return {"event": "rejected", **reason}
     if row["action"] == 1:
-        return "save", "Checkpoint saved."
+        return {
+            "event": "save",
+            **user_message("python.feedback.saved", "Checkpoint saved."),
+        }
     if row["action"] == 3:
-        return "restore", "Checkpoint applied."
+        return {
+            "event": "restore",
+            **user_message("python.feedback.applied", "Checkpoint applied."),
+        }
     return None
 
 

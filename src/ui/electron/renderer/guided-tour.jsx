@@ -3,56 +3,60 @@ import { Popover } from "@base-ui/react/popover";
 import { Icon } from "@iconify/react";
 import arrowLeft from "@iconify-icons/solar/arrow-left-linear";
 import arrowRight from "@iconify-icons/solar/arrow-right-linear";
+import { useT } from "./i18n.jsx";
 
 export function GuidedTour({ saveKey, restoreKey, onTabChange, onFinish }) {
+  const t = useT();
+  // Every step is retranslated on render so the popover follows a language
+  // change; the keys themselves stay stable.
   const steps = [
     {
       target: "launch",
-      title: "Open LMU for Active Reset",
-      text: "Use Open LMU without EAC, then choose Offline Practice and enter DRIVE. Sector checks for Easy Anti-Cheat: when detected, Save/Restore and their shortcuts are blocked. Close the game before reopening it here. For online racing, open LMU normally with EAC; overlays remain available.",
+      title: t("tour.launch.title"),
+      text: t("tour.launch.text"),
       side: "bottom",
     },
     {
       target: "checkpoint",
-      title: "Save a moment. Try it again.",
-      text: `In LMU, press ${saveKey} to save your car's state, then ${restoreKey} to return to it. A new save replaces the previous checkpoint.`,
+      title: t("tour.checkpoint.title"),
+      text: t("tour.checkpoint.text", { save: saveKey, restore: restoreKey }),
       side: "bottom",
     },
     {
       target: "shortcuts",
-      title: "Make the keys yours",
-      text: "Click a shortcut, then press its new key. Choose unused game bindings. Return to LMU and release both keys before using them.",
+      title: t("tour.shortcuts.title"),
+      text: t("tour.shortcuts.text"),
       side: "top",
     },
     {
       target: "audio",
-      title: "Hear the result",
-      text: "Enable confirmation sounds for saves, restores and rejected commands. Use the play buttons to listen to each success sound.",
+      title: t("tour.audio.title"),
+      text: t("tour.audio.text"),
       side: "top",
     },
     {
       target: "connection",
-      title: "Know when you’re connected",
-      text: "Open offline Practice without EAC and enter driving. Sector connects automatically. Expand this bar to review status events, filter errors or export diagnostics.",
+      title: t("tour.connection.title"),
+      text: t("tour.connection.text"),
       side: "top",
     },
     {
       target: "settings",
-      title: "Set your preferences",
-      text: "Open Edit → Settings to change app settings. Reduce motion minimizes interface animations. Preferences are saved automatically.",
+      title: t("tour.settings.title"),
+      text: t("tour.settings.text"),
       side: "bottom",
     },
     {
       target: "overlay",
-      title: "Build your HUD",
-      text: "Choose widgets, toggle their parts and adjust size or opacity. Edit layout lets you drag and resize them on your display. Lock layout returns clicks to the game.",
+      title: t("tour.overlay.title"),
+      text: t("tour.overlay.text"),
       side: "bottom",
       tab: "overlay",
     },
     {
       target: "background",
-      title: "Keep driving with Sector",
-      text: "Close the window to choose background mode or quit. Background keeps shortcuts active; reopen Sector from the tray or launcher. Quit stops the listener safely.",
+      title: t("tour.background.title"),
+      text: t("tour.background.text"),
       side: "bottom",
     },
   ];
@@ -122,16 +126,21 @@ export function GuidedTour({ saveKey, restoreKey, onTabChange, onFinish }) {
             </Popover.Arrow>
             <div aria-live="polite" aria-atomic="true">
               <span className="tour-progress">
-                Quick guide, {index + 1} of {steps.length}
+                {t("tour.progress", {
+                  index: index + 1,
+                  total: steps.length,
+                })}
               </span>
               <Popover.Title>{step.title}</Popover.Title>
               <Popover.Description>{step.text}</Popover.Description>
             </div>
             <div className="tour-actions">
-              <Popover.Close className="text-button">Skip</Popover.Close>
+              <Popover.Close className="text-button">
+                {t("tour.skip")}
+              </Popover.Close>
               <button
                 className="secondary"
-                aria-label="Previous step"
+                aria-label={t("tour.previous")}
                 disabled={index === 0}
                 onClick={() => setIndex(index - 1)}
               >
@@ -144,7 +153,7 @@ export function GuidedTour({ saveKey, restoreKey, onTabChange, onFinish }) {
                   index === steps.length - 1 ? onFinish() : setIndex(index + 1)
                 }
               >
-                {index === steps.length - 1 ? "Finish" : "Next"}
+                {index === steps.length - 1 ? t("tour.finish") : t("tour.next")}
                 <Icon icon={arrowRight} aria-hidden="true" />
               </button>
             </div>

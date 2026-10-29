@@ -5,6 +5,12 @@
 <h1 align="center">Sector</h1>
 
 <p align="center">
+  <a href="README.zh.md">简体中文说明</a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="docs/README.md">中文用户指南</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/sector-lmu/Sector"><img src="https://img.shields.io/badge/Star_this_repo-181717?style=for-the-badge&amp;logo=github&amp;logoColor=white" alt="Star this repo"></a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://github.com/sector-lmu/Sector/stargazers"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Fsector-lmu%2FSector&amp;query=%24.stargazers_count&amp;style=for-the-badge&amp;label=Stars&amp;color=73B7FF" alt="GitHub stars"></a>
@@ -28,7 +34,7 @@ game to see standings, lap times, pedal inputs and more.
 <p align="center">
   <a href="https://github.com/sector-lmu/Sector/releases"><strong>Download Sector for Windows</strong></a>
   &nbsp;&nbsp;&nbsp;
-  <a href="docs/README.md">User guide</a>
+  <a href="docs/README.en.md">User guide</a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://github.com/sector-lmu/Sector/issues">Report a problem</a>
 </p>
@@ -276,7 +282,7 @@ list published downloads and their current limitations.
 
 ## Need help?
 
-See the [user guide](docs/README.md) for setup help, common problems and updating
+See the [user guide](docs/README.en.md) for setup help, common problems and updating
 Sector. You can also open **Help → Guide** inside the app.
 
 For a bug report, include your Sector version, LMU version, car and track, the

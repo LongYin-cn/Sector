@@ -1,6 +1,89 @@
 """Focused key edges and acknowledged prepare/restore sequencing."""
 
-from sector.runtime.resident_identity import HOST_REVISION
+from sector.runtime.resident_identity import (
+    HOST_REVISION,
+    ResetMessageError,
+    user_message,
+)
+
+HELP_HINT = "Use Help > Export diagnostics to share the log."
+
+BODYWORK_REASONS = {
+    92003: (
+        "Bodywork is being updated. Wait for the impact or loading to finish and retry.",
+        "bodyworkUpdating",
+    ),
+    92004: (
+        "Bodywork buffers are not ready or have an unsupported layout.",
+        "bodyworkBuffers",
+    ),
+    92005: (
+        "This vehicle uses a graphics buffer that this reset version cannot restore.",
+        "bodyworkGraphics",
+    ),
+    92006: (
+        "Bodywork is damaged. Save a new checkpoint with a repaired car.",
+        "bodyworkDamaged",
+    ),
+    92007: (
+        "The bodywork was rebuilt. Save a new checkpoint before restoring.",
+        "bodyworkRebuilt",
+    ),
+    92010: (
+        "Bodywork recovery failed. Restart LMU before using Active Reset again.",
+        "bodyworkRecovery",
+    ),
+}
+
+# The native host returns one cause for both directions; the action decides the
+# wording, so each tail owns a save key and a restore key instead of editing a
+# finished sentence after the fact.
+CAPTURE_REASONS = {
+    93001: ("the vehicle identity changed.", "identity"),
+    93002: ("the physics synchronization was lost.", "sync"),
+    93003: ("the physical state could not be read consistently.", "state"),
+    93004: ("the aerodynamic state is inconsistent.", "aero"),
+    93005: (
+        "aerodynamic damage is still present. Repair the car before saving.",
+        "aeroDamage",
+    ),
+    93006: ("the wheel deformation state is inconsistent.", "wheelDeform"),
+    93007: ("the suspension alignment state is invalid.", "alignment"),
+    93008: ("the physical checkpoint failed validation.", "validation"),
+    93009: (
+        "the tire contact samples were stale or did not match the vehicle.",
+        "tireContact",
+    ),
+    93010: ("the tire contact geometry failed validation.", "tireGeometry"),
+    93011: (
+        "the lap sector is unavailable or outside its supported range.",
+        "sector",
+    ),
+    93012: ("the collision state is invalid.", "collision"),
+    93013: (
+        "the tire model or puncture tables could not be validated.",
+        "tireTables",
+    ),
+    93014: ("a tire is punctured. Repair it before saving a checkpoint.", "puncture"),
+}
+
+RESTORE_REASONS = {
+    93015: (
+        "detached suspension does not match the saved attachment state.",
+        "suspension",
+    ),
+    93016: (
+        "detached component registries could not be validated.",
+        "registry",
+    ),
+}
+
+WHEELS = (
+    ("Front-left", "fl"),
+    ("Front-right", "fr"),
+    ("Rear-left", "rl"),
+    ("Rear-right", "rr"),
+)
 
 
 def expected_restore_fields(revision):
@@ -13,57 +96,57 @@ def expected_restore_fields(revision):
         return 10084
     if 1 <= revision <= 14:
         return 10077
-    raise ValueError(f"Unsupported reset host revision: {revision}")
+    raise ResetMessageError(
+        f"Unsupported reset host revision: {revision}",
+        key="python.error.unsupportedRevision",
+        params={"revision": revision},
+    )
 
 
 def rejection_reason(report):
+    """None, or the English sentence plus the key the desktop renders."""
     cause = report.get("cause")
     if cause == 92004 and report.get("bodywork_check_name"):
-        return (
-            f"Bodywork layout rejected: {report['bodywork_check_name']} "
-            f"(component {report.get('bodywork_component_index', 0)}, "
-            f"mesh {report.get('bodywork_mesh_index', 0)}). "
-            "Use Help > Export diagnostics to share the log."
+        return user_message(
+            "python.reject.bodyworkLayout",
+            (
+                f"Bodywork layout rejected: {report['bodywork_check_name']} "
+                f"(component {report.get('bodywork_component_index', 0)}, "
+                f"mesh {report.get('bodywork_mesh_index', 0)}). "
+                f"{HELP_HINT}"
+            ),
+            check=report["bodywork_check_name"],
+            component=report.get("bodywork_component_index", 0),
+            mesh=report.get("bodywork_mesh_index", 0),
         )
-    bodywork_reasons = {
-        92003: "Bodywork is being updated. Wait for the impact or loading to finish and retry.",
-        92004: "Bodywork buffers are not ready or have an unsupported layout.",
-        92005: "This vehicle uses a graphics buffer that this reset version cannot restore.",
-        92006: "Bodywork is damaged. Save a new checkpoint with a repaired car.",
-        92007: "The bodywork was rebuilt. Save a new checkpoint before restoring.",
-        92010: "Bodywork recovery failed. Restart LMU before using Active Reset again.",
-    }
-    if cause in bodywork_reasons:
-        return bodywork_reasons[cause]
-    capture_reasons = {
-        93001: "Save rejected: the vehicle identity changed.",
-        93002: "Save rejected: the physics synchronization was lost.",
-        93003: "Save rejected: the physical state could not be read consistently.",
-        93004: "Save rejected: the aerodynamic state is inconsistent.",
-        93005: "Save rejected: aerodynamic damage is still present. Repair the car before saving.",
-        93006: "Save rejected: the wheel deformation state is inconsistent.",
-        93007: "Save rejected: the suspension alignment state is invalid.",
-        93008: "Save rejected: the physical checkpoint failed validation.",
-        93009: "Save rejected: the tire contact samples were stale or did not match the vehicle.",
-        93010: "Save rejected: the tire contact geometry failed validation.",
-        93011: "Save rejected: the lap sector is unavailable or outside its supported range.",
-        93012: "Save rejected: the collision state is invalid.",
-        93013: "Save rejected: the tire model or puncture tables could not be validated.",
-        93014: "Save rejected: a tire is punctured. Repair it before saving a checkpoint.",
-        93015: "Restore rejected: detached suspension does not match the saved attachment state.",
-        93016: "Restore rejected: detached component registries could not be validated.",
-    }
-    if cause in capture_reasons:
-        reason = capture_reasons[cause]
-        if report.get("action") in (2, 3):
-            reason = reason.replace("Save rejected:", "Restore rejected:", 1)
-        return (
-            f"{reason} Code {cause}. "
-            "Use Help > Export diagnostics to share the log."
+    if cause in BODYWORK_REASONS:
+        text, slug = BODYWORK_REASONS[cause]
+        return user_message(f"python.reject.{slug}", text)
+    if cause in CAPTURE_REASONS:
+        tail, slug = CAPTURE_REASONS[cause]
+        restore = report.get("action") in (2, 3)
+        verb = "Restore" if restore else "Save"
+        return user_message(
+            f"python.reject.{'restore' if restore else 'save'}.{slug}",
+            f"{verb} rejected: {tail} Code {cause}. {HELP_HINT}",
+            code=cause,
+        )
+    if cause in RESTORE_REASONS:
+        tail, slug = RESTORE_REASONS[cause]
+        return user_message(
+            f"python.reject.restore.{slug}",
+            f"Restore rejected: {tail} Code {cause}. {HELP_HINT}",
+            code=cause,
         )
     if cause in (91001, 91002, 91003, 91004):
-        wheel = ("Front-left", "Front-right", "Rear-left", "Rear-right")[cause - 91001]
-        return f"{wheel} wheel detached. This reset version cannot rebuild detached suspension."
+        wheel, slug = WHEELS[cause - 91001]
+        return user_message(
+            f"python.reject.wheel.{slug}",
+            (
+                f"{wheel} wheel detached. "
+                "This reset version cannot rebuild detached suspension."
+            ),
+        )
     return None
 
 
@@ -144,11 +227,17 @@ class HotkeyCommands:
                 elif action == 2:
                     if preparation_ready(report, self.expected_fields):
                         return self.issue(3, now)
-                    self.notice = rejection_reason(report) or (
-                        "Restore preparation rejected: "
-                        f"result {report.get('result')}, cause {report.get('cause')}, "
-                        f"fields {report.get('fields')} "
-                        "(complete native preflight required)."
+                    self.notice = rejection_reason(report) or user_message(
+                        "python.reject.preparation",
+                        (
+                            "Restore preparation rejected: "
+                            f"result {report.get('result')}, cause {report.get('cause')}, "
+                            f"fields {report.get('fields')} "
+                            "(complete native preflight required)."
+                        ),
+                        result=report.get("result"),
+                        cause=report.get("cause"),
+                        fields=report.get("fields"),
                     )
             return {}
         # A validated desktop click has its own intent; game focus is only needed
@@ -162,7 +251,9 @@ class HotkeyCommands:
         if edge == 2 and self.saved:
             return self.issue(2, now)
         if edge == 2:
-            self.notice = "Save a checkpoint before restoring."
+            self.notice = user_message(
+                "python.error.noCheckpoint", "Save a checkpoint before restoring."
+            )
         return {}
 
 
@@ -199,5 +290,8 @@ def virtual_key(name):
     from sector.desktop.reset_keymap import KEY_CODES
 
     if not isinstance(name, str) or name.upper() not in KEY_CODES:
-        raise ValueError("Choose a supported single keyboard key")
+        raise ResetMessageError(
+            "Choose a supported single keyboard key",
+            key="python.error.unsupportedKey",
+        )
     return KEY_CODES[name.upper()]

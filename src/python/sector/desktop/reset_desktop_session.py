@@ -8,6 +8,8 @@ import math
 from pathlib import Path
 import time
 
+from sector.runtime.resident_identity import user_message
+
 
 class DesktopSession:
     def __init__(self, directory, clock=time.time, settings_file=None):
@@ -100,11 +102,17 @@ class DesktopSession:
             and not self.stopped()
         )
         if not valid:
+            notice = user_message(
+                "python.error.requestExpired",
+                "Reset request expired or the session is not ready.",
+            )
             self.publish(
                 desktop_request={
                     "id": request_id,
                     "ok": False,
-                    "error": "Reset request expired or the session is not ready.",
+                    "error": notice["message"],
+                    "error_key": notice["message_key"],
+                    "error_params": notice["message_params"],
                 }
             )
             return None
@@ -112,11 +120,20 @@ class DesktopSession:
         self.request_native_id = None
         return request["action"]
 
-    def finish_request(self, ok=False, error="Reset canceled because the session is not ready."):
+    def finish_request(
+        self,
+        ok=False,
+        error="Reset canceled because the session is not ready.",
+        error_key=None,
+        error_params=None,
+    ):
         if self.request:
             result = {"id": self.request["id"], "ok": ok}
             if not ok:
                 result["error"] = error
+                if error_key:
+                    result["error_key"] = error_key
+                    result["error_params"] = dict(error_params or {})
             self.request = None
             self.request_native_id = None
             self.publish(desktop_request=result)
@@ -125,11 +142,20 @@ class DesktopSession:
         if self.request:
             self.request_native_id = request_id
         if action == 1:
-            self.publish(message="Saving checkpoint…", reset_action=1)
+            self.publish(
+                reset_action=1,
+                **user_message("python.status.saving", "Saving checkpoint…"),
+            )
         elif action == 2:
-            self.publish(message="Preparing restore…", reset_action=2)
+            self.publish(
+                reset_action=2,
+                **user_message("python.status.preparing", "Preparing restore…"),
+            )
         elif action == 3:
-            self.publish(message="Restoring checkpoint…", reset_action=3)
+            self.publish(
+                reset_action=3,
+                **user_message("python.status.restoring", "Restoring checkpoint…"),
+            )
 
     def settings(self):
         from sector.runtime.physical_reset_hotkeys import virtual_key
@@ -165,13 +191,24 @@ class DesktopSession:
         elif row["action"] == 3 and row["result"] == 0:
             changes["restore_count"] = self.state["restore_count"] + 1
         if feedback:
-            changes.update(message=feedback[1], last_event=feedback[0], report_id=row["id"])
+            changes.update(
+                message=feedback["message"],
+                message_key=feedback["message_key"],
+                message_params=feedback["message_params"],
+                last_event=feedback["event"],
+                report_id=row["id"],
+            )
         if changes:
             self.publish(**changes)
         if self.request and row["id"] == self.request_native_id:
             if row["result"] != 0:
+                rejected = feedback or user_message(
+                    "python.reject.native", "Reset rejected by the native host."
+                )
                 self.finish_request(
-                    error=feedback[1] if feedback else "Reset rejected by the native host."
+                    error=rejected["message"],
+                    error_key=rejected["message_key"],
+                    error_params=rejected["message_params"],
                 )
             elif row["action"] in (1, 3):
                 self.finish_request(ok=True)

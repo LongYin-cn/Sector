@@ -4,7 +4,11 @@ import argparse
 from pathlib import Path
 import time
 from urllib.error import URLError
-from sector.runtime.resident_identity import HOST_REVISION
+from sector.runtime.resident_identity import (
+    HOST_REVISION,
+    ResetMessageError,
+    user_message,
+)
 
 
 def get_json(path):
@@ -58,7 +62,10 @@ def supervise(args, run_host, audit_host, alive, wait=wait_for_driving, sleep=ti
         args.desktop.publish(phase="waiting", checkpoint=False, readiness="Waiting for driving")
         if not wait(stopped, stable_samples=2):
             break
-        args.desktop.publish(phase="starting", message="Connecting to LMU…")
+        args.desktop.publish(
+            phase="starting",
+            **user_message("python.status.connecting", "Connecting to LMU…"),
+        )
         for attempt in range(20):
             if stopped():
                 return
@@ -66,7 +73,7 @@ def supervise(args, run_host, audit_host, alive, wait=wait_for_driving, sleep=ti
                 audit_host(args.pid)
                 break
             except ValueError as error:
-                if str(error) != "Snapshot module not cleanly stopped" or attempt == 19:
+                if getattr(error, "key", None) != "python.error.snapshotNotStopped" or attempt == 19:
                     raise
                 sleep(0.2)
         if stopped():
@@ -75,8 +82,17 @@ def supervise(args, run_host, audit_host, alive, wait=wait_for_driving, sleep=ti
         if stopped() or outcome == "user_stopped":
             break
         if outcome not in ("vehicle_reset", "context_changed"):
-            raise RuntimeError("Connection stopped unexpectedly. Reopen Active Reset to reconnect.")
-        args.desktop.publish(checkpoint=False, message="Vehicle changed. Save a new checkpoint.")
+            raise ResetMessageError(
+                "Connection stopped unexpectedly. Reopen Active Reset to reconnect.",
+                key="python.error.connectionStopped",
+            )
+        args.desktop.publish(
+            checkpoint=False,
+            **user_message(
+                "python.status.vehicleChanged",
+                "Vehicle changed. Save a new checkpoint.",
+            ),
+        )
         sleep(0.5)
 
 
@@ -100,23 +116,39 @@ def main():
     handle = None
     try:
         if virtual_key(args.save_key) == virtual_key(args.restore_key):
-            raise ValueError("Choose different keys for save and restore.")
+            raise ResetMessageError(
+                "Choose different keys for save and restore.",
+                key="python.error.sameKeys",
+            )
         from sector.observers.audit_snapshot_25661166 import audit
         from sector.runtime.reset_host_runner import run, process_exit_code, k
 
         handle = k.OpenProcess(0x1000, False, args.pid)
         if not handle:
-            raise OSError("LMU process is unavailable.")
+            raise ResetMessageError(
+                "LMU process is unavailable.",
+                key="python.error.processUnavailable",
+            )
         supervise(args, run, audit, lambda: process_exit_code(handle) is None)
-        args.desktop.publish(phase="stopped", checkpoint=False, message="Disconnected.")
+        args.desktop.publish(
+            phase="stopped",
+            checkpoint=False,
+            **user_message("python.status.disconnected", "Disconnected."),
+        )
     except KeyboardInterrupt:
-        args.desktop.publish(phase="stopped", checkpoint=False, message="Disconnected.")
+        args.desktop.publish(
+            phase="stopped",
+            checkpoint=False,
+            **user_message("python.status.disconnected", "Disconnected."),
+        )
     except Exception as error:
         args.desktop.publish(
             phase="error",
             checkpoint=False,
             message=str(error),
-            blocked_reason="eac" if str(error) == "EAC module present" else None,
+            message_key=getattr(error, "key", None),
+            message_params=getattr(error, "params", None) or {},
+            blocked_reason=getattr(error, "blocked_reason", None),
         )
         raise
     finally:

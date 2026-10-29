@@ -13,7 +13,7 @@
   >
     <div style="display: flex; align-items: baseline; gap: 8px">
       <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em"
-        >SESSION</span
+        >{{labels.session}}</span
       >
       <span style="font-size: 12px; font-weight: 500; color: #b8c0c8"
         >{{sessionTrack}}</span
@@ -43,10 +43,10 @@
       <span
         class="mono"
         style="font-size: 12px; font-weight: 500; color: #b8c0c8"
-        >{{elapsed}} elapsed</span
+        >{{elapsed}} {{labels.elapsedUnit}}</span
       >
       <span class="mono" style="font-size: 12px; font-weight: 700"
-        >{{remaining}} remaining</span
+        >{{remaining}} {{labels.remainingUnit}}</span
       >
     </div>
     <div
@@ -83,7 +83,7 @@
           color: #b8c0c8;
           letter-spacing: 0.06em;
         "
-        >POSITION</span
+        >{{labels.position}}</span
       >
       <div style="display: flex; align-items: baseline; gap: 3px">
         <span
@@ -137,7 +137,7 @@
             color: rgb(184, 192, 200);
             letter-spacing: 0.06em;
           "
-          >LAP TIMES</span
+          >{{labels.lapTimes}}</span
         >
         <span
           style="font-size: 11px; font-weight: 500; color: rgb(184, 192, 200)"
@@ -146,7 +146,7 @@
       </div>
       <div
         role="img"
-        aria-label="Recorded lap times"
+        aria-label="{{labels.lapTimesAria}}"
         style="height: 70px; display: flex; align-items: flex-end; gap: 2px"
       >
         <sc-for list="{{bars}}" as="b" hint-placeholder-count="48">
@@ -188,7 +188,7 @@
           color: #b8c0c8;
           letter-spacing: 0.06em;
         "
-        >BEST LAP</span
+        >{{labels.bestLap}}</span
       >
       <span
         class="mono"
@@ -207,13 +207,13 @@
           color: #b8c0c8;
           letter-spacing: 0.06em;
         "
-        >CLEAN AVG</span
+        >{{labels.cleanAvg}}</span
       >
       <span class="mono" style="font-size: 15px; font-weight: 700"
         >{{average}}</span
       >
       <span style="font-size: 11px; font-weight: 500; color: #b8c0c8"
-        >{{averageGap}} to PB</span
+        >{{averageGap}} {{labels.toPb}}</span
       >
     </div>
     <div style="display: flex; flex-direction: column; gap: 2px">
@@ -224,7 +224,7 @@
           color: rgb(184, 192, 200);
           letter-spacing: 0.06em;
         "
-        >LAPS</span
+        >{{labels.lapsCount}}</span
       >
       <span class="mono" style="font-size: 15px; font-weight: 700"
         >{{lapCount}}</span
@@ -241,7 +241,7 @@
           color: #b8c0c8;
           letter-spacing: 0.06em;
         "
-        >PIT STOPS</span
+        >{{labels.pitStops}}</span
       >
       <span class="mono" style="font-size: 15px; font-weight: 700"
         >{{pitStops}}</span
@@ -258,7 +258,7 @@
           color: #b8c0c8;
           letter-spacing: 0.06em;
         "
-        >TRACK LIMITS</span
+        >{{labels.trackLimits}}</span
       >
       <span class="mono" style="font-size: 15px; font-weight: 700"
         >{{limits}}<span style="color: #b8c0c8">/{{limitMax}}</span></span

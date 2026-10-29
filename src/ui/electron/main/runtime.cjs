@@ -5,7 +5,8 @@ const { randomUUID } = require("node:crypto");
 const { spawn, execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const execute = promisify(execFile);
-const { resetAccess, EAC_MESSAGE } = require("./reset-access.cjs");
+const { resetAccess } = require("./reset-access.cjs");
+const { createT } = require("../shared/i18n.cjs");
 
 const emptyCheckpoint = {
   checkpoint: false,
@@ -13,6 +14,18 @@ const emptyCheckpoint = {
   saved_at: null,
   restore_count: 0,
 };
+
+/**
+ * Every user-visible status sentence travels with the key that produced it, so
+ * the renderer can switch language without main-process text ever being final.
+ */
+function messageFor(translate, key, params) {
+  return {
+    message: translate(key, params),
+    message_key: key,
+    message_params: params ?? {},
+  };
+}
 
 async function discoverGame(installation, { telemetryOnly = false } = {}) {
   // This fixed command never includes data from the renderer or settings.
@@ -66,6 +79,7 @@ class Runtime extends EventEmitter {
     spawnChild = spawn,
     now = Date.now,
     admission = resetAccess,
+    translate = createT("en"),
   }) {
     super();
     Object.assign(this, {
@@ -77,11 +91,14 @@ class Runtime extends EventEmitter {
       spawnChild,
       now,
       admission,
+      translate,
     });
     this.state = {
       ...emptyCheckpoint,
       phase: "idle",
       message: "",
+      message_key: null,
+      message_params: {},
     };
     this.child = null;
     this.blockedIdentity = null;
@@ -94,17 +111,32 @@ class Runtime extends EventEmitter {
 
   publish(patch) {
     if (patch.blocked_reason === "eac") this.eacBlocked = true;
-    this.state = { ...this.state, ...patch };
+    // A message without a key must never inherit the previous key's translation.
+    const next =
+      patch.message !== undefined && !patch.message_key
+        ? { ...patch, message_key: null, message_params: {} }
+        : patch;
+    this.state = { ...this.state, ...next };
     if (this.eacBlocked)
       Object.assign(this.state, {
         phase: "blocked",
         blocked_reason: "eac",
         reset_action: 0,
         ...emptyCheckpoint,
-        message: EAC_MESSAGE,
+        ...messageFor(this.translate, "runtime.eacBlocked"),
       });
     if (!this.state.checkpoint) Object.assign(this.state, emptyCheckpoint);
+    this.localize();
     this.emit("status", this.state);
+  }
+
+  /** Status files from the Python host carry English text plus a key; render the key. */
+  localize() {
+    const key = this.state.message_key;
+    if (typeof key !== "string" || !key) return;
+    if (typeof this.translate.has !== "function" || !this.translate.has(key))
+      return;
+    this.state.message = this.translate(key, this.state.message_params);
   }
 
   start() {
@@ -113,22 +145,33 @@ class Runtime extends EventEmitter {
     void this.tick();
   }
 
+  /** A rejected request keeps a stable code plus the key behind its English text. */
+  rejection(code, key, params) {
+    return {
+      ok: false,
+      code,
+      error: this.translate(key, params),
+      error_key: key,
+      error_params: params ?? {},
+    };
+  }
+
   requestReset(action) {
-    const reject = (error) => Promise.resolve({ ok: false, error });
-    if (this.eacBlocked) return reject(EAC_MESSAGE);
+    const reject = (code, key, params) =>
+      Promise.resolve(this.rejection(code, key, params));
+    if (this.eacBlocked) return reject("EAC", "runtime.eacBlocked");
     if (!["save", "restore"].includes(action))
-      return reject("Unknown reset action.");
+      return reject("UNKNOWN_ACTION", "runtime.error.unknownAction");
     if (
       this.stopping ||
       !this.child ||
       this.state.phase !== "active" ||
       !this.state.log_prefix
     )
-      return reject("Enter driving before saving or restoring.");
-    if (this.resetRequest)
-      return reject("A reset operation is already in progress.");
+      return reject("NOT_DRIVING", "runtime.error.enterDriving");
+    if (this.resetRequest) return reject("BUSY", "runtime.error.busy");
     if (action === "restore" && !this.state.checkpoint)
-      return reject("Save a checkpoint before restoring.");
+      return reject("NO_CHECKPOINT", "runtime.error.noCheckpoint");
     const request = {
       schema_version: 1,
       id: randomUUID(),
@@ -145,10 +188,9 @@ class Runtime extends EventEmitter {
         file,
         timer: setTimeout(
           () =>
-            this.finishReset({
-              ok: false,
-              error: "Reset acknowledgement timed out.",
-            }),
+            this.finishReset(
+              this.rejection("TIMEOUT", "runtime.error.timeout"),
+            ),
           7000,
         ),
       };
@@ -231,7 +273,9 @@ class Runtime extends EventEmitter {
         this.publish({
           phase: "idle",
           ...emptyCheckpoint,
-          message: games.length > 1 ? "Keep one LMU instance open." : "",
+          ...(games.length > 1
+            ? messageFor(this.translate, "runtime.keepOneInstance")
+            : { message: "" }),
         });
         return;
       }
@@ -243,6 +287,8 @@ class Runtime extends EventEmitter {
           phase: "waiting",
           ...emptyCheckpoint,
           message: access.reason,
+          message_key: access.message_key ?? null,
+          message_params: access.message_params ?? {},
         });
         return;
       }
@@ -251,12 +297,20 @@ class Runtime extends EventEmitter {
         game.pid <= 0 ||
         typeof game.identity !== "string"
       )
-        throw new Error("Invalid LMU process identity.");
+        throw Object.assign(new Error("Invalid LMU process identity."), {
+          code: "INVALID_IDENTITY",
+          key: "runtime.error.invalidIdentity",
+        });
       if (game.identity === this.blockedIdentity) return;
       this.blockedIdentity = game.identity;
       this.launch(game.pid);
     } catch (error) {
-      this.publish({ phase: "error", message: error.message });
+      this.publish({
+        phase: "error",
+        message: error.message,
+        message_key: typeof error.key === "string" ? error.key : null,
+        message_params: error.params ?? {},
+      });
     } finally {
       this.busy = false;
     }
@@ -264,7 +318,7 @@ class Runtime extends EventEmitter {
 
   blockEac() {
     this.eacBlocked = true;
-    this.finishReset({ ok: false, error: EAC_MESSAGE });
+    this.finishReset(this.rejection("EAC", "runtime.eacBlocked"));
     this.publish({});
     if (this.child) fs.writeFileSync(path.join(this.session, "stop"), "");
   }
@@ -312,30 +366,34 @@ class Runtime extends EventEmitter {
     this.publish({
       phase: "waiting",
       ...emptyCheckpoint,
-      message: "LMU detected. Enter driving in offline Practice.",
+      ...messageFor(this.translate, "runtime.lmuDetected"),
     });
     const child = this.child;
     child.once("error", (error) => {
       this.publish({
         phase: "error",
         ...emptyCheckpoint,
-        message: `Cannot start the reset listener: ${error.message}`,
+        ...messageFor(this.translate, "runtime.error.listenerStart", {
+          reason: error.message,
+        }),
       });
     });
     child.once("close", (code) => {
       if (this.child !== child) return;
       this.readStatus();
-      this.finishReset({ ok: false, error: "Reset listener disconnected." });
+      this.finishReset(this.rejection("DISCONNECTED", "runtime.error.listenerDisconnected"));
       this.child = null;
       const previousError = this.state.phase === "error";
       this.publish({
         ...emptyCheckpoint,
         phase: previousError ? "error" : code === 0 ? "stopped" : "error",
-        message: previousError
-          ? this.state.message
+        ...(previousError
+          ? { message: this.state.message, message_key: this.state.message_key }
           : code === 0
-            ? "Disconnected."
-            : `Listener stopped (${code ?? "launch error"}). Reopen Sector after checking the session log.`,
+            ? messageFor(this.translate, "runtime.disconnected")
+            : messageFor(this.translate, "runtime.error.listenerStopped", {
+                code: code ?? "launch error",
+              })),
       });
       this.emit("detached");
     });
@@ -366,14 +424,14 @@ class Runtime extends EventEmitter {
 
   async stop() {
     this.stopping = true;
-    this.finishReset({ ok: false, error: "Sector is closing." });
+    this.finishReset(this.rejection("CLOSING", "runtime.closing"));
     if (!this.child) {
       this.dispose();
       return;
     }
     this.publish({
       phase: "stopping",
-      message: "Finishing the current operation…",
+      ...messageFor(this.translate, "runtime.finishing"),
     });
     // Keep heartbeat/status polling alive until Python confirms native detach.
     // Never terminate the game or a listener in the middle of a restore.
@@ -385,7 +443,7 @@ class Runtime extends EventEmitter {
 
   dispose() {
     this.stopping = true;
-    this.finishReset({ ok: false, error: "Reset listener stopped." });
+    this.finishReset(this.rejection("STOPPED", "runtime.stopped"));
     clearInterval(this.timer);
     this.timer = null;
   }

@@ -3,21 +3,27 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { Widget } from "../../renderer/overlays/widget.jsx";
 import { sampleValues } from "../../renderer/overlays/sample-values.js";
+import zh from "../../shared/locales/zh-CN.json";
 import "./gallery.css";
 
 const root = createRoot(document.getElementById("root"));
-const names = {
-  leaderboard: "Leaderboard",
-  relative: "Relative",
-  weather: "Weather",
-  delta: "Delta",
-  inputs: "Inputs",
-  laps: "Laps",
-  "session-summary": "Session",
-  hybrid: "Hybrid",
-  tyres: "Tyres",
-  "stint-planner": "Stint planner",
-};
+// Documentation media ships in Simplified Chinese, so the gallery chrome is
+// Chinese too; names come from the same dictionary the app uses so that the
+// screenshots and the interface never drift apart.
+const names = Object.fromEntries(
+  [
+    "leaderboard",
+    "relative",
+    "weather",
+    "delta",
+    "inputs",
+    "laps",
+    "session-summary",
+    "hybrid",
+    "tyres",
+    "stint-planner",
+  ].map((id) => [id, zh[`widget.name.${id}`] ?? id]),
+);
 
 // A deterministic, explicitly labelled demonstration, using the production widgets.
 // No game process, telemetry reader or reset host is involved in these recordings.
@@ -64,7 +70,7 @@ function valuesAt(id, settings, seconds) {
   }
   if (id === "weather") {
     // Do not illustrate forecast capabilities that the telemetry reader does not provide.
-    values.surface = "Dry track";
+    values.surface = zh["widget.surface.dry"];
     values.humidity = "-";
     values.forecast = "-";
     values.rainLap = "";
@@ -98,8 +104,8 @@ window.renderSectorMedia = (seconds, settings, animated = false) => {
     root.render(
       <main id="showcase" className={animated ? "animated" : "gallery"}>
         <header>
-          <strong>Sector overlays</strong>
-          <span>DEMO DATA</span>
+          <strong>Sector 叠加层</strong>
+          <span>演示数据</span>
         </header>
         <div className="columns">
           {columns.map((column, index) => (

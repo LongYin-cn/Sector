@@ -12,6 +12,17 @@ const output = path.resolve(directory, "../../../work/electron-screenshots");
 fs.mkdirSync(output, { recursive: true });
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
+
+// Tabs re-render from a fresh snapshot after a switch, so a control can be
+// disabled for a frame or two. Wait for the settled state instead of asserting
+// on the transient one.
+async function waitForEnabled(locator, timeout = 5000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (!(await locator.isDisabled())) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
 const app = await electron.launch({
   args: [directory, "--preview", "--smoke"],
   env,
@@ -89,11 +100,17 @@ try {
       .isDisabled(),
     true,
   );
+  await waitForEnabled(
+    page.getByRole("switch", { name: "Enable overlays", exact: true }),
+  );
   assert.equal(
     await page
       .getByRole("switch", { name: "Enable overlays", exact: true })
       .isDisabled(),
     false,
+  );
+  await waitForEnabled(
+    page.getByRole("button", { name: "Edit layout", exact: true }),
   );
   assert.equal(
     await page

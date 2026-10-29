@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import model from "../../shared/overlay-model.cjs";
 import layout from "../../shared/overlay-layout.cjs";
+import i18n from "../../shared/i18n.cjs";
 import { Widget } from "./widget.jsx";
 import { sampleValues } from "./sample-values.js";
 import "./window.css";
@@ -54,14 +55,27 @@ function OverlayWindow() {
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
   }, [state?.editing]);
+  const language = state?.language;
+  useEffect(() => {
+    document.documentElement.lang = i18n.normalizeLocale(
+      language ?? i18n.DEFAULT_LOCALE,
+    );
+  }, [language]);
+  const widgetId = state?.id;
+  useEffect(() => {
+    if (!widgetId) return;
+    document.title = i18n.createT(language)(`widget.name.${widgetId}`);
+  }, [widgetId, language]);
   if (!state) return null;
   const { id, settings, editing, frame, scale } = state;
+  const t = i18n.createT(language);
   const values = frame?.connected
-    ? model.valuesFor(id, frame, settings)
+    ? model.valuesFor(id, frame, settings, t.locale)
     : editing
-      ? sampleValues(id, settings)
-      : model.valuesFor(id, null, settings);
+      ? sampleValues(id, settings, t.locale)
+      : model.valuesFor(id, null, settings, t.locale);
   const def = layout.dimensions(id, settings, values);
+  const name = t(`widget.name.${id}`);
   return (
     <>
       <div
@@ -72,19 +86,19 @@ function OverlayWindow() {
           height: def.height,
         }}
       >
-        <Widget id={id} values={values} settings={settings} />
+        <Widget id={id} values={values} settings={{ ...settings, language }} />
       </div>
       {editing && (
         <>
           <div className="layout-handle">
-            <span>{def.name}</span>
-            <button aria-label="Lock layout" onClick={() => api.lock()}>
+            <span>{name}</span>
+            <button aria-label={t("editor.lock")} onClick={() => api.lock()}>
               ✓
             </button>
           </div>
           <button
             className="resize-handle"
-            aria-label="Resize widget"
+            aria-label={t("editor.resizeWidget")}
             onPointerDown={(e) => {
               if (e.button !== 0) return;
               e.preventDefault();

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import logo from "@assets/sector-logo-orange.png";
 import { StartupWord } from "./startup-word.jsx";
+import { useT } from "./i18n.jsx";
 import "./startup-splash.css";
 
 export function StartupSplash({ reduceMotion, onDone }) {
+  const t = useT();
   const [leaving, setLeaving] = useState(false);
   useEffect(() => {
     let done = false;
@@ -45,7 +47,7 @@ export function StartupSplash({ reduceMotion, onDone }) {
       className={`splash${leaving ? " is-leaving" : ""}`}
       id="sector-splash"
       role="img"
-      aria-label="Sector is starting"
+      aria-label={t("splash.starting")}
     >
       <div className="splash-card">
         <img className="splash-logo" src={logo} alt="" draggable="false" />

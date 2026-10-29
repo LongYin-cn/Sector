@@ -13,7 +13,7 @@
   >
     <div style="display: flex; align-items: baseline; gap: 8px">
       <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em"
-        >LAPS</span
+        >{{labels.laps}}</span
       >
     </div>
     <div style="display: flex; align-items: baseline; gap: 14px">
@@ -39,7 +39,7 @@
             color: #b8c0c8;
             letter-spacing: 0.06em;
           "
-          >FUEL</span
+          >{{labels.fuel}}</span
         >
         <span class="mono" style="font-size: 14px; font-weight: 700"
           >{{fuel}}</span
@@ -62,12 +62,12 @@
       color: #b8c0c8;
     "
   >
-    <span>LAP</span>
-    <span>TIME</span>
+    <span>{{labels.lap}}</span>
+    <span>{{labels.time}}</span>
     <span style="text-align: right">VE</span>
-    <span style="text-align: right">FUEL</span>
+    <span style="text-align: right">{{labels.fuel}}</span>
     <span style="text-align: right">Δ PB</span>
-    <span style="text-align: right">Δ BEST</span>
+    <span style="text-align: right">{{labels.deltaBest}}</span>
   </div>
 
   <div style="display: flex; flex-direction: column">
@@ -212,7 +212,7 @@
         color: #b8c0c8;
         letter-spacing: 0.06em;
       "
-      >AVG</span
+      >{{labels.average}}</span
     >
     <div style="display: flex; align-items: center; gap: 6px">
       <span class="mono" style="font-size: 14px; font-weight: 700"
@@ -225,7 +225,7 @@
           color: #b8c0c8;
           letter-spacing: 0.04em;
         "
-        >CLEAN LAPS</span
+        >{{labels.cleanLaps}}</span
       >
     </div>
     <span

@@ -5,6 +5,88 @@ const { stintValues } = require("./stint-model.cjs");
 const { resourceValues } = require("./compound-model.cjs");
 const { HybridHistory, hybridValues } = require("./hybrid-model.cjs");
 const { relativeDistance, leaderboardGap } = require("./live-gaps.cjs");
+const {
+  createT,
+  normalizeLocale,
+  DEFAULT_LOCALE,
+  forcedLocale,
+} = require("./i18n.cjs");
+/**
+ * `--lang=en` pins the language in the main process; the same module also runs
+ * in the sandboxed renderer, where `process` is absent, so both cases are
+ * guarded instead of letting the flag crash a widget.
+ */
+function pinnedLocale() {
+  try {
+    return typeof process === "undefined" ? null : forcedLocale(process.argv);
+  } catch {
+    return null;
+  }
+}
+/**
+ * Overlay chrome (labels baked into the designs) and the generated words share
+ * one resolver: an explicit `language` on the widget settings wins, otherwise
+ * the command line pin, otherwise the shipped default.
+ */
+function overlayLocale(settings) {
+  const given = settings?.language;
+  return typeof given === "string" && given
+    ? normalizeLocale(given)
+    : (pinnedLocale() ?? DEFAULT_LOCALE);
+}
+/** Design labels are resolved once per render and read as `{{labels.laps}}`. */
+const labelKeys = {
+  air: "widget.air",
+  average: "widget.average",
+  best: "widget.best",
+  bestLap: "widget.bestLap",
+  boxIn: "widget.boxIn",
+  carsUnit: "widget.unit.cars",
+  cleanAvg: "widget.cleanAvg",
+  cleanLaps: "widget.cleanLaps",
+  deltaBest: "widget.deltaBest",
+  deploy: "widget.deploy",
+  elapsedUnit: "widget.unit.elapsed",
+  fuel: "widget.fuel",
+  fuelPerLap: "widget.fuelPerLap",
+  gear: "widget.gear",
+  humidity: "widget.humidity",
+  inputTrace: "widget.inputTrace",
+  lap: "widget.lap",
+  lapAhead: "widget.lapAhead",
+  lapBehind: "widget.lapBehind",
+  lapTimes: "widget.lapTimes",
+  lapTimesAria: "widget.lapTimesAria",
+  lapUnit: "widget.unit.lap",
+  laps: "widget.laps",
+  lapsCount: "widget.lapsCount",
+  lapsUnit: "widget.unit.laps",
+  pitBadge: "widget.pitBadge",
+  pitStops: "widget.pitStops",
+  position: "widget.position",
+  predicted: "widget.predicted",
+  relative: "widget.relative",
+  remaining: "widget.remaining",
+  remainingUnit: "widget.unit.remaining",
+  session: "widget.session",
+  targetLap: "widget.targetLap",
+  time: "widget.time",
+  toHold: "widget.toHold",
+  toPb: "widget.toPb",
+  track: "widget.track",
+  trackLimits: "widget.trackLimits",
+  tyres: "widget.tyres",
+  tyreSuffix: "widget.unit.tyre",
+  vePerLap: "widget.vePerLap",
+  vsPb: "widget.vsPb",
+  weather: "widget.weather",
+};
+function overlayLabels(locale) {
+  const t = createT(locale ?? pinnedLocale() ?? DEFAULT_LOCALE);
+  const labels = {};
+  for (const [name, key] of Object.entries(labelKeys)) labels[name] = t(key);
+  return labels;
+}
 const finite = (v) => typeof v === "number" && Number.isFinite(v);
 const clamp = (v, min = 0, max = 1) =>
   finite(v) ? Math.max(min, Math.min(max, v)) : min;
@@ -202,7 +284,8 @@ class TelemetryModel {
     };
   }
 }
-function valuesFor(id, data, settings) {
+function valuesFor(id, data, settings, locale) {
+  const t = createT(locale ?? overlayLocale(settings));
   if (id === "tyres") return tyreValues(data, settings);
   if (id === "stint-planner") return stintValues(data, settings);
   if (id === "hybrid") return hybridValues(data, settings);
@@ -247,13 +330,15 @@ function valuesFor(id, data, settings) {
   const bestLapLabel = bestRecord ? `L${bestRecord.lap}` : dash;
   const sessionName = !live
     ? dash
-    : data.session >= 10
-      ? "RACE"
-      : data.session >= 5 && data.session <= 8
-        ? "QUALIFYING"
-        : data.session === 9
-          ? "WARMUP"
-          : "PRACTICE";
+    : t(
+        data.session >= 10
+          ? "widget.session.race"
+          : data.session >= 5 && data.session <= 8
+            ? "widget.session.qualifying"
+            : data.session === 9
+              ? "widget.session.warmup"
+              : "widget.session.practice",
+      );
   const remaining = clock(data?.remaining),
     elapsed = clock(data?.et);
   const common = {
@@ -262,7 +347,9 @@ function valuesFor(id, data, settings) {
     elapsed,
     lap: p?.lap ?? dash,
     sessionName,
-    trackCars: live ? `${data.track}, ${cars.length} cars` : dash,
+    trackCars: live
+      ? t("widget.trackCars", { track: data.track, count: cars.length })
+      : dash,
     energy:
       finite(p?.energy) && p.energy >= 0 && p.energy <= 1
         ? `${(p.energy * 100).toFixed(1)}%`
@@ -368,10 +455,10 @@ function valuesFor(id, data, settings) {
             : []),
           {
             ...row(v, accent),
-            ...resourceValues(v.resources),
+            ...resourceValues(v.resources, t.locale),
             gap:
               v.classPlace === 1
-                ? `Lap ${v.laps}`
+                ? t("widget.lapOf", { lap: v.laps })
                 : v.lapsBehind !== list[0].lapsBehind
                   ? `${v.lapsBehind - list[0].lapsBehind}L`
                   : (() => {
@@ -402,7 +489,9 @@ function valuesFor(id, data, settings) {
                 clsColor: colors[v.cls] || "#677383",
                 pos: `P${v.classPlace}`,
                 hasLap: lap !== 0,
-                lap: `${lap > 0 ? "+" : "\u2212"}${Math.abs(lap)} LAP`,
+                lap: t("widget.lapDelta", {
+                  count: `${lap > 0 ? "+" : "\u2212"}${Math.abs(lap)}`,
+                }),
                 lapBg: lap > 0 ? "#E2483D" : "#2F7BEA",
                 gapTxt: v.player
                   ? "0.000"
@@ -436,8 +525,14 @@ function valuesFor(id, data, settings) {
     };
   }
   if (id === "weather") {
-    const slots = ["NOW", "+30M", "+1H", "+1H30", "+2H"].map((label, i) => ({
-      label,
+    const slots = [
+      "widget.weather.now",
+      "widget.weather.plus30",
+      "widget.weather.plus1h",
+      "widget.weather.plus1h30",
+      "widget.weather.plus2h",
+    ].map((key, i) => ({
+      label: t(key),
       temp: live && i === 0 ? `${Math.round(data.air)}\u00b0` : dash,
       rain: live && i === 0 ? `${Math.round(clamp(data.rain) * 100)}%` : dash,
       isRain: live && i === 0 && data.rain > 0.01,
@@ -458,7 +553,9 @@ function valuesFor(id, data, settings) {
     return {
       ...common,
       slots,
-      surface: live ? (data.wetness > 0.01 ? "Wet track" : "Dry track") : dash,
+      surface: live
+        ? t(data.wetness > 0.01 ? "widget.surface.wet" : "widget.surface.dry")
+        : dash,
       air: live ? `${Math.round(data.air)}\u00b0` : dash,
       trackTemp: live ? `${Math.round(data.trackTemp)}\u00b0` : dash,
       humidity: dash,
@@ -478,7 +575,7 @@ function valuesFor(id, data, settings) {
         dbest: classBest ? signed(l.time - classBest) : dash,
         dpbFg: l.clean ? "#F2F4F6" : "#B8C0C8",
         timeFg: l.clean ? "#F2F4F6" : "#B8C0C8",
-        tag: l.tag,
+        tag: l.tag ? t(`widget.lapTag.${String(l.tag).toLowerCase()}`) : "",
         hasTag: !!l.tag,
         bg: i === 0 ? "rgba(0,0,0,.35)" : "transparent",
         delay: "0ms",
@@ -489,7 +586,9 @@ function valuesFor(id, data, settings) {
     max = Math.max(...times.map((l) => l.time));
   return {
     ...common,
-    sessionTrack: live ? `${sessionName}, ${data.track}` : dash,
+    sessionTrack: live
+      ? t("widget.sessionTrack", { session: sessionName, track: data.track })
+      : dash,
     classBadge: car?.cls || "",
     classColor: colors[car?.cls] || "#677383",
     progress: clamp(data?.et / (data?.et + data?.remaining)),
@@ -498,7 +597,7 @@ function valuesFor(id, data, settings) {
     gained: started
       ? `${started - car.classPlace >= 0 ? "+" : ""}${started - car.classPlace}`
       : dash,
-    startPosition: started ? `from P${started}` : dash,
+    startPosition: started ? t("widget.startPosition", { position: started }) : dash,
     bars: times.map((l) => ({
       h: 8 + ((l.time - min) / (max - min || 1)) * 62,
       c: l.clean ? (l.time === min ? "#3DDC84" : "#A3ADB8") : "#ffffff38",
@@ -508,7 +607,7 @@ function valuesFor(id, data, settings) {
     lastLapLabel: times.length ? `L${times.at(-1).lap}` : dash,
     lapCount: car?.laps ?? dash,
     pitStops: car?.pitStops ?? dash,
-    lastPit: data?.lastPit ? `last on L${data.lastPit}` : "",
+    lastPit: data?.lastPit ? t("widget.lastPit", { lap: data.lastPit }) : "",
     limits:
       finite(p?.limits) && data.limitStep > 0
         ? (p.limits / data.limitStep).toFixed(1)
@@ -516,4 +615,12 @@ function valuesFor(id, data, settings) {
     limitMax: data?.limitStep > 0 ? data.limitMax / data.limitStep : dash,
   };
 }
-module.exports = { TelemetryModel, valuesFor, time, classCode, make };
+module.exports = {
+  TelemetryModel,
+  valuesFor,
+  time,
+  classCode,
+  make,
+  overlayLocale,
+  overlayLabels,
+};

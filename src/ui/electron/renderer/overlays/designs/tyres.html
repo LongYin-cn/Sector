@@ -3,7 +3,7 @@
   style="width: 360px; height: 262px; box-sizing: border-box; border-radius: 12px; overflow: hidden; box-shadow: inset 0 0 0 2000px rgba(10, 12, 15, {{panelAlpha}}); font-family: 'Barlow Semi Condensed', system-ui, sans-serif; color: #F2F4F6; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 1px rgba(0,0,0,0.9); display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px"
 >
   <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em"
-    >TYRES</span
+    >{{labels.tyres}}</span
   >
   <div
     class="tyre-grid"
@@ -16,7 +16,7 @@
   >
     <sc-for list="{{tyres}}" as="t" hint-placeholder-count="4">
       <div
-        aria-label="{{t.name}} tyre"
+        aria-label="{{t.name}} {{labels.tyreSuffix}}"
         style="
           display: flex;
           gap: 10px;
@@ -137,7 +137,7 @@
               style="font-weight: 700; color: {{t.tempFg}}"
               >{{t.avg}}°</span
             >
-            <span data-column="age">{{t.laps}} laps</span>
+            <span data-column="age">{{t.laps}} {{labels.lapsUnit}}</span>
           </div>
           <sc-if
             data-column="condition"

@@ -19,12 +19,12 @@
           color: #c2c9d0;
           letter-spacing: 0.06em;
         "
-        >BOX IN</span
+        >{{labels.boxIn}}</span
       >
       <span
         class="mono"
         style="font-size: 18px; font-weight: 700; color: #ffc062"
-        >{{boxLaps}} laps</span
+        >{{boxLaps}} {{labels.lapsUnit}}</span
       >
       <span
         class="mono"
@@ -65,7 +65,7 @@
         <span
           class="mono"
           style="font-size: 13px; font-weight: 700; text-align: right; color: {{r.lapsFg}}"
-          >{{r.laps}} laps</span
+          >{{r.laps}} {{labels.lapsUnit}}</span
         >
       </div>
     </sc-for>
@@ -92,7 +92,7 @@
           color: #c2c9d0;
           letter-spacing: 0.04em;
         "
-        >VE / LAP</span
+        >{{labels.vePerLap}}</span
       >
       <span class="mono" style="font-size: 14px; font-weight: 700"
         >{{energyPer}}</span
@@ -109,7 +109,7 @@
           color: #c2c9d0;
           letter-spacing: 0.04em;
         "
-        >TARGET +1 LAP</span
+        >{{labels.targetLap}}</span
       >
       <span
         class="mono"
@@ -128,7 +128,7 @@
           color: #c2c9d0;
           letter-spacing: 0.04em;
         "
-        >FUEL / LAP</span
+        >{{labels.fuelPerLap}}</span
       >
       <span class="mono" style="font-size: 14px; font-weight: 700"
         >{{fuelPer}}</span

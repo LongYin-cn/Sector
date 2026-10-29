@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
+const { normalizeLocale, DEFAULT_LOCALE } = require("../shared/i18n.cjs");
 const keymap = path.join(__dirname, "../shared/reset_keymap.json");
 const keys = require(
   fs.existsSync(keymap)
@@ -12,6 +13,7 @@ const defaults = Object.freeze({
   restore_key: "F7",
   sound: true,
   reduce_motion: false,
+  language: DEFAULT_LOCALE,
 });
 
 function validateSettings(value) {
@@ -26,19 +28,26 @@ function validateSettings(value) {
     save.virtual_key === restore.virtual_key ||
     typeof value?.sound !== "boolean"
   ) {
-    throw new Error("Choose two different keys without modifiers.");
+    throw Object.assign(
+      new Error("Choose two different keys without modifiers."),
+      { code: "SETTINGS_INVALID_KEYS", key: "error.settingsKeys" },
+    );
   }
   if (
     value.reduce_motion !== undefined &&
     typeof value.reduce_motion !== "boolean"
   ) {
-    throw new Error("Reduce motion must be enabled or disabled.");
+    throw Object.assign(new Error("Reduce motion must be enabled or disabled."), {
+      code: "SETTINGS_INVALID_MOTION",
+      key: "error.settingsMotion",
+    });
   }
   return {
     save_key: save.name,
     restore_key: restore.name,
     sound: value.sound,
     reduce_motion: value.reduce_motion ?? false,
+    language: normalizeLocale(value.language),
   };
 }
 
@@ -48,10 +57,14 @@ function readSettings(filename) {
       JSON.parse(fs.readFileSync(filename, "utf8").replace(/^\uFEFF/, "")),
     );
   } catch (error) {
-    if (error.code !== "ENOENT")
-      throw new Error(
+    if (error.code !== "ENOENT") {
+      const unreadable = new Error(
         "Settings could not be read. Restore defaults to repair them.",
       );
+      unreadable.code = "SETTINGS_UNREADABLE";
+      unreadable.key = "error.settingsUnreadable";
+      throw unreadable;
+    }
     return { ...defaults };
   }
 }

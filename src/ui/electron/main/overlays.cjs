@@ -2,18 +2,29 @@ const { BrowserWindow, ipcMain, screen } = require("electron");
 const path = require("node:path");
 const model = require("../shared/overlay-model.cjs");
 const store = require("../shared/overlay-config.cjs");
+const { createT } = require("../shared/i18n.cjs");
 const { OverlayTelemetry } = require("./overlay-telemetry.cjs");
 class Overlays {
-  constructor({ root, file, preview, desktop, discover, ready = () => true }) {
-    Object.assign(this, { root, file, preview, desktop, ready });
+  constructor({
+    root,
+    file,
+    preview,
+    desktop,
+    discover,
+    ready = () => true,
+    translate = createT("en"),
+  }) {
+    Object.assign(this, { root, file, preview, desktop, ready, translate });
     this.windows = new Map();
     this.editing = false;
     this.error = "";
+    this.errorKey = null;
     try {
       this.config = store.read(file);
     } catch (e) {
       this.config = store.defaults();
       this.error = e.message;
+      this.errorKey = typeof e.key === "string" ? e.key : null;
     }
     this.telemetry = new OverlayTelemetry(root, {
       discover,
@@ -32,6 +43,7 @@ class Overlays {
       config: this.config,
       editing: this.editing,
       error: this.error,
+      errorKey: this.errorKey,
       status: this.telemetry.status,
       frame: this.telemetry.frame,
       definitions: store.definitions,
@@ -43,21 +55,49 @@ class Overlays {
       })),
     };
   }
+  /** Overlay text keeps its key so the renderer never shows a raw English error. */
+  overlayError(key) {
+    return typeof this.translate.has === "function" && this.translate.has(key)
+      ? this.translate(key)
+      : key;
+  }
+  /** Interface language the overlay windows should render in. */
+  language() {
+    return this.translate?.locale ?? "zh-CN";
+  }
+  /** Widget name shown in the native window title and the editor. */
+  widgetName(id) {
+    const key = `widget.name.${id}`;
+    return typeof this.translate.has === "function" && this.translate.has(key)
+      ? this.translate(key)
+      : store.definitions[id].name;
+  }
   save(value) {
     try {
       this.config = this.preview
         ? store.validate(value)
         : store.write(this.file, value);
       this.error = "";
+      this.errorKey = null;
       this.sync();
       return { ok: true, ...this.state() };
     } catch (e) {
-      this.error = e.message;
-      return { ok: false, error: e.message };
+      this.errorKey = typeof e.key === "string" ? e.key : null;
+      this.error = this.errorKey ? this.overlayError(this.errorKey) : e.message;
+      return {
+        ok: false,
+        code: e.code ?? "OVERLAY_CONFIG_INVALID",
+        error: this.error,
+        error_key: this.errorKey,
+      };
     }
   }
   setEditing(value) {
-    if (typeof value !== "boolean") throw new Error("Invalid edit mode.");
+    if (typeof value !== "boolean")
+      throw Object.assign(new Error("Invalid edit mode."), {
+        code: "OVERLAY_EDIT_MODE",
+        key: "overlay.error.editMode",
+      });
     if (!value) {
       this.flushScale();
       this.flushMove();
@@ -75,6 +115,7 @@ class Overlays {
       settings: config.widgets[id],
       editing,
       frame,
+      language: this.language(),
       scale: (bounds || this.windowBounds(id)).scale,
     });
   }
@@ -98,7 +139,7 @@ class Overlays {
   create(id) {
     const b = this.windowBounds(id);
     const win = new BrowserWindow({
-      title: `Sector - ${store.definitions[id].name}`,
+      title: `Sector - ${this.widgetName(id)}`,
       x: b.x,
       y: b.y,
       width: b.width,
@@ -128,7 +169,8 @@ class Overlays {
     win.webContents.on("will-attach-webview", (e) => e.preventDefault());
     win.webContents.on("did-stop-loading", () => this.sync());
     win.webContents.on("render-process-gone", () => {
-      this.error = "Overlay renderer closed. Toggle the widget to reopen it.";
+      this.errorKey = "overlay.error.rendererClosed";
+      this.error = this.overlayError(this.errorKey);
       this.config.widgets[id].enabled = false;
       win.destroy();
       this.sync();
@@ -216,7 +258,9 @@ class Overlays {
           event.senderFrame.url === "sector://app/overlay.html"
         )
           return id;
-      throw new Error("Untrusted overlay request.");
+      throw Object.assign(new Error("Untrusted overlay request."), {
+        code: "OVERLAY_UNTRUSTED_REQUEST",
+      });
     };
     ipcMain.handle("sector:overlay-ready", (event) => {
       const id = owner(event);
@@ -225,6 +269,7 @@ class Overlays {
         settings: this.config.widgets[id],
         editing: this.editing,
         frame: this.telemetry.frame,
+        language: this.language(),
         scale: this.windowBounds(id).scale,
       };
     });

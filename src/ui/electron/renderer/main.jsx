@@ -39,6 +39,12 @@ import "@fontsource/barlow-condensed/latin-600.css";
 import logo from "@assets/sector-logo-orange.png";
 import { keyFromEvent, keyLabel } from "./keys.js";
 import { statusView } from "./status.js";
+import {
+  LocaleProvider,
+  setLocale,
+  useErrorMessage,
+  useT,
+} from "./i18n.jsx";
 import "./style.css";
 
 const api = window.sector;
@@ -47,6 +53,8 @@ const Glyph = ({ icon, ...props }) => (
 );
 
 function App() {
+  const t = useT();
+  const tError = useErrorMessage();
   const [startup, setStartup] = useState("pending");
   const finishStartup = useCallback(() => setStartup("done"), []);
   const [settings, setSettings] = useState(null);
@@ -62,9 +70,7 @@ function App() {
   const [modal, setModal] = useState(null);
   const [error, setError] = useState("");
   const [exportState, setExportState] = useState("");
-  const [captureHint, setCaptureHint] = useState(
-    "Press one key. Esc to cancel.",
-  );
+  const [captureHint, setCaptureHint] = useState("main.capture.hint");
   const [pending, setPending] = useState(false);
   const [tour, setTour] = useState(false);
   const [onboarding, setOnboarding] = useState(null);
@@ -88,6 +94,10 @@ function App() {
       settings?.reduce_motion === true,
     );
   }, [settings?.reduce_motion]);
+
+  useEffect(() => {
+    if (settings?.language) setLocale(settings.language);
+  }, [settings?.language]);
 
   useEffect(() => {
     if (status.phase === "error") setQuitting(false);
@@ -124,7 +134,7 @@ function App() {
       })
       .catch(() => {
         setStartup("done");
-        setError("Sector could not initialize. Close and reopen the app.");
+        setError("error.initialize");
       });
     return () => {
       live = false;
@@ -183,12 +193,12 @@ function App() {
       if (event.repeat || captureBusy.current) return;
       const name = keyFromEvent(event, keys);
       if (!name) {
-        setCaptureHint("Use one key without Ctrl, Alt, Shift or Windows.");
+        setCaptureHint("main.capture.singleKey");
         return;
       }
       const other = modal === "save_key" ? "restore_key" : "save_key";
       if (name === settings[other]) {
-        setCaptureHint("That key is already assigned to the other action.");
+        setCaptureHint("main.capture.assigned");
         return;
       }
       captureBusy.current = true;
@@ -213,12 +223,12 @@ function App() {
       await audio.current.play();
       setError("");
     } catch (err) {
-      setError(err.message || "Audio device unavailable.");
+      setError(err.message || "main.error.audio");
     }
   }
 
   function openCapture(name) {
-    setCaptureHint("Press one key. Esc to cancel.");
+    setCaptureHint("main.capture.hint");
     setModal(name);
   }
 
@@ -229,7 +239,7 @@ function App() {
       await api.quit();
     } catch {
       setQuitting(false);
-      setError("Could not close Sector. Please try again.");
+      setError("main.error.closeFailed");
     }
   }
 
@@ -259,7 +269,7 @@ function App() {
               data-tour="settings"
               disabled={!settings || quitting}
             >
-              Edit
+              {t("main.menu.edit")}
             </Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner
@@ -276,7 +286,7 @@ function App() {
                       requestAnimationFrame(() => setModal("settings"))
                     }
                   >
-                    <Glyph icon={gear} /> Settings
+                    <Glyph icon={gear} /> {t("main.menu.settings")}
                   </Menu.Item>
                 </Menu.Popup>
               </Menu.Positioner>
@@ -287,7 +297,7 @@ function App() {
               className="help-menu-trigger guide-menu-trigger"
               disabled={!settings || quitting}
             >
-              Help
+              {t("main.menu.help")}
             </Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner
@@ -299,14 +309,14 @@ function App() {
               >
                 <Menu.Popup className="help-menu-popup">
                   <Menu.Item className="help-menu-item" onClick={startGuide}>
-                    <Glyph icon={help} /> Guide
+                    <Glyph icon={help} /> {t("main.menu.guide")}
                   </Menu.Item>
                   <Menu.Separator className="help-menu-separator" />
                   <Menu.Item
                     className="help-menu-item"
                     onClick={() => setModal("changelog")}
                   >
-                    <Glyph icon={history} /> Changelog
+                    <Glyph icon={history} /> {t("main.menu.changelog")}
                   </Menu.Item>
                   <Menu.Separator className="help-menu-separator" />
                   <Menu.Item
@@ -316,7 +326,7 @@ function App() {
                       setModal("diagnostics");
                     }}
                   >
-                    <Glyph icon={save} /> Export diagnostics
+                    <Glyph icon={save} /> {t("main.menu.diagnostics")}
                   </Menu.Item>
                   <Menu.Item
                     className="help-menu-item"
@@ -325,11 +335,11 @@ function App() {
                         const result = await api.reportBug();
                         if (!result.ok) throw new Error(result.error);
                       } catch (err) {
-                        setError(err.message || "Could not open GitHub.");
+                        setError(err.message || "main.error.github");
                       }
                     }}
                   >
-                    <Glyph icon={bug} /> Report a bug
+                    <Glyph icon={bug} /> {t("main.menu.reportBug")}
                   </Menu.Item>
                 </Menu.Popup>
               </Menu.Positioner>
@@ -337,13 +347,13 @@ function App() {
           </Menu.Root>
         </div>
         <div className="window-controls">
-          <button aria-label="Minimize" onClick={() => api.minimize()}>
+          <button aria-label={t("main.window.minimize")} onClick={() => api.minimize()}>
             <svg viewBox="0 0 16 16">
               <path d="M3 8h10" />
             </svg>
           </button>
           <button
-            aria-label="Maximize or restore window"
+            aria-label={t("main.window.maximize")}
             onClick={() => api.maximize()}
           >
             <svg viewBox="0 0 16 16">
@@ -353,7 +363,7 @@ function App() {
           <button
             data-tour="background"
             className="window-close"
-            aria-label="Close window"
+            aria-label={t("main.window.close")}
             onClick={() => setModal("close")}
           >
             <svg viewBox="0 0 16 16">
@@ -379,18 +389,18 @@ function App() {
               sector<span className="brand-period">.</span>
             </span>
           </div>
-          <Tabs.List className="tabs" aria-label="Features">
+          <Tabs.List className="tabs" aria-label={t("tab.list")}>
             <Tabs.Tab value="home">
               <Glyph icon={home} />
-              Home
+              {t("tab.home")}
             </Tabs.Tab>
             <Tabs.Tab value="reset">
               <Glyph icon={restart} />
-              Active Reset
+              {t("tab.reset")}
             </Tabs.Tab>
             <Tabs.Tab value="overlay" data-tour="overlay">
               <Glyph icon={layers} />
-              Overlay
+              {t("tab.overlay")}
             </Tabs.Tab>
             <Tabs.Indicator className="tab-indicator" />
           </Tabs.List>
@@ -411,8 +421,8 @@ function App() {
           <Tabs.Panel value="reset" className="page reset-page">
             <div className="page-heading reset-heading">
               <div>
-                <div className="page-kicker">02 / Practice tools</div>
-                <h1>Active Reset</h1>
+                <div className="page-kicker">{t("main.reset.kicker")}</div>
+                <h1>{t("main.reset.title")}</h1>
               </div>
               <ResetLaunch
                 game={game}
@@ -424,15 +434,17 @@ function App() {
               <section className="reset-blocked" role="alert">
                 <Glyph icon={close} />
                 <div>
-                  <h2>Active Reset unavailable: Easy Anti-Cheat is active</h2>
+                  <h2>{t("main.eac.title")}</h2>
                   <p>
-                    LMU was detected with EAC active. Save, Restore and their
-                    shortcuts ({key("save_key")} / {key("restore_key")}) are
-                    disabled.
+                    {t("main.eac.body", {
+                      save: key("save_key"),
+                      restore: key("restore_key"),
+                    })}
                   </p>
                   <p>
-                    Close LMU, choose <strong>Open LMU without EAC</strong>,
-                    then enter Offline Practice. Overlays remain available.
+                    {t("main.eac.nextBefore")}{" "}
+                    <strong>{t("main.eac.openWithoutEac")}</strong>
+                    {t("main.eac.nextAfter")}
                   </p>
                 </div>
               </section>
@@ -440,43 +452,55 @@ function App() {
             <section
               className={`checkpoint ${view.saved ? "is-saved" : ""}`}
               data-tour="checkpoint"
-              aria-label="Checkpoint"
+              aria-label={t("main.checkpoint.title")}
             >
               <div className="checkpoint-main">
                 <div className="card-top">
-                  <span className="eyebrow">Your checkpoint</span>
+                  <span className="eyebrow">
+                    {t("main.checkpoint.eyebrow")}
+                  </span>
                   <span className="checkpoint-label">
                     <Glyph icon={view.saved ? check : save} />
-                    {view.saved ? "Saved" : "Empty"}
+                    {view.saved
+                      ? t("main.checkpoint.saved")
+                      : t("main.checkpoint.empty")}
                   </span>
                 </div>
                 <h2 className="checkpoint-title">
-                  {view.saved ? "Checkpoint ready" : "No checkpoint"}
+                  {view.saved
+                    ? t("main.checkpoint.ready")
+                    : t("main.checkpoint.none")}
                 </h2>
                 <p className="checkpoint-help">
                   {eacBlocked ? (
-                    <>Close LMU and reopen it without EAC to use checkpoints.</>
+                    <>{t("main.checkpoint.helpClosed")}</>
                   ) : view.saved ? (
                     <>
-                      Return to this moment with <kbd>{key("restore_key")}</kbd>
+                      {t("main.checkpoint.returnBefore")}{" "}
+                      <kbd>{key("restore_key")}</kbd>
+                      {t("main.checkpoint.returnAfter")}
                     </>
                   ) : (
                     <>
-                      Press <kbd>{key("save_key")}</kbd> in LMU to save a
-                      checkpoint.
+                      {t("main.checkpoint.pressBefore")}{" "}
+                      <kbd>{key("save_key")}</kbd>{" "}
+                      {t("main.checkpoint.pressAfter")}
                     </>
                   )}
                 </p>
               </div>
-              <aside className="checkpoint-side" aria-label="Reset readiness">
+              <aside
+                className="checkpoint-side"
+                aria-label={t("main.checkpoint.readiness")}
+              >
                 <ol className="readiness-steps">
                   {[
-                    ["LMU detected", gameDetected],
+                    [t("main.checkpoint.step.lmu"), gameDetected],
                     [
-                      "Driving offline",
+                      t("main.checkpoint.step.driving"),
                       status.phase === "active" && !eacBlocked,
                     ],
-                    ["Checkpoint saved", view.saved],
+                    [t("main.checkpoint.step.saved"), view.saved],
                   ].map(([label, done], index) => (
                     <li key={label} data-done={Boolean(done)}>
                       <span>{done ? <Glyph icon={check} /> : index + 1}</span>
@@ -485,7 +509,9 @@ function App() {
                   ))}
                 </ol>
                 <div className="checkpoint-count">
-                  <span className="eyebrow">Checkpoint restores</span>
+                  <span className="eyebrow">
+                    {t("main.checkpoint.restores")}
+                  </span>
                   <strong>{view.count}</strong>
                 </div>
               </aside>
@@ -504,18 +530,20 @@ function App() {
                 aria-labelledby="shortcuts-title"
               >
                 <div className="section-heading">
-                  <h2 id="shortcuts-title">Keyboard shortcuts</h2>
+                  <h2 id="shortcuts-title">{t("main.shortcuts.title")}</h2>
                 </div>
                 <div className="setting-row">
                   <span className="action-icon">
                     <Glyph icon={save} />
                   </span>
                   <div className="setting-label">
-                    <h3>Save checkpoint</h3>
+                    <h3>{t("main.shortcuts.save")}</h3>
                   </div>
                   <button
                     className="key-button"
-                    aria-label={`Change save shortcut, ${key("save_key")}`}
+                    aria-label={t("main.shortcuts.changeSave", {
+                      key: key("save_key"),
+                    })}
                     disabled={!settings || pending || quitting}
                     onClick={() => openCapture("save_key")}
                   >
@@ -528,11 +556,13 @@ function App() {
                     <Glyph icon={restart} />
                   </span>
                   <div className="setting-label">
-                    <h3>Restore checkpoint</h3>
+                    <h3>{t("main.shortcuts.restore")}</h3>
                   </div>
                   <button
                     className="key-button"
-                    aria-label={`Change restore shortcut, ${key("restore_key")}`}
+                    aria-label={t("main.shortcuts.changeRestore", {
+                      key: key("restore_key"),
+                    })}
                     disabled={!settings || pending || quitting}
                     onClick={() => openCapture("restore_key")}
                   >
@@ -555,18 +585,20 @@ function App() {
           {error && (
             <div className="error-banner" role="alert">
               <Glyph icon={close} />
-              <span>{error}</span>
-              {error.includes("Restore defaults") && (
+              <span>{tError(error)}</span>
+              {(error === "error.settingsUnreadable" ||
+                error.includes("Restore defaults")) && (
                 <button
                   onClick={() =>
                     updateSettings({
                       save_key: "F6",
                       restore_key: "F7",
                       sound: true,
+                      language: settings?.language,
                     })
                   }
                 >
-                  Restore defaults
+                  {t("main.error.restoreDefaults")}
                 </button>
               )}
             </div>
@@ -620,8 +652,8 @@ function App() {
               {["settings", "changelog"].includes(shownModal) ? (
                 <div className="page-kicker">
                   {shownModal === "settings"
-                    ? "Edit / Settings"
-                    : "Help / Changelog"}
+                    ? t("main.modal.kickerSettings")
+                    : t("main.modal.kickerChangelog")}
                 </div>
               ) : (
                 <div className="modal-icon">
@@ -642,16 +674,16 @@ function App() {
               )}
               <Dialog.Title>
                 {shownModal === "diagnostics"
-                  ? "Export diagnostics"
+                  ? t("main.modal.title.diagnostics")
                   : shownModal === "changelog"
-                    ? "Changelog"
+                    ? t("main.modal.title.changelog")
                     : shownModal === "settings"
-                      ? "Settings"
+                      ? t("main.modal.title.settings")
                       : shownModal === "close"
-                        ? "Keep Sector running?"
+                        ? t("main.modal.title.close")
                         : shownModal === "save_key"
-                          ? "Set save shortcut"
-                          : "Set restore shortcut"}
+                          ? t("main.modal.title.saveKey")
+                          : t("main.modal.title.restoreKey")}
               </Dialog.Title>
               <Dialog.Description
                 className={
@@ -661,20 +693,22 @@ function App() {
                 }
               >
                 {shownModal === "diagnostics"
-                  ? "Save a diagnostic file to share with support. It includes recent text logs, app and graphics versions, and the current car and track. Nothing is uploaded automatically."
+                  ? t("main.modal.desc.diagnostics")
                   : shownModal === "changelog"
-                    ? "Changes in each Sector update."
+                    ? t("main.modal.desc.changelog")
                     : shownModal === "settings"
-                      ? "Appearance and overlay display preferences."
+                      ? t("main.modal.desc.settings")
                       : shownModal === "close"
-                        ? "Keep your shortcuts active in the background, or quit Sector."
-                        : captureHint}
+                        ? t("main.modal.desc.close")
+                        : tError(captureHint)}
               </Dialog.Description>
               {shownModal === "diagnostics" ? (
                 <>
-                  <p role="status">{exportState}</p>
+                  <p role="status">{exportState && tError(exportState)}</p>
                   <div className="onboarding-actions">
-                    <Dialog.Close className="secondary">Close</Dialog.Close>
+                    <Dialog.Close className="secondary">
+                      {t("common.close")}
+                    </Dialog.Close>
                     <button
                       className="primary"
                       disabled={pending}
@@ -686,17 +720,17 @@ function App() {
                           if (!result.canceled)
                             setExportState(
                               result.ok
-                                ? "Diagnostics saved. Attach the file to your bug report."
+                                ? "main.modal.diagnostics.saved"
                                 : result.error,
                             );
                         } catch {
-                          setExportState("Export failed. Please try again.");
+                          setExportState("main.modal.diagnostics.failed");
                         } finally {
                           setPending(false);
                         }
                       }}
                     >
-                      Save diagnostic file
+                      {t("main.modal.diagnostics.save")}
                     </button>
                   </div>
                 </>
@@ -704,7 +738,7 @@ function App() {
                 <>
                   <Changelog />
                   <Dialog.Close className="secondary settings-done">
-                    Done
+                    {t("common.done")}
                   </Dialog.Close>
                 </>
               ) : shownModal === "settings" ? (
@@ -715,7 +749,7 @@ function App() {
                     updateSettings={updateSettings}
                   />
                   <Dialog.Close className="secondary settings-done">
-                    Done
+                    {t("common.done")}
                   </Dialog.Close>
                 </>
               ) : shownModal === "close" ? (
@@ -729,20 +763,22 @@ function App() {
                     }}
                   >
                     <Glyph icon={layers} />
-                    <span>Run in background</span>
+                    <span>{t("main.modal.close.background")}</span>
                     <Glyph icon={arrow} />
                   </button>
                   <button className="text-button quit-button" onClick={exit}>
                     <Glyph icon={close} />
-                    <span>Quit Sector</span>
+                    <span>{t("main.modal.close.quit")}</span>
                   </button>
-                  <Dialog.Close className="text-button">Cancel</Dialog.Close>
+                  <Dialog.Close className="text-button">
+                    {t("common.cancel")}
+                  </Dialog.Close>
                 </div>
               ) : (
                 <>
                   <div className="capture-key" aria-hidden="true">
                     <Glyph icon={keyboard} />
-                    <span>PRESS A KEY</span>
+                    <span>{t("main.capture.pressAKey")}</span>
                   </div>
                   <div className="capture-actions">
                     <button
@@ -758,15 +794,17 @@ function App() {
                           setModal(null);
                       }}
                     >
-                      Use Tab
+                      {t("main.capture.useTab")}
                     </button>
-                    <Dialog.Close className="secondary">Cancel</Dialog.Close>
+                    <Dialog.Close className="secondary">
+                      {t("common.cancel")}
+                    </Dialog.Close>
                   </div>
                 </>
               )}
               {error && (
                 <p className="modal-error" role="alert">
-                  {error}
+                  {tError(error)}
                 </p>
               )}
             </Dialog.Popup>
@@ -776,12 +814,18 @@ function App() {
       {quitting && (
         <div className="shutdown" role="status">
           {status.phase === "error"
-            ? status.message
-            : "Finishing the current operation…"}
+            ? status.message_key
+              ? t(status.message_key, status.message_params)
+              : tError(status.message)
+            : t("main.shutdown")}
         </div>
       )}
     </>
   );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+createRoot(document.getElementById("root")).render(
+  <LocaleProvider>
+    <App />
+  </LocaleProvider>,
+);

@@ -6,14 +6,27 @@ const { promisify } = require("node:util");
 
 const executable = "Le Mans Ultimate.exe";
 
+/** Setup rejections carry a stable code and the key behind their English text. */
+function folderError(message, code, key) {
+  return Object.assign(new Error(message), { code, key });
+}
+
 function validateFolder(folder) {
   if (typeof folder !== "string" || !path.isAbsolute(folder))
-    throw new Error("Select the Le Mans Ultimate installation folder.");
+    throw folderError(
+      "Select the Le Mans Ultimate installation folder.",
+      "FOLDER_INVALID",
+      "setup.error.folder",
+    );
   const resolved = path.resolve(folder);
   try {
     if (fs.statSync(path.join(resolved, executable)).isFile()) return resolved;
   } catch {}
-  throw new Error("Le Mans Ultimate.exe was not found in this folder.");
+  throw folderError(
+    "Le Mans Ultimate.exe was not found in this folder.",
+    "FOLDER_NOT_FOUND",
+    "setup.error.notFound",
+  );
 }
 
 function readSetup(filename) {

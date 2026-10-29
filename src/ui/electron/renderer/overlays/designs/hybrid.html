@@ -19,7 +19,7 @@
       data-column="trend"
       class="mono"
       style="font-size: 11px; font-weight: 700; color: {{trendFg}}"
-      >{{trend}}/lap</span
+      >{{trend}}/{{labels.lapUnit}}</span
     >
     <svg
       data-column="battery"
@@ -107,7 +107,7 @@
           color: #c2c9d0;
           letter-spacing: 0.04em;
         "
-        >DEPLOY {{platform}}</span
+        >{{labels.deploy}} {{platform}}</span
       >
       <span style="flex: 1"></span>
       <span
@@ -122,7 +122,7 @@
         >{{suggested}}</span
       >
       <span style="font-size: 11px; font-weight: 600; color: #c2c9d0"
-        >to hold {{targetSoc}}%</span
+        >{{labels.toHold}} {{targetSoc}}%</span
       >
     </div>
   </div>

@@ -1,5 +1,6 @@
 # Local toolchains, captures, generated compatibility profiles and inventories.
 /work/
+/src/ui/electron/work/
 /bin/
 /logs/
 /analysis/

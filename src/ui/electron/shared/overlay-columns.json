@@ -1,78 +1,78 @@
 {
   "leaderboard": [
-    ["position", "Position", 32],
-    ["number", "Number", 42],
-    ["logo", "Logo", 36],
-    ["driver", "Driver", 108],
-    ["tyres", "Tyres", 38],
-    ["last", "Last lap", 78],
-    ["gap", "Gap", 72],
-    ["energy", "Virtual energy", 46]
+    ["position", "位置", 32],
+    ["number", "车号", 42],
+    ["logo", "标志", 36],
+    ["driver", "车手", 108],
+    ["tyres", "轮胎", 38],
+    ["last", "上圈", 78],
+    ["gap", "差距", 72],
+    ["energy", "虚拟能量", 46]
   ],
   "relative": [
-    ["class", "Class", 42],
-    ["position", "Position", 38],
-    ["number", "Number", 44],
-    ["logo", "Logo", 36],
-    ["driver", "Driver", 92],
-    ["laps", "Laps", 54],
-    ["gap", "Gap", 78]
+    ["class", "级别", 42],
+    ["position", "位置", 38],
+    ["number", "车号", 44],
+    ["logo", "标志", 36],
+    ["driver", "车手", 92],
+    ["laps", "圈数", 54],
+    ["gap", "差距", 78]
   ],
   "laps": [
-    ["lap", "Lap", 62],
-    ["time", "Time", 104],
-    ["energy", "Energy", 78],
-    ["fuel", "Fuel", 88],
-    ["pb", "Delta PB", 88],
-    ["best", "Delta best", 88]
+    ["lap", "圈", 62],
+    ["time", "时间", 104],
+    ["energy", "能量", 78],
+    ["fuel", "燃油", 88],
+    ["pb", "PB 差值", 88],
+    ["best", "最佳差值", 88]
   ],
   "weather": [
-    ["air", "Air", 0],
-    ["track", "Track", 0],
-    ["humidity", "Humidity", 0],
-    ["forecast", "Forecast", 0]
+    ["air", "气温", 0],
+    ["track", "赛道", 0],
+    ["humidity", "湿度", 0],
+    ["forecast", "预报", 0]
   ],
   "delta": [
-    ["reference", "Reference", 0],
-    ["delta", "Delta", 0],
-    ["prediction", "Prediction", 0],
-    ["bar", "Bar", 0]
+    ["reference", "参考", 0],
+    ["delta", "差值", 0],
+    ["prediction", "预测", 0],
+    ["bar", "条", 0]
   ],
   "session-summary": [
-    ["position", "Position", 0],
-    ["history", "Lap chart", 0],
-    ["best", "Best", 0],
-    ["average", "Average", 0],
-    ["laps", "Laps", 0],
-    ["pits", "Pit stops", 0],
-    ["limits", "Track limits", 0]
+    ["position", "位置", 0],
+    ["history", "圈速图", 0],
+    ["best", "最佳", 0],
+    ["average", "平均", 0],
+    ["laps", "圈数", 0],
+    ["pits", "进站", 0],
+    ["limits", "赛道边界", 0]
   ],
   "inputs": [
-    ["throttle", "Throttle", 0],
-    ["brake", "Brake", 0]
+    ["throttle", "油门", 0],
+    ["brake", "刹车", 0]
   ],
   "tyres": [
-    ["heat", "Temperature bands", 0],
-    ["compound", "Compound", 0],
-    ["wear", "Tyre life", 0],
-    ["temperature", "Temperature", 0],
-    ["age", "Tyre laps", 0],
-    ["condition", "Tyre condition", 0]
+    ["heat", "温度区间", 0],
+    ["compound", "配方", 0],
+    ["wear", "轮胎寿命", 0],
+    ["temperature", "温度", 0],
+    ["age", "轮胎圈数", 0],
+    ["condition", "轮胎状况", 0]
   ],
   "stint-planner": [
-    ["pit", "Pit lap", 0],
-    ["energy", "Energy", 0],
-    ["fuel", "Fuel", 0],
-    ["energyRate", "Energy per lap", 0],
-    ["target", "Extra lap target", 0],
-    ["fuelRate", "Fuel per lap", 0]
+    ["pit", "进站圈", 0],
+    ["energy", "能量", 0],
+    ["fuel", "燃油", 0],
+    ["energyRate", "每圈能量", 0],
+    ["target", "额外圈目标", 0],
+    ["fuelRate", "每圈燃油", 0]
   ],
   "hybrid": [
-    ["state", "State", 0],
-    ["power", "Power", 0],
-    ["trend", "Battery trend", 0],
-    ["battery", "Battery", 0],
-    ["bar", "Power bar", 0],
-    ["recommendation", "Deploy map", 0]
+    ["state", "状态", 0],
+    ["power", "功率", 0],
+    ["trend", "电量趋势", 0],
+    ["battery", "电量", 0],
+    ["bar", "功率条", 0],
+    ["recommendation", "输出模式", 0]
   ]
 }

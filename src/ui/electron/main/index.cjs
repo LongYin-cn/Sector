@@ -27,6 +27,7 @@ const {
   writeSettings,
   validateSettings,
 } = require("./settings.cjs");
+const { forcedLocale, createT } = require("../shared/i18n.cjs");
 
 // Packaged resources are copied to a versioned writable workspace for native logs and IPC.
 const sourceRoot = path.resolve(__dirname, "../../../..");
@@ -55,6 +56,10 @@ if (app.isPackaged) {
 }
 const preview = process.argv.includes("--preview");
 const smoke = preview && process.argv.includes("--smoke");
+// Smoke suites assert on the English interface; `--smoke` and `--lang=en` pin it
+// so the translated default never breaks a locator.
+const pinnedLocale =
+  forcedLocale() ?? (smoke ? "en" : null);
 const onboardingSmoke = smoke && process.argv.includes("--onboarding-smoke");
 const previewRoot = path.join(root, "work/electron-preview");
 if (preview) app.setPath("userData", previewRoot);
@@ -91,10 +96,41 @@ const setupFile =
     : path.join(path.dirname(settingsFile), "onboarding.json");
 let setup = setupStore.readSetup(setupFile);
 const setupReady = () => (preview && !onboardingSmoke) || setup.completed;
+/**
+ * Late-bound main-process translator. Sub-systems built before the settings file
+ * is read still follow the live language, including a language switch.
+ */
+function translate(key, params) {
+  return createT(pinnedLocale ?? preferences.language)(key, params);
+}
+// Overlay windows read the live locale off the translator, so a language switch
+// in Settings reaches them without rebuilding anything.
+Object.defineProperty(translate, "locale", {
+  get: () => createT(pinnedLocale ?? preferences.language).locale,
+});
+/** A shell status patch: English sentence plus the key behind it. */
+function notice(key, params) {
+  return {
+    message: translate(key, params),
+    message_key: key,
+    message_params: params ?? {},
+  };
+}
+/** A rejected IPC result: stable code plus the key the renderer translates. */
+function failure(code, key, params) {
+  return {
+    ok: false,
+    code,
+    error: translate(key, params),
+    error_key: key,
+    error_params: params ?? {},
+  };
+}
 const gameLauncher = new GameLauncher({
   installation: () => setup.lmuPath,
   discover: discoverGame,
   preview,
+  translate,
 });
 const discoverInstallation = async () => {
   if (!setupReady()) return [];
@@ -113,13 +149,18 @@ let settingsError = "";
 try {
   preferences = readSettings(settingsFile);
 } catch (error) {
-  settingsError = error.message;
+  settingsError =
+    error.code === "SETTINGS_UNREADABLE" ? "error.settingsUnreadable" : error.message;
 }
+/** Main-process translator; follows the live setting so a language switch applies at once. */
+const tr = (key, params) =>
+  createT(pinnedLocale ?? preferences.language)(key, params);
 const runtime = new Runtime({
   root,
   settingsFile,
   getSettings: () => preferences,
   discover: discoverInstallation,
+  translate,
 });
 let window;
 let tray;
@@ -159,7 +200,7 @@ async function quit() {
     quitting = false;
     runtime.publish({
       phase: "error",
-      message: `Could not request shutdown: ${error.message}. Try Quit again.`,
+      ...notice("app.error.shutdown", { reason: error.message }),
     });
   }
 }
@@ -171,7 +212,9 @@ function handle(channel, callback) {
       event.senderFrame !== window.webContents.mainFrame ||
       event.senderFrame.url !== "sector://app/index.html"
     )
-      throw new Error("Untrusted desktop request.");
+      throw Object.assign(new Error("Untrusted desktop request."), {
+        code: "UNTRUSTED_DESKTOP_REQUEST",
+      });
     return callback(...args);
   });
 }
@@ -179,12 +222,14 @@ function handle(channel, callback) {
 function installBridge() {
   handle("sector:diagnostics-export", async () => {
     const selected = await dialog.showSaveDialog(window, {
-      title: "Export Sector diagnostics",
+      title: translate("app.dialog.exportTitle"),
       defaultPath: path.join(
         app.getPath("downloads"),
         `Sector-${app.getVersion()}-diagnostics.json`,
       ),
-      filters: [{ name: "Sector diagnostics", extensions: ["json"] }],
+      filters: [
+        { name: translate("app.dialog.exportFilter"), extensions: ["json"] },
+      ],
     });
     if (selected.canceled || !selected.filePath) return { canceled: true };
     try {
@@ -208,11 +253,7 @@ function installBridge() {
       return { ok: true };
     } catch (error) {
       diagnostics.record("export-error", { message: error.message });
-      return {
-        ok: false,
-        error:
-          "Could not export diagnostics. Choose a writable folder and retry.",
-      };
+      return failure("EXPORT_FAILED", "app.error.exportFailed");
     }
   });
   handle("sector:initialize", () => {
@@ -220,7 +261,7 @@ function installBridge() {
     launchAnimationPending = false;
     return {
       launchAnimation,
-      settings: preferences,
+      settings: { ...preferences, language: pinnedLocale ?? preferences.language },
       keys,
       status: runtime.state,
       preview,
@@ -238,14 +279,22 @@ function installBridge() {
       );
       return { ok: true };
     } catch {
-      return { ok: false, error: "Could not open GitHub in your browser." };
+      return failure("BROWSER_FAILED", "app.error.github");
     }
   });
   handle("sector:installation", () => ({ folder: setup.lmuPath }));
   handle("sector:installation-update", (folder) => {
     try {
-      if (!setupReady()) throw new Error("Complete first-launch setup first.");
-      if (quitting) throw new Error("Sector is closing.");
+      if (!setupReady())
+        throw Object.assign(new Error("Complete first-launch setup first."), {
+          code: "SETUP_INCOMPLETE",
+          key: "app.error.setupIncomplete",
+        });
+      if (quitting)
+        throw Object.assign(new Error("Sector is closing."), {
+          code: "CLOSING",
+          key: "app.error.closing",
+        });
       const candidate = {
         lmuPath: setupStore.validateFolder(folder),
         completed: true,
@@ -257,12 +306,17 @@ function installBridge() {
           : setupStore.writeSetup(setupFile, candidate);
       return { ok: true, folder: setup.lmuPath };
     } catch (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        code: error.code ?? "SETUP_FAILED",
+        error: error.message,
+        error_key: error.key ?? null,
+      };
     }
   });
   handle("sector:reset", (action) =>
     preview || quitting || !setupReady()
-      ? { ok: false, error: "Reset is unavailable in this session." }
+      ? failure("RESET_UNAVAILABLE", "app.error.resetUnavailable")
       : runtime.requestReset(action),
   );
   handle("sector:setup-detect", async () => {
@@ -274,7 +328,7 @@ function installBridge() {
   });
   handle("sector:setup-browse", async () => {
     const result = await dialog.showOpenDialog(window, {
-      title: "Select Le Mans Ultimate folder",
+      title: translate("app.dialog.setupTitle"),
       defaultPath: setup.lmuPath || undefined,
       properties: ["openDirectory"],
     });
@@ -285,19 +339,33 @@ function installBridge() {
         folder: setupStore.validateFolder(result.filePaths[0]),
       };
     } catch (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        code: error.code ?? "SETUP_FAILED",
+        error: error.message,
+        error_key: error.key ?? null,
+      };
     }
   });
   handle("sector:setup-confirm", (folder) => {
     try {
-      if (setupReady()) throw new Error("Setup is already complete.");
+      if (setupReady())
+        throw Object.assign(new Error("Setup is already complete."), {
+          code: "SETUP_COMPLETE",
+          key: "app.error.setupComplete",
+        });
       setup = setupStore.writeSetup(setupFile, {
         lmuPath: folder,
         completed: false,
       });
       return { ok: true, folder: setup.lmuPath };
     } catch (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        code: error.code ?? "SETUP_FAILED",
+        error: error.message,
+        error_key: error.key ?? null,
+      };
     }
   });
   handle("sector:setup-complete", () => {
@@ -310,7 +378,12 @@ function installBridge() {
       overlays.sync();
       return { ok: true };
     } catch (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        code: error.code ?? "SETUP_FAILED",
+        error: error.message,
+        error_key: error.key ?? null,
+      };
     }
   });
   handle("sector:settings", (candidate) => {
@@ -320,7 +393,10 @@ function installBridge() {
         : writeSettings(settingsFile, candidate);
       settingsError = "";
       if (!preview && setupReady() && !runtime.timer) runtime.start();
-      return { ok: true, settings: preferences };
+      return {
+        ok: true,
+        settings: { ...preferences, language: pinnedLocale ?? preferences.language },
+      };
     } catch (error) {
       return { ok: false, error: error.message };
     }
@@ -330,7 +406,7 @@ function installBridge() {
   handle("sector:overlays-edit", (value) => overlays.setEditing(value));
   handle("sector:sound", async (name) => {
     if (!["save", "restore"].includes(name) || !preferences.sound)
-      return { ok: false, error: "Sound is disabled." };
+      return failure("SOUND_DISABLED", "app.error.soundDisabled");
     try {
       const directory = path.join(root, "work/ui-audio");
       if (!audioReady) {
@@ -353,10 +429,7 @@ function installBridge() {
         source: `data:audio/wav;base64,${fs.readFileSync(path.join(directory, `${name}.wav`)).toString("base64")}`,
       };
     } catch {
-      return {
-        ok: false,
-        error: "Sound preview unavailable. Check Python and your audio device.",
-      };
+      return failure("SOUND_PREVIEW_FAILED", "app.error.soundPreview");
     }
   });
   handle("sector:minimize", () => window.minimize());
@@ -381,10 +454,12 @@ if (!app.requestSingleInstanceLock()) {
     app.whenReady().then(async () => {
       await dialog.showMessageBox({
         type: "info",
-        title: `Sector ${app.getVersion()}`,
-        message: "Sector is already running",
-        detail: `The open instance has been brought to the front. To start version ${app.getVersion()}, choose Quit Sector in that app, then open this executable again.`,
-        buttons: ["OK"],
+        title: translate("app.instance.title", { version: app.getVersion() }),
+        message: translate("app.instance.message"),
+        detail: translate("app.instance.detail", {
+          version: app.getVersion(),
+        }),
+        buttons: [translate("app.instance.ok")],
       });
       app.quit();
     });
@@ -461,6 +536,7 @@ if (!app.requestSingleInstanceLock()) {
         desktop: () => window,
         discover: discoverOverlayGame,
         ready: setupReady,
+        translate,
       });
       installBridge();
       runtime.on("status", (state) => {
@@ -500,13 +576,17 @@ if (!app.requestSingleInstanceLock()) {
         diagnostics.record("renderer-exit", details),
       );
       tray = new Tray(path.join(root, "assets/sector.ico"));
-      tray.setToolTip(preview ? "Sector - Preview" : "Sector");
+      tray.setToolTip(
+        preview
+          ? translate("app.tray.tooltipPreview")
+          : translate("app.tray.tooltip"),
+      );
       tray.setContextMenu(
         Menu.buildFromTemplate([
-          { label: "Open Sector", click: showWindow },
+          { label: translate("app.tray.open"), click: showWindow },
           { type: "separator" },
           {
-            label: "Quit Sector",
+            label: translate("app.tray.quit"),
             click: () => {
               void quit();
             },
@@ -522,7 +602,12 @@ if (!app.requestSingleInstanceLock()) {
           preferences = writeSettings(settingsFile, preferences);
           runtime.start();
         } catch (error) {
-          runtime.publish({ phase: "error", message: error.message });
+          runtime.publish({
+            phase: "error",
+            message: error.message,
+            message_key: error.key ?? null,
+            message_params: error.params ?? {},
+          });
         }
       }
       // Only the isolated preview process exposes a test driver, never the renderer.

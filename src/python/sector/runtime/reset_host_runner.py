@@ -229,9 +229,11 @@ def run(args):
         HotkeyCommands,
         WindowsKeys,
         expected_restore_fields,
+        user_message,
         virtual_key,
         preparation_ready,
     )
+    from sector.runtime.resident_identity import ResetMessageError
     from sector.desktop.reset_desktop_session import DesktopSession
     from sector.desktop.reset_feedback import Feedback, report_feedback
 
@@ -245,10 +247,16 @@ def run(args):
     if hotkeys:
         save_vk, restore_vk = virtual_key(args.save_key), virtual_key(args.restore_key)
         if save_vk == restore_vk or not args.allow_writes:
-            raise ValueError("Distinct hotkeys and explicit write opt-in required")
+            raise ResetMessageError(
+                "Distinct hotkeys and explicit write opt-in required",
+                key="python.error.distinctHotkeys",
+            )
         keyboard = WindowsKeys(args.pid, save_vk, restore_vk)
     if not args.offline_launch_confirmed:
-        raise ValueError("Offline launch without EAC must be explicitly confirmed")
+        raise ResetMessageError(
+            "Offline launch without EAC must be explicitly confirmed",
+            key="python.error.confirmOffline",
+        )
     if desktop.stopped():
         return
     binary, _, _ = verify_telemetry(args.pid)
@@ -256,29 +264,40 @@ def run(args):
         (PROJECT / "compatibility/steam-25661166-telemetry.json").read_text()
     )
     if telemetry_profile.get("continuous_capture") is not True:
-        raise ValueError(
-            "Rebuild with scripts/build/Build-ResetDesktop.ps1 to enable continuous capture."
+        raise ResetMessageError(
+            "Rebuild with scripts/build/Build-ResetDesktop.ps1 to enable continuous capture.",
+            key="python.error.continuousCapture",
         )
     context()
     game = get_json("/rest/sessions/GetGameState")
     if game.get("inControlOfVehicle") is not True or game.get("inMonitor") is not False:
-        raise ValueError("Enter driving mode in offline Practice.")
+        raise ResetMessageError(
+            "Enter driving mode in offline Practice.",
+            key="python.error.enterDriving",
+        )
     listed = modules(args.pid)
     if any(
         "easyanticheat" in m["name"].lower() or m["name"].lower().startswith("eac") for m in listed
     ):
-        raise ValueError("EAC module present")
+        raise ResetMessageError(
+            "EAC module present",
+            key="python.error.eac",
+            blocked_reason="eac",
+        )
     from sector.observers.audit_snapshot_25661166 import audit
 
     previous = audit(args.pid)
     dll = (PROJECT / f"bin/lmu-physical-reset-v{args.revision}-25661166.dll").resolve()
     if any(m["name"].lower() == dll.name.lower() for m in listed):
-        raise ValueError("Physical host already resident; do not replace a resident module")
+        raise ResetMessageError(
+            "Physical host already resident; do not replace a resident module",
+            key="python.error.alreadyResident",
+        )
     profile = json.loads(
         (PROJECT / f"compatibility/steam-25661166-physical-reset-v{args.revision}.json").read_text()
     )
     if hashlib.sha256(dll.read_bytes()).hexdigest() != profile["dll_sha256"]:
-        raise ValueError("Host DLL hash mismatch")
+        raise ResetMessageError("Host DLL hash mismatch", key="python.error.hostHash")
     if args.revision >= 9:
         unique = dll.with_name(dll.stem + "-" + uuid.uuid4().hex + ".dll")
         with unique.open("xb") as target:
@@ -287,7 +306,7 @@ def run(args):
     image = next(m for m in listed if m["name"].lower() == "le mans ultimate.exe")
     handle = k.OpenProcess(0x43A, False, args.pid)
     if not handle:
-        raise OSError("Process access unavailable")
+        raise ResetMessageError("Process access unavailable", key="python.error.processAccess")
     prefix = (
         PROJECT
         / "logs"
@@ -333,7 +352,11 @@ def run(args):
             address = image["base"] + target["rva"]
             raw = read_process(handle, address, 32)
             if not raw.startswith(bytes.fromhex(target["prolog"])):
-                raise ValueError("Changed target: " + target["name"])
+                raise ResetMessageError(
+                    "Changed target: " + target["name"],
+                    key="python.error.changedTarget",
+                    params={"target": target["name"]},
+                )
             originals.append((address, raw, target["name"]))
         if desktop.stopped():
             return
@@ -360,10 +383,16 @@ def run(args):
             ),
         )
         if not mapping or C.get_last_error() == 183:
-            raise ValueError("Host mapping already exists or is unavailable")
+            raise ResetMessageError(
+                "Host mapping already exists or is unavailable",
+                key="python.error.mappingExists",
+            )
         view = k.MapViewOfFile(mapping, 0xF001F, 0, 0, C.sizeof(ipc_class))
         if not view:
-            raise OSError("Host mapping unavailable")
+            raise ResetMessageError(
+                "Host mapping unavailable",
+                key="python.error.mappingUnavailable",
+            )
         ipc = ipc_class.from_address(view)
         C.memset(view, 0, C.sizeof(ipc_class))
         ipc.magic, ipc.version, ipc.pid = MAGIC + args.revision - 1, 1, args.pid
@@ -376,7 +405,11 @@ def run(args):
             ipc.heartbeat_ms = KERNEL.GetTickCount64()
             time.sleep(0.05)
         if ipc.status != 2:
-            raise RuntimeError(f"Host refused: {ipc.status}/{ipc.error}")
+            raise ResetMessageError(
+                f"Host refused: {ipc.status}/{ipc.error}",
+                key="python.error.hostRefused",
+                params={"status": int(ipc.status), "error": int(ipc.error)},
+            )
         if args.revision >= 10:
             from sector.runtime.physical_trace import TraceReader
 
@@ -404,9 +437,9 @@ def run(args):
             )
         desktop.publish(
             phase="active",
-            message="Ready to save a checkpoint.",
             checkpoint=False,
             log_prefix=prefix.name,
+            **user_message("python.status.ready", "Ready to save a checkpoint."),
         )
         tail, telemetry = "", None
         last_completed = sent_id = 0
@@ -460,7 +493,13 @@ def run(args):
                         time.sleep(0.05)
                         continue
                     outcome = "context_changed"
-                    desktop.publish(checkpoint=False, message="Waiting for offline Practice.")
+                    desktop.publish(
+                        checkpoint=False,
+                        **user_message(
+                            "python.status.waitingOffline",
+                            "Waiting for offline Practice.",
+                        ),
+                    )
                     break
                 acknowledged = None
                 completed = ipc.completed_id
@@ -487,8 +526,8 @@ def run(args):
                         desktop.report(row)
                         event = report_feedback(row)
                         if hotkeys and event:
-                            print(event[1], flush=True)
-                            feedback.play(event[0])
+                            print(event["message"], flush=True)
+                            feedback.play(event["event"])
                         last_completed = completed
                         prepared_at = (
                             time.monotonic() if preparation_ready(row, expected_fields) else 0.0
@@ -522,12 +561,18 @@ def run(args):
                         desktop_action=desktop_action,
                     )
                     if desktop.request and not hotkeys.pending and not command:
+                        notice = hotkeys.notice or user_message(
+                            "python.error.canceled",
+                            "Reset canceled or acknowledgement expired.",
+                        )
                         desktop.finish_request(
-                            error=hotkeys.notice or "Reset canceled or acknowledgement expired."
+                            error=notice["message"],
+                            error_key=notice["message_key"],
+                            error_params=notice["message_params"],
                         )
                     if hotkeys.notice:
-                        print(hotkeys.notice, flush=True)
-                        desktop.publish(message=hotkeys.notice, last_event="rejected")
+                        print(hotkeys.notice["message"], flush=True)
+                        desktop.publish(last_event="rejected", **hotkeys.notice)
                         feedback.play("rejected")
                     # Do not queue input while a previous native request is in flight.
                     if command and ipc.completed_id != sent_id:
@@ -556,8 +601,9 @@ def run(args):
                         or not prepared_at
                         or time.monotonic() - prepared_at > 60
                     ):
-                        raise ValueError(
-                            "Restore requires explicit write opt-in and recent native preparation"
+                        raise ResetMessageError(
+                            "Restore requires explicit write opt-in and recent native preparation",
+                            key="python.error.restoreOptIn",
                         )
                     ipc.permit_writes = int(action == 3 and args.allow_writes)
                     ipc.request_action = action
@@ -572,7 +618,10 @@ def run(args):
     except Exception as error:
         failure = f"{type(error).__name__}: {error}"
     finally:
-        desktop.finish_request(error="Reset listener disconnected.")
+        desktop.finish_request(
+            error="Reset listener disconnected.",
+            error_key="python.error.listenerClosed",
+        )
         desktop.publish(phase="stopping", readiness="Disconnecting")
         if ipc is not None:
             ipc.allow = 0
@@ -608,7 +657,13 @@ def run(args):
             failure = shutdown_failure(failure, exit_code, ipc.status, restored)
             if ipc.reserved == 1 and not failure and outcome != "user_stopped":
                 outcome = "vehicle_reset"
-                desktop.publish(checkpoint=False, message="Vehicle reset. Save a new checkpoint.")
+                desktop.publish(
+                    checkpoint=False,
+                    **user_message(
+                        "python.status.vehicleReset",
+                        "Vehicle reset. Save a new checkpoint.",
+                    ),
+                )
             summary = dict(
                 status=ipc.status,
                 error=ipc.error,

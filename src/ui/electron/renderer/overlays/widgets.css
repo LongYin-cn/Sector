@@ -6,7 +6,7 @@
   box-sizing: border-box;
 }
 .lmu-widget .mono {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: "JetBrains Mono", "Noto Sans SC Sector", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
 .lmu-widget .wheel {

@@ -34,7 +34,7 @@
             color: #c2c9d0;
             letter-spacing: 0.06em;
           "
-          >LAP</span
+          >{{labels.lap}}</span
         >
         <span class="mono" style="font-size: 14px; font-weight: 700"
           >{{lap}}</span
@@ -55,7 +55,7 @@
             color: #c2c9d0;
             letter-spacing: 0.06em;
           "
-          >REMAINING</span
+          >{{labels.remaining}}</span
         >
         <span class="mono" style="font-size: 14px; font-weight: 700"
           >{{remaining}}</span
@@ -83,7 +83,7 @@
           >{{cl.badge}}</span
         >
         <span style="font-size: 12px; font-weight: 500; color: #c2c9d0"
-          >{{cl.count}} cars</span
+          >{{cl.count}} {{labels.carsUnit}}</span
         >
         <span style="flex: 1"></span>
         <span
@@ -93,7 +93,7 @@
             color: #c2c9d0;
             letter-spacing: 0.06em;
           "
-          >BEST</span
+          >{{labels.best}}</span
         >
         <span
           class="mono"
@@ -212,7 +212,7 @@
                     color: #16181c;
                     text-shadow: none;
                   "
-                  >PIT</span
+                  >{{labels.pitBadge}}</span
                 >
               </sc-if>
             </div>

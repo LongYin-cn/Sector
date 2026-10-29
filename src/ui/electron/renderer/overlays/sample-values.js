@@ -3,46 +3,54 @@ import wheels from "../../shared/wheel-model.cjs";
 import stint from "../../shared/stint-model.cjs";
 import hybrid from "../../shared/hybrid-model.cjs";
 import compounds from "../../shared/compound-model.cjs";
-const common = {
-  sessionName: "RACE",
-  trackCars: "Spa-Francorchamps, 56 cars",
-  lap: 48,
-  remaining: "2:14:37",
-  elapsed: "3:45:23",
-  best: "2:18.412",
-  surface: "Dry track, grip 98%",
-  air: "17\u00b0",
-  trackTemp: "24\u00b0",
-  humidity: "68%",
-  forecast: "Rain likely in ~1h 20m",
-  rainLap: "\u2248 lap 82",
-  energy: "41.2%",
-  fuel: "38.6 L",
-  bestLapLabel: "L31",
-  bestEnergy: "3.5%",
-  bestFuel: "2.40 L",
-  bestGap: "+0.793",
-  average: "2:18.864",
-  averageEnergy: "3.6%",
-  averageFuel: "2.42 L",
-  averageGap: "+0.452",
-  sessionTrack: "6 Hours Race, Spa-Francorchamps",
-  classBadge: "GT3",
-  classColor: "#1FA34A",
-  progress: 0.626,
-  position: "P5",
-  classCount: 18,
-  gained: "+4",
-  startPosition: "from P9",
-  firstLapLabel: "L1",
-  lastLapLabel: "L48",
-  lapCount: 48,
-  pitStops: 2,
-  lastPit: "last on L43",
-  limits: 2,
-  limitMax: 5,
-};
-export function sampleValues(id, settings) {
+import { createT } from "../../shared/i18n.cjs";
+/** Preview copy for the editor; the widget labels themselves stay in the designs. */
+function commonValues(t) {
+  return {
+    sessionName: t("widget.session.race"),
+    trackCars: t("widget.trackCars", { track: "Spa-Francorchamps", count: 56 }),
+    lap: 48,
+    remaining: "2:14:37",
+    elapsed: "3:45:23",
+    best: "2:18.412",
+    surface: t("widget.surface.dryWithGrip", { grip: 98 }),
+    air: "17\u00b0",
+    trackTemp: "24\u00b0",
+    humidity: "68%",
+    forecast: t("widget.sample.forecast"),
+    rainLap: t("widget.sample.rainLap"),
+    energy: "41.2%",
+    fuel: "38.6 L",
+    bestLapLabel: "L31",
+    bestEnergy: "3.5%",
+    bestFuel: "2.40 L",
+    bestGap: "+0.793",
+    average: "2:18.864",
+    averageEnergy: "3.6%",
+    averageFuel: "2.42 L",
+    averageGap: "+0.452",
+    sessionTrack: t("widget.sessionTrack", {
+      session: t("widget.sample.sixHours"),
+      track: "Spa-Francorchamps",
+    }),
+    classBadge: "GT3",
+    classColor: "#1FA34A",
+    progress: 0.626,
+    position: "P5",
+    classCount: 18,
+    gained: "+4",
+    startPosition: t("widget.startPosition", { position: 9 }),
+    firstLapLabel: "L1",
+    lastLapLabel: "L48",
+    lapCount: 48,
+    pitStops: 2,
+    lastPit: t("widget.lastPit", { lap: 43 }),
+    limits: 2,
+    limitMax: 5,
+  };
+}
+export function sampleValues(id, settings, locale) {
+  const t = createT(locale);
   if (id === "hybrid")
     return hybrid.hybridValues(
       {
@@ -108,7 +116,7 @@ export function sampleValues(id, settings) {
       : stint.stintValues(data, settings);
   }
   const result = JSON.parse(
-    JSON.stringify({ ...common, ...samples[id] })
+    JSON.stringify({ ...commonValues(t), ...samples[id] })
       .replaceAll("#FFD23F", settings.accent)
       .replaceAll("rgba(255,210,63,0.22)", `${settings.accent}38`),
   );
@@ -123,21 +131,53 @@ export function sampleValues(id, settings) {
           p.label === "T" ? "throttle" : p.label === "B" ? "brake" : "clutch"
         ] !== false,
     );
+  // Sample rows carry the trailing "Lap 52" / "+1 LAP" copy the game sends in
+  // English; only the preview text is translated here.
+  const lapOf = (text) => {
+    const m = /^Lap (\d+)$/.exec(text || "");
+    return m ? t("widget.lapOf", { lap: m[1] }) : text;
+  };
+  const lapDelta = (text) => {
+    const m = /^([+\u2212-]?\d+) LAP$/.exec(text || "");
+    return m ? t("widget.lapDelta", { count: m[1] }) : text;
+  };
   if (id === "leaderboard")
     result.classes = result.classes.map((cl) => ({
       ...cl,
       rows: cl.rows.slice(0, settings.rows).map((r, i) => ({
         ...r,
-        ...compounds.resourceValues({
-          compounds:
-            i % 3 === 1
-              ? ["Soft", "Soft", "Medium", "Medium"]
-              : ["Medium", "Medium", "Medium", "Medium"],
-          energy: ["GT3", "HY"].includes(cl.badge) ? (58 - i * 7) / 100 : null,
-        }),
+        gap: lapOf(r.gap),
+        ...compounds.resourceValues(
+          {
+            compounds:
+              i % 3 === 1
+                ? ["Soft", "Soft", "Medium", "Medium"]
+                : ["Medium", "Medium", "Medium", "Medium"],
+            energy: ["GT3", "HY"].includes(cl.badge)
+              ? (58 - i * 7) / 100
+              : null,
+          },
+          t.locale,
+        ),
       })),
     }));
-  if (id === "relative") result.rows = result.rows.slice(0, settings.rows);
-  if (id === "laps") result.laps = result.laps.slice(0, settings.rows);
+  if (id === "relative")
+    result.rows = result.rows
+      .slice(0, settings.rows)
+      .map((r) => ({ ...r, lap: lapDelta(r.lap) }));
+  if (id === "laps")
+    result.laps = result.laps
+      .slice(0, settings.rows)
+      .map((l) => ({
+        ...l,
+        tag: l.tag ? t(`widget.lapTag.${String(l.tag).toLowerCase()}`) : "",
+      }));
+  if (id === "weather") {
+    const slots = ["now", "plus30", "plus1h", "plus1h30", "plus2h"];
+    result.slots = result.slots.map((slot, i) => ({
+      ...slot,
+      label: t(`widget.weather.${slots[i]}`),
+    }));
+  }
   return result;
 }

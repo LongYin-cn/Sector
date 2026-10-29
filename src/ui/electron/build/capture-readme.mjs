@@ -2,15 +2,23 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { _electron as electron } from "playwright";
 import { build } from "vite";
 import store from "../shared/overlay-config.cjs";
+import { createT } from "../shared/i18n.cjs";
 
 const ui = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const root = path.resolve(ui, "../../..");
 const output = path.join(root, "docs/media");
 const scratch = path.join(root, "work/readme-media");
 const frames = path.join(scratch, "frames");
+// The shipped interface is Simplified Chinese, so the documentation media shows
+// the Chinese UI. `--lang=` pins the same locale the player gets on first run,
+// which also overrides the English pin that `--smoke` applies for the tests.
+const MEDIA_LOCALE = "zh-CN";
+const t = createT(MEDIA_LOCALE);
+const widgetIds = Object.keys(store.definitions);
 fs.mkdirSync(output, { recursive: true });
 fs.mkdirSync(frames, { recursive: true });
 
@@ -28,13 +36,16 @@ await build({
 
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
-const app = await electron.launch({ args: [ui, "--preview", "--smoke"], env });
+const app = await electron.launch({
+  args: [ui, "--preview", "--smoke", `--lang=${MEDIA_LOCALE}`],
+  env,
+});
 const errors = [];
 try {
   const page = await app.firstWindow();
   page.on("pageerror", (error) => errors.push(error.message));
   await page
-    .getByRole("button", { name: "Save checkpoint", exact: true })
+    .getByRole("tab", { name: t("tab.home"), exact: true })
     .waitFor();
   await app.evaluate(() => {
     if (global.sectorTest.hasListener())
@@ -52,18 +63,26 @@ try {
   };
   await settle();
   await page.screenshot({ path: path.join(output, "home.png") });
-  await page.getByRole("tab", { name: "Active Reset", exact: true }).click();
+  await page.getByRole("tab", { name: t("tab.reset"), exact: true }).click();
   await settle();
   await page.screenshot({ path: path.join(output, "active-reset.png") });
-  await page.getByRole("tab", { name: "Overlay", exact: true }).click();
-  await page.getByRole("button", { name: "Inputs", exact: true }).click();
+  await page.getByRole("tab", { name: t("tab.overlay"), exact: true }).click();
+  // The widget picker is one button per overlay, in declaration order, so the
+  // capture does not depend on the translated widget label.
+  const choice = page.locator(".widget-list .widget-choice");
+  await choice.nth(widgetIds.length - 1).waitFor();
+  await choice.nth(widgetIds.indexOf("inputs")).click();
   await app.evaluate(() => global.sectorTest.window().setSize(1000, 900));
   await settle();
   await page.screenshot({ path: path.join(output, "overlay-editor.png") });
   await app.evaluate(() => global.sectorTest.window().setSize(1000, 720));
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Settings", exact: true }).click();
-  await page.getByRole("dialog", { name: "Settings", exact: true }).waitFor();
+  await page.getByRole("button", { name: t("main.menu.edit"), exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: t("main.menu.settings"), exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: t("main.modal.title.settings"), exact: true })
+    .waitFor();
   await settle();
   await page.screenshot({ path: path.join(output, "settings.png") });
 
@@ -120,8 +139,23 @@ try {
   await app.close();
 }
 
+// ffmpeg is not part of the toolchain on every machine, so prefer a bundled or
+// npm-installed binary and fall back to whatever is on PATH.
+function ffmpegPath() {
+  for (const id of ["@ffmpeg-installer/ffmpeg", "ffmpeg-static"]) {
+    try {
+      const found = createRequire(import.meta.url)(id);
+      const file = typeof found === "string" ? found : found?.path;
+      if (file && fs.existsSync(file)) return file;
+    } catch {
+      // Not installed; try the next source.
+    }
+  }
+  return "ffmpeg";
+}
+
 execFileSync(
-  "ffmpeg",
+  ffmpegPath(),
   [
     "-hide_banner",
     "-loglevel",

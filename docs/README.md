@@ -1,254 +1,153 @@
-# Sector user guide
-
-Sector helps you practice sections of a track with **Active Reset** and keep
-race information visible with **Overlay**. This guide covers everyday use.
-For the download and first launch, start with [Install Sector](../README.md#-install-sector).
-
-## Set up LMU
-
-On first launch, confirm the LMU folder Sector finds. If no folder is found,
-select the folder containing `Le Mans Ultimate.exe` yourself. You can find it
-through Steam: open LMU's **Manage → Browse local files** option in your Library.
-Use **Choose folder** to open the Windows folder picker. A valid installation
-must be confirmed before continuing; the setup popup cannot be dismissed.
-You can change it later through **Edit → Settings → Le Mans Ultimate →
-Change folder**. Invalid folders and canceled selections leave the current
-installation unchanged.
-
-**Active Reset requires LMU's Offline mode.** To prepare the game:
-
-1. Launch LMU **without Easy Anti-Cheat (EAC)**.
-2. Select **Offline** mode in LMU.
-3. Start a **Practice** session and enter **DRIVE** to drive.
-
-Sector can remain open while you load the session; it connects automatically
-when the game is ready.
-
-If LMU is detected with EAC active, Active Reset immediately displays a red
-warning and disables checkpoint actions and shortcuts. Close LMU and use
-**Open LMU without EAC** on Active Reset, then enter offline Practice to use
-checkpoints. Overlay controls remain available while EAC is active.
-
-For overlays, use **windowed or borderless mode** in LMU's display settings.
-From 0.2.13, the overlay reader connects to the public SDK independently of
-Active Reset. You can launch LMU normally with EAC for online overlays; you do
-not need to start an offline Practice. Live online verification of this change
-is pending. Active Reset is available only in the offline setup described above.
-
-## Practice a corner or section
-
-1. Drive to the point where you want your practice attempt to begin.
-2. Press **F6** and wait for the successful-save confirmation.
-3. Drive the section you want to practice.
-4. Press **F7** to return to the saved point and try again.
-
-The checkpoint includes the car's direction and saved driving state. A successful
-new save replaces the previous checkpoint. If a save is rejected, check the
-message in Sector before trying to restore.
-
-Changing sessions or having the game rebuild your car can make a checkpoint
-unavailable. Check its status on the **Active Reset** page and save a new one
-when needed.
-
-Save with a healthy car and wait for **Checkpoint saved**. After an impact,
-wait until the collision ends before restoring. Damage repair is experimental;
-front bodywork repair has been verified on the Mercedes-AMG LMGT3, but other
-cars and impact types need more testing. Puncture repair has been verified on the
-Peugeot 9X8; other models still need testing.
-Detached parts are not supported. Checkpoints do not persist across game restarts.
-
-### Choose your shortcuts
-
-Click a shortcut on the Active Reset page, then press the key you want to assign.
-Press **Escape** to cancel. Use a different key for each action and avoid keys
-already used by LMU. Release the keys before returning to the game.
-
-Use **Save sound** and **Restore sound** to preview the confirmations. The
-**Confirmation sounds** switch enables or mutes them.
-
-## Arrange your overlays
-
-1. Open the **Overlay** tab and enable the widgets you want.
-2. Turn on **Overlays**, then select **Edit layout**.
-3. Move each widget using its blue strip. Drag its lower-right corner to resize it.
-4. Select **Lock layout** when you are happy with the arrangement. **Escape** also locks it.
-
-Select a widget in Sector to change its size, transparency and available options.
-Drag **Opacity** to adjust transparency live. For Inputs, turn on the steering
-wheel to show **Wheel marker** color choices and the **Rotation** control.
-Column and section switches let you remove information you do not need. For
-example, hide the clutch in Inputs or remove manufacturer logos from standings.
-The widget adjusts to the remaining content.
-
-For multiple monitors, choose the display in **Edit → Settings → Overlay**.
-Your layout and preferences are saved for the next launch.
-
-Widget updates automatically follow that display's refresh rate. Live widgets
-hide when you pause or switch away from LMU. During F7, the last frame stays
-visible until the new telemetry arrives, while lap and tyre histories reset.
-
-**Tyres** always shows all four tyres. You can hide readings and change the
-cold/hot color thresholds. Tyre laps stay
-unknown until Sector observes a fresh tyre or replacement. `puncture` comes from
-the game; `~flat spot` is Sector's estimate from sustained wheel locks. Increase
-**Flat spot sensitivity** for earlier warnings, or hide **Tyre condition** to
-remove them. The estimate clears on an observed tyre change, reset or new session.
-It cannot detect damage that happened before Sector started observing the tyres.
-
-**Stint planner** estimates remaining laps from fuel and virtual-energy consumption.
-Drive complete clean laps to collect the data, then choose how many laps to average
-and an optional reserve. Treat these figures as estimates that change with your pace.
+> 中文用户指南 · [English](README.en.md)
 
-**Leaderboard** keeps your position and nearby rivals inside your class section.
-Driving a Hypercar puts your group in Hypercar, before the other classes. Its
-compound and virtual-energy columns show the available data for each car and
-can be hidden independently.
+# Sector 用户指南
 
-Leaderboard and Relative update gaps between timing samples using measured car
-movement. A `~` marks an estimated gap. When fresh telemetry is unavailable,
-Sector keeps the latest timing value instead of predicting further ahead.
+Sector 用**主动回点**反复练习赛道上的某一段，用**叠加层**把比赛信息一直摆在眼前。本指南讲日常用法；下载和第一次启动请看 [安装 Sector](../README.md#-install-sector)。
 
-**Hybrid** shows battery charge, electric power and deploy/regen state. Set the
-battery target and the number of laps to reach it. The deployment map automatically
-uses your car's range: 0 to 50 in steps of 10 for LMDh, or 0 to 200 in steps of 20
-for hybrid LMH. Sector learns battery changes
-from clean laps with a constant map; it suggests only maps observed over at least
-two laps each at a similar pace. The suggestion stays `-` until enough data exists.
-It does not change the map for you. Non-hybrid cars show `N/A`.
+## 设置 LMU
 
-### Samples and missing information
+第一次启动时，确认 Sector 找到的 LMU 目录。如果没自动找到，就自己选中含 `Le Mans Ultimate.exe` 的那个文件夹。从 Steam 也能找到它：在库里打开 LMU 的 **管理 → 浏览本地文件**。点**选择目录**会打开 Windows 的文件夹选择框。必须确认一个有效的安装目录才能继续，这个设置弹窗关不掉。以后想换，走**编辑 → 设置 → Le Mans Ultimate → 更改目录**。目录无效或中途取消，当前的安装路径保持不动。
 
-You can arrange widgets while LMU is closed using the editor's sample display.
-Those samples are for layout editing. During play, widgets use information from
-the game; unavailable values show a dash.
+**主动回点需要 LMU 的离线（Offline）模式。** 游戏这边这样准备：
 
-Lap history starts when Sector begins observing the session. Relative gaps are
-estimates, marked with `~`. Some information, such as future weather forecasts,
-is not available from the game reader; you can hide those sections.
+1. 以**不带 Easy Anti-Cheat（EAC）**的方式启动 LMU。
+2. 在 LMU 里选 **Offline** 模式。
+3. 开一场 **Practice**（练习），进入 **DRIVE** 开始驾驶。
 
-## Home
+加载车局时 Sector 可以一直开着，游戏准备好之后它会自己连上。
 
-The **Home** tab shows your current session, checkpoint actions and overlay
-layout. Session data updates even with overlays off.
+如果检测到 LMU 带着 EAC 在跑，主动回点会立刻亮出红色警告，并禁用存档点操作和快捷键。关掉 LMU，用主动回点页上的**以无 EAC 方式启动 LMU**重新打开，再进离线练习，就能用存档点了。EAC 生效期间，叠加层的控制照常可用。
 
-In **Active Reset**, **Open LMU without EAC** opens the game from the folder chosen
-during setup; keep Steam available. Choose **Offline > Practice** in LMU.
-Sector checks for EAC when the game is found and while the reset listener runs.
-If detected, a warning appears in Active Reset and Save/Restore, including their
-keyboard shortcuts, are blocked. Close LMU and reopen it using this button.
-For online racing, launch LMU normally with EAC and use overlays without Active Reset.
+叠加层要用 LMU 显示设置里的**窗口化或无边框模式**。从 0.2.13 起，叠加层读取器独立连接公开 SDK，跟主动回点无关。想用在线叠加层，可以正常带着 EAC 启动 LMU，不必开离线练习；这个改动还没在真实在线比赛中验证过。主动回点只在上面那套离线环境里可用。
 
-- **Save checkpoint** and **Restore checkpoint** perform the action while the game is ready in driving.
-- **Open Active Reset** lets you change the assigned keys and confirmation sounds.
-- **Edit layout** opens the overlay editor and unlocks the widgets.
-- **Overlays on/off** uses the same setting as the Overlay tab.
+## 练一个弯或一段路
 
-## Settings, guide and background mode
+1. 开到你想开始练的那个位置。
+2. 按 **F6**，等保存成功的提示。
+3. 把要练的那段开完。
+4. 按 **F7** 回到刚才存下的点，再来一遍。
 
-- Open **Edit → Settings** for app settings and overlay display selection.
-- Enable **Reduce motion** in Settings if you prefer fewer interface animations.
-- Open **Help → Changelog** for the changes in each version, newest first.
-- Open **Help → Guide** to replay the guided tour.
+存档点里带着车的朝向和当时的驾驶状态。新的保存成功后会替换掉旧的存档点。如果保存被拒绝，先看 Sector 给出的提示，再决定要不要回点。
 
-The Sector launch animation appears only when starting the app. Click or press
-any key to skip it. Reopening Sector from the tray does not replay it.
+换车局、或者游戏重新生成你的车，都可能让存档点失效。到**主动回点**页看它的状态，需要时重新存一个。
 
-- Choose **Run in background** when closing the window to keep Sector active.
-- Reopen it from the Windows notification area or by launching `Sector.exe` again.
-- Choose **Quit Sector** to stop the app completely.
+要在车况健康时保存，等**存档点已保存**出现。撞车之后，等碰撞结束再回点。车辆损伤修复还是实验性的：前部车身修复在 Mercedes-AMG LMGT3 上验证过，其它车型和碰撞类型还要更多测试；爆胎修复在 Peugeot 9X8 上验证过，其它车型还在测。脱落部件不支持。存档点不会跨游戏重启保留。
 
-## Common problems
+### 自定义快捷键
 
-### Sector is waiting for LMU
+在主动回点页点一下某个快捷键，然后按你想用的键。按 **Escape** 取消。每个动作用一个不同的键，别用 LMU 已经占用的键。回到游戏前先把按下的键松开。
 
-Check that LMU is running from the folder you selected during setup. For Active
-Reset, select **Offline** mode in LMU, load **Practice** without EAC and enter **DRIVE**. Keep Sector open
-while the session loads, then check the status on the Active Reset page.
+用**保存音效**和**回点音效**试听确认提示；**确认音效**开关负责打开或静音。
 
-### The shortcut does nothing
+## 摆好你的叠加层
 
-Return focus to LMU, release both shortcut keys and press the key once. Check
-that Sector is connected and that you have saved a checkpoint before restoring.
-If LMU uses the same key, choose another in Sector. If Sector shows a rejection
-message, use that message to identify what needs changing.
+1. 打开**叠加层**标签页，启用你想用的小组件。
+2. 打开**叠加层**总开关，然后选**编辑布局**。
+3. 抓着每个小组件上的蓝色条拖动；拖右下角改大小。
+4. 摆满意了点**锁定布局**。按 **Escape** 也会锁上。
 
-### The overlays are not visible
+在 Sector 里选中一个小组件，可以改它的大小、透明度和可用选项。拖**不透明度**滑块能实时看透明度变化。输入类小组件里，打开方向盘才会出现**轮圈标记**颜色选项和**旋转角度**调节。列和分区开关能去掉你不需要的信息，比如把输入里的离合藏起来，或者把名次表里的厂商标志去掉。小组件会按剩下的内容自己重排。
 
-Check that **Overlays** and the individual widgets are enabled. Confirm the
-selected display in Settings. Load a session, bring LMU to the foreground and
-use windowed or borderless mode. Live widgets hide when game information is
-unavailable or when another app is in the foreground.
-They also hide while the game is paused. Resume the game before checking the layout.
-For online sessions, keep EAC enabled and check the Overlay page separately from
-Active Reset, which remains disabled. Some opponent readings may not be supplied
-by LMU online; unavailable values appear as `-`.
+多显示器的话，在**编辑 → 设置 → 叠加层**里选显示在哪块屏上。布局和偏好会存下来，下次启动照样生效。
 
-### Active Reset says the car or game version is unsupported
+小组件的刷新自动跟随那块屏的刷新率。暂停游戏、或者切到别的程序时，实时小组件会隐藏。按 F7 回点的那一下，最后一帧会留在屏幕上，等新的遥测数据到达，期间圈速和轮胎历史会重置。
 
-Sector checks the installed LMU version before connecting. After a game update,
-check [Sector Releases](https://github.com/sector-lmu/Sector/releases/latest)
-for a compatible version. A game version warning is different from a damaged-car
-warning: for the latter, repair the car or start a fresh Practice and save again.
+**轮胎**永远显示四条胎。可以藏掉某些读数，也能改冷/热的颜色阈值。轮胎圈数在 Sector 看到一条新胎或一次换胎之前一直显示未知。`puncture` 来自游戏本身；`~flat spot` 是 Sector 根据持续锁死轮胎估出来的。想更早收到警告就把**平斑灵敏度**调高，不想看就把**轮胎状态**关掉。估算值在观察到换胎、回点或新开车局之后清空。Sector 开始盯这套胎之前就撞出的伤，它看不出来。
 
-### The widgets are catching mouse clicks
+**Stint 规划**根据油量和虚拟电量的消耗估算还能跑几圈。开完整、干净的圈来攒数据，然后选按几圈平均，还可以加一点余量。这些数字是估算，会随你的节奏变。
 
-Select **Lock layout** or press **Escape** to leave layout editing. Locked
-widgets let mouse input pass through to the game.
+**名次表**把你所在组别里的自己和附近的对手放在一起。开 Hypercar 时你的组别排在其它组别前面。配方和虚拟电量两列显示每台车能拿到的数据，可以各自隐藏。
 
-### Sector disappeared after I closed its window
+名次表和相对圈速在两次计时采样之间，用车辆实际位移推测差距。带 `~` 的是估算值。拿不到新鲜遥测时，Sector 保留最近一次的计时值，不继续往前推。
 
-If you chose **Run in background**, it is still running. Look for its icon beside
-the Windows clock, including inside the hidden-icons menu, or launch Sector again.
-Choose **Quit Sector** in the close dialog when you want to stop it.
+**混动**显示电量、电功率和放出/回收状态。设定目标电量和要用几圈跑到它。放出曲线自动按车型的量程走：LMDh 是 0 到 50、每档 10，混动 LMH 是 0 到 200、每档 20。Sector 从固定曲线下的干净圈里学电量变化，只推荐每条都至少跑了两圈、且节奏相近的曲线。数据不够时建议一直是 `-`。它不会替你改曲线。非混动车显示 `N/A`。
 
-### I cannot find Sector.exe after downloading
+### 示例数据与缺失信息
 
-Make sure you downloaded the Windows app ZIP from the release's **Assets**, then
-extracted it. GitHub's **Source code** ZIP is for developers and does not contain
-the ready-to-use application. If no Windows package is attached, one has not been
-published on that release yet.
+LMU 没开的时候也能摆小组件，编辑器会用示例数据显示。那些示例只是给你排布局用的。真正跑起来时，小组件用游戏里的数据；拿不到的值显示一条短横线。
 
-## Update Sector
+圈速历史从 Sector 开始观察这一场车局算起。相对圈速是估算，带 `~`。有些信息游戏读取器根本给不了，比如未来天气预报，这些分区可以关掉。
 
-1. Close Sector using **Quit Sector**.
-2. Download the new Windows package and extract it into a new folder.
-3. Launch `Sector.exe` from that folder and update any desktop shortcut you use.
+## 主页
 
-Keep all files in the new package together. Your settings and first-run choices
-are stored separately and are retained between versions. If Sector requests an
-LMU restart, restart the game before creating your next checkpoint.
+**主页**标签页把当前车局、存档点操作和叠加层布局放在一起。叠加层关着的时候，车局数据照样更新。
 
-To back up preferences, close Sector and copy the `LMUActiveReset` folder from
-`%LOCALAPPDATA%` to a safe location. You can paste `%LOCALAPPDATA%` into File
-Explorer's address bar. This backs up settings and layout, not game checkpoints.
+**主动回点**里的**以无 EAC 方式启动 LMU**，会从设置时选定的目录启动游戏；Steam 要能正常使用。进 LMU 选 **Offline > Practice**。Sector 在发现游戏时、以及回点监听运行期间都会检查 EAC。一旦检测到，主动回点里会出现警告，保存/回点连同它们的快捷键都被禁用。关掉 LMU，用这个按钮重新打开。跑在线比赛就正常带 EAC 启动 LMU，只用叠加层，不用主动回点。
 
-## Get more help
+- **保存存档点**和**回到存档点**：游戏就绪、正在驾驶时执行对应动作。
+- **打开主动回点**：改绑定的键和确认音效。
+- **编辑布局**：打开叠加层编辑器并解锁小组件。
+- **叠加层开/关**：跟叠加层标签页里是同一个设置。
 
-### Export diagnostics
+## 设置、指南与后台运行
 
-This is an experimental pre-release: bugs are expected and further fixes are
-planned. Models without deformable bodywork components are supported.
-Active Reset supports fuel consumption and tyre wear enabled or disabled;
-leave those settings as you prefer. The app restores the saved state and does
-not change your session settings. After changing session settings, start a new
-Practice and save a new checkpoint.
+- **编辑 → 设置**里是应用设置和叠加层显示屏幕的选择。
+- **语言**一栏可以在**简体中文**和**English**之间切换，主界面和所有小组件会一起变。
+- 不喜欢界面动效多，在设置里打开**减少动效**。
+- **帮助 → 更新日志**列出每个版本的变化，新的在上面。
+- **帮助 → 快速指南**可以重看引导。
 
-1. Quit Sector completely and restart LMU after upgrading.
-2. Reproduce the problem. For Active Reset, use Offline Practice without EAC.
-3. Open **Help → Export diagnostics → Save diagnostic file**.
-4. Choose a folder and share the resulting JSON file with your bug report.
+Sector 的启动动画只在刚打开应用时出现，点一下或按任意键就能跳过。从托盘重新打开不会再播。
 
-You can export after leaving or restarting the game: recent logs remain on disk
-in the same Sector version. Export before switching to another version. Include
-the vehicle and whether the failure happened with F6 or F7 if they are not
-available in the captured session context.
+- 关窗口时选**在后台运行**，Sector 会一直在后台工作。
+- 从 Windows 通知区域点它的图标，或者再启动一次 `Sector.exe`，都能把它叫回来。
+- 想彻底停掉就选**退出 Sector**。
 
-The file contains recent text logs and system graphics information, with bounded
-size and masked Windows user-directory names. Memory dumps, raw physics captures
-and checkpoint data are excluded. Exporting does not upload or send the file.
+## 常见问题
 
-Open an [issue on GitHub](https://github.com/sector-lmu/Sector/issues) with the
-Sector version you are using, what you were doing and the exact message shown
-by the app. A screenshot can help explain a display problem.
+### Sector 一直在等 LMU
 
-Development and build instructions are in [Contributing](../CONTRIBUTING.md).
+先确认 LMU 是从设置时选的那个目录启动的。要用主动回点，就在 LMU 里选 **Offline** 模式、不带 EAC 加载 **Practice**，再进 **DRIVE**。加载车局时别关 Sector，之后到主动回点页看状态。
+
+### 按了快捷键没反应
+
+把焦点切回 LMU，两个键都松开，再按一次。确认 Sector 已经连上、而且回点之前确实存过存档点。如果 LMU 也用了同一个键，就在 Sector 里换一个。Sector 如果弹出被拒绝的提示，照着提示改。
+
+### 叠加层看不见
+
+先确认**叠加层**总开关和各个小组件都开着，再确认设置里选的屏幕没错。加载一场车局，把 LMU 切到前台，用窗口化或无边框模式。游戏信息拿不到、或者别的程序在前台时，实时小组件会隐藏；游戏暂停时也会隐藏，继续跑再检查布局。在线车局请保持 EAC 开启，叠加层到叠加层页去看，别跟主动回点混在一起——在线时主动回点一直是禁用的。在线对局里有些对手信息 LMU 不给，拿不到的值显示 `-`。
+
+### 主动回点说车辆或游戏版本不支持
+
+连接之前 Sector 会检查装的是哪个 LMU 版本。游戏更新之后，到 [Sector Releases](https://github.com/sector-lmu/Sector/releases/latest) 找兼容的版本。游戏版本警告和车辆损坏警告不是一回事：后者只要修好车，或者重开一场 Practice 再存一次就行。
+
+### 鼠标点击被小组件挡住了
+
+点**锁定布局**或者按 **Escape** 退出布局编辑。锁定之后，鼠标点击会穿过去落到游戏里。
+
+### 关了窗口 Sector 就不见了
+
+如果你选过**在后台运行**，它其实还在跑。看 Windows 时钟旁的图标，包括收起隐藏图标的菜单里，或者再启动一次 Sector。确实要停就在关闭弹窗里选**退出 Sector**。
+
+### 下载完找不到 Sector.exe
+
+确认下的是 release **Assets** 里的 Windows 应用 ZIP，并且解压过。GitHub 的 **Source code** ZIP 是给开发者的，里面没有能直接跑的应用。如果那个 release 上没挂 Windows 包，说明还没发布。
+
+## 更新 Sector
+
+1. 用**退出 Sector**关掉它。
+2. 下载新的 Windows 包，解压到一个新文件夹。
+3. 从那个文件夹启动 `Sector.exe`，顺手改掉你在用的桌面快捷方式。
+
+新包里的文件要放在一起。设置和首次启动的选择存在别处，跨版本会保留。如果 Sector 要求重启 LMU，就在存下一个存档点之前先把游戏重启。
+
+想备份偏好：关掉 Sector，把 `%LOCALAPPDATA%` 下的 `LMUActiveReset` 文件夹复制到安全的地方。可以把 `%LOCALAPPDATA%` 直接粘到文件资源管理器的地址栏里。这样备份的是设置和布局，不含游戏里的存档点。
+
+## 需要更多帮助
+
+### 导出诊断文件
+
+这是一个实验性的预发布版本：有 bug 是预期的，后面还会继续修。没有可变形车身部件的车型也支持。主动回点支持油量消耗和轮胎磨损开着或关着，按你的偏好留着就行。应用只负责恢复存下的状态，不改你的车局设置。改过车局设置之后，重开一场 Practice 再存新的存档点。
+
+1. 彻底退出 Sector，升级后重启 LMU。
+2. 复现问题。用主动回点时走不带 EAC 的离线 Practice。
+3. 打开**帮助 → 导出诊断文件 → 保存诊断文件**。
+4. 选个文件夹，把生成的 JSON 文件跟问题报告一起发出去。
+
+离开或重启游戏之后也能导出：最近的日志还在磁盘上，同一个 Sector 版本内都还在。要换到别的版本之前先导出。如果抓到的车局信息里没有，就在报告里补上车型，以及失败是 F6 还是 F7 时发生的。
+
+文件里是最近的文本日志和系统显卡信息，大小有上限，Windows 用户目录名会被打码。内存转储、原始物理数据抓取和存档点数据不含在内。导出不会上传或发送任何东西。
+
+在 GitHub 上开一个 [issue](https://github.com/sector-lmu/Sector/issues)，写清你用的 Sector 版本、当时在做什么、应用给出的原话提示是什么。显示类问题配张截图更好说明。
+
+开发和构建说明见 [Contributing](../CONTRIBUTING.md)。

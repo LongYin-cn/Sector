@@ -4,12 +4,14 @@ import check from "@iconify-icons/solar/check-circle-linear";
 import arrow from "@iconify-icons/solar/arrow-right-linear";
 import layout from "../shared/overlay-layout.cjs";
 import model from "../shared/overlay-model.cjs";
+import { useErrorMessage, useT } from "./i18n.jsx";
 import "./home.css";
 
 const api = window.sector;
 
 function LayoutPreview({ state }) {
-  const { config, displays, definitions, frame } = state;
+  const t = useT();
+  const { config, displays, frame } = state;
   const display =
     displays.find((d) => d.id === config.displayId) ||
     displays.find((d) => d.primary) ||
@@ -22,7 +24,7 @@ function LayoutPreview({ state }) {
       data-off={!config.enabled}
       data-edit={state.editing}
       role="img"
-      aria-label="Current overlay layout"
+      aria-label={t("home.layout.aria")}
       style={{
         aspectRatio: `${width} / ${height}`,
         "--display-ratio": width / height,
@@ -32,7 +34,7 @@ function LayoutPreview({ state }) {
         .filter(([, w]) => w.enabled)
         .map(([id, w]) => {
           const values = frame?.connected
-            ? model.valuesFor(id, frame, w)
+            ? model.valuesFor(id, frame, w, t.locale)
             : undefined;
           const size = layout.dimensions(id, w, values);
           const scale = Math.min(
@@ -45,7 +47,7 @@ function LayoutPreview({ state }) {
           return (
             <span
               key={id}
-              title={definitions[id].name}
+              title={t(`widget.name.${id}`)}
               style={{
                 left: `${(Math.max(0, Math.min(w.x, width - widgetWidth)) / width) * 100}%`,
                 top: `${(Math.max(0, Math.min(w.y, height - widgetHeight)) / height) * 100}%`,
@@ -56,7 +58,10 @@ function LayoutPreview({ state }) {
           );
         })}
       <small className="home-layout-caption">
-        {display.label || (display.primary ? "Primary display" : "Display")}
+        {display.label ||
+          (display.primary
+            ? t("home.display.primary")
+            : t("home.display.label"))}
       </small>
     </div>
   );
@@ -72,6 +77,8 @@ export function Home({
   resetUnavailable = false,
   onNavigate,
 }) {
+  const t = useT();
+  const tError = useErrorMessage();
   const [state, setState] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState({});
@@ -130,9 +137,11 @@ export function Home({
           )
           .join(":")
       : null;
-  const sessionDetails = [car?.vehicle, elapsed ? `session ${elapsed}` : null]
-    .filter(Boolean)
-    .join(", ");
+  const elapsedLabel = elapsed ? t("home.session.elapsed", { elapsed }) : null;
+  const sessionDetails =
+    car?.vehicle && elapsedLabel
+      ? t("home.session.details", { car: car.vehicle, elapsed })
+      : car?.vehicle || elapsedLabel || "";
   const running = game.running || inSession;
   const enabledCount = state
     ? Object.values(state.config.widgets).filter((w) => w.enabled).length
@@ -144,12 +153,12 @@ export function Home({
     <div className="home-content">
       <div className="home-heading">
         <div>
-          <div className="page-kicker">01 / Overview</div>
-          <h1>Home</h1>
+          <div className="page-kicker">{t("home.kicker")}</div>
+          <h1>{t("home.title")}</h1>
         </div>
       </div>
 
-      <section className="home-session" aria-label="Session overview">
+      <section className="home-session" aria-label={t("home.session.aria")}>
         <div className="home-session-info">
           <span
             className={
@@ -158,60 +167,60 @@ export function Home({
           >
             {inSession
               ? status.phase === "active"
-                ? "In session"
-                : "Session loaded"
+                ? t("home.state.inSession")
+                : t("home.state.sessionLoaded")
               : running
-                ? "LMU running"
+                ? t("home.state.lmuRunning")
                 : game.launching
-                  ? "Launching LMU..."
-                  : "LMU isn't running"}
+                  ? t("home.state.launching")
+                  : t("home.state.notRunning")}
           </span>
           <h2>
             {inSession
-              ? frame.track || "Session"
+              ? frame.track || t("home.session.title")
               : running
-                ? "Waiting for session"
-                : "Ready when you are"}
+                ? t("home.session.waiting")
+                : t("home.session.ready")}
           </h2>
           {sessionDetails && <p>{sessionDetails}</p>}
         </div>
         <dl className="home-stats">
           <div>
-            <dt>Laps</dt>
+            <dt>{t("home.stats.laps")}</dt>
             <dd>{car?.laps ?? "-"}</dd>
           </div>
           <div>
-            <dt>Best</dt>
+            <dt>{t("home.stats.best")}</dt>
             <dd className="home-best">{model.time(car?.best)}</dd>
           </div>
           <div>
-            <dt>Resets</dt>
+            <dt>{t("home.stats.resets")}</dt>
             <dd>{view.count}</dd>
           </div>
         </dl>
       </section>
 
       <div className="home-cards">
-        <section className="home-card" aria-label="Active Reset overview">
-          <h2>Active Reset</h2>
+        <section className="home-card" aria-label={t("home.reset.aria")}>
+          <h2>{t("home.reset.title")}</h2>
           <div className="home-keys">
             <button
               className="home-key"
               disabled={resetBlocked}
               onClick={() => action("reset", () => api.reset("save"))}
-              aria-label="Save checkpoint"
+              aria-label={t("home.reset.save")}
             >
               <kbd>{saveKey}</kbd>
-              <span>Save checkpoint</span>
+              <span>{t("home.reset.save")}</span>
             </button>
             <button
               className="home-key"
               disabled={resetBlocked || !view.saved}
               onClick={() => action("reset", () => api.reset("restore"))}
-              aria-label="Restore checkpoint"
+              aria-label={t("home.reset.restore")}
             >
               <kbd>{restoreKey}</kbd>
-              <span>Restore checkpoint</span>
+              <span>{t("home.reset.restore")}</span>
             </button>
           </div>
           <div
@@ -219,24 +228,31 @@ export function Home({
             role="status"
           >
             {view.saved && <Icon icon={check} aria-hidden="true" />}
-            {view.saved ? "Checkpoint saved" : "No checkpoint saved"}
+            {view.saved
+              ? t("home.checkpoint.saved")
+              : t("home.checkpoint.none")}
           </div>
           <button
             className="home-button home-open-reset"
             onClick={() => onNavigate("reset")}
           >
-            Open Active Reset
+            {t("home.reset.open")}
             <Icon icon={arrow} aria-hidden="true" />
           </button>
         </section>
 
-        <section className="home-card" aria-label="Overlay overview">
+        <section className="home-card" aria-label={t("home.overlay.aria")}>
           <div className="home-card-heading">
-            <h2>Overlay</h2>
+            <h2>{t("home.overlay.title")}</h2>
             {state && (
               <span className="home-badge">
-                {enabledCount} of {total} selected,{" "}
-                {state.editing ? "Editing" : "Locked"}
+                {t("home.overlay.badge", {
+                  count: enabledCount,
+                  total,
+                  mode: state.editing
+                    ? t("home.overlay.editing")
+                    : t("home.overlay.locked"),
+                })}
               </span>
             )}
           </div>
@@ -252,12 +268,12 @@ export function Home({
                 })
               }
             >
-              Edit layout
+              {t("home.overlay.edit")}
             </button>
             <button
               className="home-button home-overlay-toggle"
               role="switch"
-              aria-label="Enable overlays"
+              aria-label={t("home.overlay.enable")}
               aria-checked={state?.config.enabled || false}
               disabled={disabled || !state}
               aria-busy={Boolean(busy.overlays)}
@@ -270,14 +286,16 @@ export function Home({
                 )
               }
             >
-              Overlays {state?.config.enabled ? "on" : "off"}
+              {state?.config.enabled
+                ? t("home.overlay.toggleOn")
+                : t("home.overlay.toggleOff")}
             </button>
           </div>
         </section>
       </div>
       {error && (
         <p className="home-error" role="alert">
-          {error}
+          {tError(error)}
         </p>
       )}
     </div>

@@ -1,5 +1,31 @@
+/*
+ * Simplified-Chinese fallback. The Latin faces above ship only Latin subsets and
+ * the CSP forbids remote fonts, so the CJK range is served locally and aliased
+ * onto the families already in the stack — every existing font-family rule keeps
+ * working without touching a single component.
+ */
+@font-face {
+  font-family: "Noto Sans SC Sector";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./overlays/fonts/NotoSansSC-Sector.woff2") format("woff2");
+  unicode-range:
+    U+2E80-2EFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF,
+    U+FE30-FE4F, U+FF00-FFEF;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./overlays/fonts/NotoSansSC-Sector.woff2") format("woff2");
+  unicode-range:
+    U+2E80-2EFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF,
+    U+FE30-FE4F, U+FF00-FFEF;
+}
 :root {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: "IBM Plex Sans", "Noto Sans SC Sector", sans-serif;
   font-synthesis: none;
   color-scheme: light;
   --bg: #f3f0e8;
@@ -515,6 +541,34 @@ kbd {
 .switch[aria-checked="true"] span {
   transform: translateX(18px);
   background: white;
+}
+.language-choices {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  border: 1px solid var(--ink);
+  border-radius: 99px;
+  padding: 3px;
+  background: white;
+}
+.language-choice {
+  border: 0;
+  border-radius: 99px;
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.language-choice[aria-checked="true"] {
+  background: var(--ink);
+  color: white;
+  cursor: default;
+}
+.language-choice:disabled {
+  opacity: 0.55;
 }
 .sound-previews {
   display: grid;

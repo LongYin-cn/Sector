@@ -2,6 +2,8 @@ import React from "react";
 import logoSheet from "./logos-transparent.png";
 import genesisLogo from "./logos/genesis.svg";
 import layout from "../../shared/overlay-layout.cjs";
+import model from "../../shared/overlay-model.cjs";
+import { useLocale } from "../i18n.jsx";
 import "./fonts.css";
 import "./widgets.css";
 const sources = import.meta.glob("./designs/*.html", {
@@ -259,6 +261,11 @@ function renderNode(node, context, key) {
   );
 }
 export function Widget({ id, values, settings }) {
+  const locale = useLocale();
+  const labels = React.useMemo(
+    () => model.overlayLabels(settings?.language ?? locale),
+    [settings?.language, locale],
+  );
   return (
     <div
       className={`lmu-widget widget-${id}`}
@@ -271,6 +278,7 @@ export function Widget({ id, values, settings }) {
         templates[id],
         {
           ...values,
+          labels,
           settings,
           widgetId: id,
           dimensions: layout.dimensions(id, settings, values),
