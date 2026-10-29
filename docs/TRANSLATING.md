@@ -46,3 +46,21 @@ npm test
 
 - 默认语言 `zh-CN`，可在「编辑 → 设置 → 语言与地区」实时切换，选择写进 `settings.json` 的 `language` 字段。
 - 命令行 `--lang=en` / `--lang=zh-CN` 可强制某一语言；`--smoke`（自动化测试）同样会钉死英文，所以英文 UI 测试无需改动。
+
+## 这套汉化的验证范围
+
+改动在一台没有 LMU 安装、也没有原生工具链的机器上完成，验证到下面这些线为止：
+
+| 项目 | 结果 |
+| --- | --- |
+| `npm test`（纯逻辑） | 68/68 通过 |
+| `test:ui`（Electron / overlay / home 三个套件） | 通过 |
+| `test:onboarding` / `test:startup` / `test:diagnostics` | 通过 |
+| `test:telemetry` / `test:release` | 跑不了：需要 `bin/overlay-reader.exe` 等原生产物 |
+| 中文界面文本审计（三个 tab + 六个弹窗） | 无漏翻、无 pageerror |
+| 英文界面回归 | 无中文泄漏 |
+| 十个叠加层 widget 截图 | 中文不裁切；英文与改造前逐字节相同 |
+| 首次启动 + 八步导览 | 中文文案完整 |
+
+`test:telemetry` 与 `test:release` 阻塞的原因见 `docs/RELEASE.md`：原生组件要用 Zig 0.16 构建，并且需要本地已验证的 LMU SDK、兼容性清单与录制的固件输入 —— 这些都不随仓库分发。要在有这些前置条件的机器上验收，跑 `./scripts/build/Build-ResetDesktop.ps1 -ZigPath <zig.exe>` 之后再执行这两个套件即可，汉化本身不涉及它们。
+
