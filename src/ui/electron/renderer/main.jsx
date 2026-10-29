@@ -164,12 +164,17 @@ function App() {
     setPending(true);
     try {
       const result = await api.saveSettings(candidate);
-      if (!result.ok) throw new Error(result.error);
+      if (!result.ok) {
+        // Prefer the dictionary key so the message follows the interface language.
+        const failure = new Error(result.error);
+        failure.key = result.error_key ?? null;
+        throw failure;
+      }
       setSettings(result.settings);
       setError("");
       return true;
     } catch (err) {
-      setError(err.message);
+      setError(err.key ?? err.message);
       return false;
     } finally {
       setPending(false);

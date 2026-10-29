@@ -398,7 +398,13 @@ function installBridge() {
         settings: { ...preferences, language: pinnedLocale ?? preferences.language },
       };
     } catch (error) {
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        code: error.code ?? "SETTINGS_INVALID",
+        error: error.message,
+        error_key: error.key ?? null,
+        error_params: error.params ?? {},
+      };
     }
   });
   handle("sector:overlays-initialize", () => overlays.state());
